@@ -8,12 +8,17 @@ Created on Mon Feb 11 20:44:41 2019
 import tensorflow as tf
 import numpy as np
 from model import input_fn
+from model import base_cnn
+
 
 def main():
     myInput = input_fn.InputFunction()
-    myData = myInput.assembleTrainingData();
+    tfData = myInput.prepareTFData()
     
-    dataset = tf.data.Dataset.from_tensor_slices((myData[0],myData[1]))
-    print(dataset)
+    baseCNN = base_cnn.CNN(tfData)
+    baseCNN.train()
     
+   
+    
+   
 main()
