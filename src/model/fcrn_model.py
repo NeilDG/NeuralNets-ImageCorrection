@@ -18,7 +18,8 @@ def sample_build_model(input):
 
     shape = pool1.get_shape()
     print(shape)
-
+    
+    #d1 refers to lower branch num_filters, d2 refers to upper branch num_filters
     res2a_relu = build_res_block(input=pool1,block_name='2a',d1=64,d2=256,projection=True,down_size=False)
     res2b_relu = build_res_block(input=res2a_relu,block_name='2b',d1=64,d2=256)
     res2c_relu = build_res_block(input=res2b_relu,block_name='2c',d1=64,d2=256)
@@ -190,8 +191,10 @@ def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias 
                                  padding=padding,
                                  name=name,
                                  trainable=trainable,
-                                 kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
-                                 bias_initializer=tf.constant_initializer(weights[name]['biases'], dtype=tf.float32),
+                                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
+                                 bias_initializer = tf.contrib.layers.xavier_initializer(),
+                                 #kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
+                                 #bias_initializer=tf.constant_initializer(weights[name]['biases'], dtype=tf.float32),
                                  use_bias=use_bias)
     else :
         layer = tf.layers.conv2d(inputs=input,
@@ -201,7 +204,8 @@ def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias 
                                  padding=padding,
                                  name=name,
                                  trainable=trainable,
-                                 kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
+                                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
+                                 #kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
                                  use_bias=use_bias)
 
     return layer
@@ -239,10 +243,14 @@ def batch_norm(input,name,relu = False,isTraining = False):
                                           training=isTraining)
     '''
     layer = tf.nn.batch_normalization(x=input,
-                                      mean=weights[name]['mean'],
-                                      variance=weights[name]['variance'],
-                                      offset=weights[name]['offset'],
-                                      scale=weights[name]['scale'],
+                                      #mean=weights[name]['mean'],
+                                      #variance=weights[name]['variance'],
+                                      #offset=weights[name]['offset'],
+                                      #scale=weights[name]['scale'],
+                                      mean = 0.0,
+                                      variance = tf.random.normal(shape = [1]),
+                                      offset = tf.random.normal(shape = [1]),
+                                      scale = tf.random.normal(shape = [1]),
                                       variance_epsilon=1e-4,
                                       name=name)
     if relu :

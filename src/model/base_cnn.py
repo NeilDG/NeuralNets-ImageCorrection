@@ -21,7 +21,7 @@ class CNN(object):
         self.dataset = dataset
         self.epoch = 500
         self.learning_rate = 0.001
-        self.batch_size = 64
+        self.batch_size = 8
         self.session = tf.Session()
         
         
@@ -51,7 +51,25 @@ class CNN(object):
         shape = pool1.get_shape()
         print("Pool shape: ",shape, " Conv shape: ", conv1[0][0].get_shape())
         
-        return pool1
+        res2a_relu = fcrn.build_res_block(input=pool1,block_name='2a',d1=64,d2=64,projection=True,down_size=False)
+        res2b_relu = fcrn.build_res_block(input=res2a_relu,block_name='2b',d1=64,d2=64)
+        res2c_relu = fcrn.build_res_block(input=res2b_relu,block_name='2c',d1=64,d2=64)
+        
+        layer1 = fcrn.conv_default(input=res2c_relu,name='layer1',stride=1,kernel_size=(1,1),num_filters=64)
+        layer1_BN = fcrn.batch_norm_default(input=layer1,name='layer1_BN',relu=False)
+        
+        shape = layer1_BN.get_shape()
+        print("layer 1 BN shape: ",shape)
+        
+        # UP-CONV
+        up_2x = fcrn.build_up_conv_block(input=layer1_BN,block_name='2x',num_filters=64)
+        up_4x = fcrn.build_up_conv_block(input=up_2x, block_name='4x', num_filters=64)
+        #up_8x = fcrn.build_up_conv_block(input=up_4x, block_name='8x', num_filters=32)
+        #up_16x = fcrn.build_up_conv_block(input=up_8x, block_name='16x', num_filters=8)
+        
+        pred = fcrn.conv_default(input=up_4x,name='ConvPred',stride=1,kernel_size=(3,3),num_filters=3)
+        
+        return pred
     
     def train(self):
         
@@ -79,9 +97,9 @@ class CNN(object):
         inputImage = tf.placeholder("float", [None, KITTI_REDUCED_H,KITTI_REDUCED_W,3], name = "input_image")
         outputImage = tf.placeholder("float", [None, KITTI_REDUCED_H,KITTI_REDUCED_W,3], name = "output_image")
         
+        pred = self.create_convNet(inputImage)
         globalVar = tf.global_variables_initializer()
         
-        pred = self.create_convNet(inputImage)
         #loss = tf.losses.mean_squared_error(pred, outputImage) #TODO: dimensions must be equal. use UPCONV from RRL
         #optimizer = tf.train.AdamOptimizer(self.learning_rate)
         #optimizer.minimize(loss)
@@ -93,10 +111,12 @@ class CNN(object):
                 try:
                     while True:
                       elemInstance = sess.run(nextElement)
-                      print("Input image shape: ", np.shape(elemInstance[0][0]))
-                      sess.run(pred, feed_dict = {inputImage: elemInstance[0]})
+                      result = sess.run(pred, feed_dict = {inputImage: elemInstance[0]})
+                      print("Result shape: ", np.shape(result))
+                      print("Matrix result: ", result[0])
+                      plt.imshow(result[0]); plt.show()
                       #opt = sess.run(optimizer, feed_dict = {x: nextElement[0], y: nextElement[1]})
-                      print("epoch: ", (i+1))
+                      #print("epoch: ", (i+1))
                       #print("epoch ", (i+1)," Max epoch: ", self.epoch, " First elem shape: ", np.shape(elemInstance), "Shape of image: ", np.shape(elemInstance[0][0]))
                       #plt.imshow(elemInstance[0][0])
                       #plt.show()
