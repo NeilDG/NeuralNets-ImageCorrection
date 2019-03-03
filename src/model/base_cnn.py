@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 from model import read_depth as rd
 from model import conv_util
+from model import fcrn_model as fcrn
 from matplotlib import pyplot as plt
 
 KITTI_REDUCED_H = 125; KITTI_REDUCED_W = 414;
@@ -21,6 +22,7 @@ class CNN(object):
         self.epoch = 500
         self.learning_rate = 0.001
         self.batch_size = 64
+        self.session = tf.Session()
         
         
     def parse_function(self, filenameRGB, fileNameDepth):
@@ -41,19 +43,18 @@ class CNN(object):
         resizedDepth = tf.image.resize_images(image, [KITTI_REDUCED_H, KITTI_REDUCED_W])
         return resizedRGB, resizedDepth
     
-    def create_convNet(self, input_image, weights, biases):
-        conv1 = conv_util.conv2d(input_image, weights['wc1'], biases['bc1'])
-        conv1 = conv_util.maxpool2d(conv1, k=2)
-        
-        conv2 = conv_util.conv2d(conv1, weights['wc2'], biases['bc2'])
-        conv2 = conv_util.maxpool2d(conv2, k=2)
+    def create_convNet(self, inputImage):
+        conv1 = fcrn.conv_default(input=inputImage,name='conv1',stride=2,kernel_size=(7,7),num_filters=64)
+        bn_conv1 = fcrn.batch_norm_default(input=conv1,name='bn_conv1',relu=True)
+        pool1 = tf.nn.max_pool(bn_conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME',name='pool1')
     
-        conv3 = conv_util.conv2d(conv2, weights['wc3'], biases['bc3'])
-        conv3 = conv_util.maxpool2d(conv3, k=2)
+        shape = pool1.get_shape()
+        print("Pool shape: ",shape, " Conv shape: ", conv1[0][0].get_shape())
         
-        return conv3
+        return pool1
     
     def train(self):
+        
         trainData = self.dataset.map(map_func = self.parse_function, num_parallel_calls=4)
         trainData = trainData.batch(self.batch_size)
         trainData = trainData.prefetch(1)
@@ -74,22 +75,26 @@ class CNN(object):
             'bc3': tf.get_variable('B2', shape=(128), initializer=tf.contrib.layers.xavier_initializer())
             }
     
-        init = tf.global_variables_initializer()
-        inputImage = tf.placeholder("float", [None, KITTI_REDUCED_H,KITTI_REDUCED_W,3])
-        outputImage = tf.placeholder("float", [None, KITTI_REDUCED_H,KITTI_REDUCED_W,3])
         
-        pred = self.create_convNet(inputImage, weights, biases)
-        loss = tf.losses.mean_squared_error(pred, outputImage) #TODO: dimensions must be equal. use UPCONV from RRL
-        optimizer = tf.train.AdamOptimizer(self.learning_rate)
-        optimizer.minimize(loss)
+        inputImage = tf.placeholder("float", [None, KITTI_REDUCED_H,KITTI_REDUCED_W,3], name = "input_image")
+        outputImage = tf.placeholder("float", [None, KITTI_REDUCED_H,KITTI_REDUCED_W,3], name = "output_image")
         
-        with tf.Session() as sess:
-            sess.run(init) #init weights and biases
+        globalVar = tf.global_variables_initializer()
+        
+        pred = self.create_convNet(inputImage)
+        #loss = tf.losses.mean_squared_error(pred, outputImage) #TODO: dimensions must be equal. use UPCONV from RRL
+        #optimizer = tf.train.AdamOptimizer(self.learning_rate)
+        #optimizer.minimize(loss)
+        
+        with self.session as sess:
+            sess.run(globalVar) #init weights, biases and other variables
             for i in range(self.epoch):
                 sess.run(initOp)
                 try:
                     while True:
                       elemInstance = sess.run(nextElement)
+                      print("Input image shape: ", np.shape(elemInstance[0][0]))
+                      sess.run(pred, feed_dict = {inputImage: elemInstance[0]})
                       #opt = sess.run(optimizer, feed_dict = {x: nextElement[0], y: nextElement[1]})
                       print("epoch: ", (i+1))
                       #print("epoch ", (i+1)," Max epoch: ", self.epoch, " First elem shape: ", np.shape(elemInstance), "Shape of image: ", np.shape(elemInstance[0][0]))

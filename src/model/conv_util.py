@@ -14,3 +14,7 @@ def conv2d(x, kernel, bias, strides=1):
 
 def maxpool2d(x, k=2):
     return tf.nn.max_pool(x, ksize=[1, k, k, 1], strides=[1, k, k, 1],padding='SAME')
+
+def relu(input_data, name):
+    return tf.nn.relu(input_data, name=name)
+
