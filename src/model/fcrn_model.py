@@ -3,8 +3,7 @@ import numpy as np
 
 #IN_H = 304
 #IN_W = 228
-#weights = np.load('NYU_ResNet-UpProj.npy', encoding='latin1').item()
-
+weights = np.load('C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/inference_code/NYU_ResNet-UpProj.npy', encoding='latin1').item()
 
 #taken from Deeper Depth Prediction with Fully Convolutional Residual Networks
 def sample_build_model(input):
@@ -182,7 +181,7 @@ def build_upper_branch(input,block_name,in_depth,out_depth,projection = False,do
 
     return bn_branch2c
 
-def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias = True,padding = 'SAME'):
+def conv(input,name,stride,kernel_size,num_filters,trainable = True , use_bias = True,padding = 'SAME'):
     if use_bias:
         layer = tf.layers.conv2d(inputs=input,
                                  strides=(stride, stride),
@@ -191,10 +190,10 @@ def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias 
                                  padding=padding,
                                  name=name,
                                  trainable=trainable,
-                                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
-                                 bias_initializer = tf.contrib.layers.xavier_initializer(),
-                                 #kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
-                                 #bias_initializer=tf.constant_initializer(weights[name]['biases'], dtype=tf.float32),
+                                 #kernel_initializer = tf.contrib.layers.xavier_initializer(),
+                                 #bias_initializer = tf.contrib.layers.xavier_initializer(),
+                                 kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
+                                 bias_initializer=tf.constant_initializer(weights[name]['biases'], dtype=tf.float32),
                                  use_bias=use_bias)
     else :
         layer = tf.layers.conv2d(inputs=input,
@@ -204,36 +203,12 @@ def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias 
                                  padding=padding,
                                  name=name,
                                  trainable=trainable,
-                                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
-                                 #kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
+                                 #kernel_initializer = tf.contrib.layers.xavier_initializer(),
+                                 kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
                                  use_bias=use_bias)
 
     return layer
 
-def conv_default(input,name,stride,kernel_size,num_filters,trainable = False , use_bias = True,padding = 'SAME'):
-    if use_bias:
-        layer = tf.layers.conv2d(inputs=input,
-                                 strides=(stride, stride),
-                                 filters=num_filters,
-                                 kernel_size=kernel_size,
-                                 padding=padding,
-                                 name=name,
-                                 trainable=trainable,
-                                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                 bias_initializer=tf.contrib.layers.xavier_initializer(),
-                                 use_bias=use_bias)
-    else :
-        layer = tf.layers.conv2d(inputs=input,
-                                 strides=(stride, stride),
-                                 filters=num_filters,
-                                 kernel_size=kernel_size,
-                                 padding=padding,
-                                 name=name,
-                                 trainable=trainable,
-                                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                                 use_bias=use_bias)
-
-    return layer
 
 def batch_norm(input,name,relu = False,isTraining = False):
     '''
@@ -243,37 +218,37 @@ def batch_norm(input,name,relu = False,isTraining = False):
                                           training=isTraining)
     '''
     layer = tf.nn.batch_normalization(x=input,
-                                      #mean=weights[name]['mean'],
-                                      #variance=weights[name]['variance'],
-                                      #offset=weights[name]['offset'],
-                                      #scale=weights[name]['scale'],
-                                      mean = 0.0,
-                                      variance = tf.random.normal(shape = [1]),
-                                      offset = tf.random.normal(shape = [1]),
-                                      scale = tf.random.normal(shape = [1]),
+                                      mean=weights[name]['mean'],
+                                      variance=weights[name]['variance'],
+                                      offset=weights[name]['offset'],
+                                      scale=weights[name]['scale'],
+                                      #mean = 0.0,
+                                      #variance = tf.random.normal(shape = [1]),
+                                      #offset = tf.random.normal(shape = [1]),
+                                      #scale = tf.random.normal(shape = [1]),
                                       variance_epsilon=1e-4,
                                       name=name)
     if relu :
         layer = tf.nn.relu(layer)
     return layer
 
-def batch_norm_default(input,name,relu = False,isTraining = False):
-    '''
-    layer = tf.layers.batch_normalization(input=input ,
-                                          moving_variance_initializer=tf.constant_initializer(weights[name]['variance'], dtype=tf.float32),
-                                          moving_mean_initializer=tf.constant_initializer(weights[name]['mean'], dtype=tf.float32),
-                                          training=isTraining)
-    '''
-    layer = tf.nn.batch_normalization(x = input,
-                                      mean = 0.0,
-                                      variance = tf.random.normal(shape = [1]),
-                                      offset = tf.random.normal(shape = [1]),
-                                      scale = tf.random.normal(shape = [1]),
-                                      variance_epsilon = 1e-4,
-                                      name = name)
-    if relu :
-        layer = tf.nn.relu(layer)
-    return layer
+#def batch_norm_default(input,name,relu = False,isTraining = False):
+#    '''
+#    layer = tf.layers.batch_normalization(input=input ,
+#                                          moving_variance_initializer=tf.constant_initializer(weights[name]['variance'], dtype=tf.float32),
+#                                          moving_mean_initializer=tf.constant_initializer(weights[name]['mean'], dtype=tf.float32),
+#                                          training=isTraining)
+#    '''
+#    layer = tf.nn.batch_normalization(x = input,
+#                                      mean = 0.0,
+#                                      variance = tf.random.normal(shape = [1]),
+#                                      offset = tf.random.normal(shape = [1]),
+#                                      scale = tf.random.normal(shape = [1]),
+#                                      variance_epsilon = 1e-4,
+#                                      name = name)
+#    if relu :
+#        layer = tf.nn.relu(layer)
+#    return layer
 
 def weights_init(shape,layer_name,trainable = True):
     return tf.Variable(tf.truncated_normal(shape, stddev=0.001),name=layer_name+"_B",trainable=trainable)
