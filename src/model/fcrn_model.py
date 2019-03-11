@@ -181,7 +181,7 @@ def build_upper_branch(input,block_name,in_depth,out_depth,projection = False,do
 
     return bn_branch2c
 
-def conv(input,name,stride,kernel_size,num_filters,trainable = True , use_bias = True,padding = 'SAME'):
+def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias = True,padding = 'SAME'):
     if use_bias:
         layer = tf.layers.conv2d(inputs=input,
                                  strides=(stride, stride),

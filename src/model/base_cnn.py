@@ -75,7 +75,7 @@ class CNN(object):
             #results to 128 x 416 if 2x - 4x. 256 x 832 if 2x - 4x - 8x.  512 x 1664 for 2x - 4x - 8x - 16x
             
             drop = tf.nn.dropout(up_16x, keep_prob = 1., name='drop')
-            pred = fcrn.conv(input=drop,name='ConvPred',stride=1,kernel_size=(3,3),num_filters=1)
+            pred = fcrn.conv(input=drop,name='ConvPred',stride=1,kernel_size=(3,3),num_filters=1, trainable = True)
             pred = tf.image.resize_bicubic(pred, [KITTI_REDUCED_H, KITTI_REDUCED_W])
             print("Pred CNN shape: ", pred, "Pred type: ", type(pred))
         return pred
@@ -138,7 +138,7 @@ class CNN(object):
             sess.run(metricsInitOp)
             
              # Restore variables from disk.
-            saver.restore(sess, "tmp/model_last_layer.ckpt")
+            #saver.restore(sess, "tmp/model_last_layer.ckpt")
             
             #testing only
             #depthImages = sess.run(image_depths)
