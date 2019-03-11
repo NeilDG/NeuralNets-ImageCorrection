@@ -22,8 +22,8 @@ class CNN(object):
     def __init__(self, dataset):
         self.dataset = dataset
         self.epoch = 500
-        self.learning_rate = 0.001
-        self.batch_size = 8
+        self.learning_rate = 0.1
+        self.batch_size = 16
         
         
     def parse_function(self, filenameRGB, fileNameDepth):
@@ -42,46 +42,50 @@ class CNN(object):
         resizedDepth = tf.image.resize_images(image, [KITTI_REDUCED_H, KITTI_REDUCED_W])
         return resizedRGB, resizedDepth
     
-    def create_convNet(self, inputImage):        
-        conv1 = fcrn.conv(input=inputImage,name='conv1',stride=2,kernel_size=(7,7),num_filters=64)
-        bn_conv1 = fcrn.batch_norm(input=conv1,name='bn_conv1',relu=True)
-        pool1 = tf.nn.max_pool(bn_conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME',name='pool1')
+    def create_convNet(self, inputImage): 
         
-        res2a_relu = fcrn.build_res_block(input=pool1,block_name='2a',d1=64,d2=256,projection=True,down_size=False)
-        res2b_relu = fcrn.build_res_block(input=res2a_relu,block_name='2b',d1=64,d2=256)
-        res2c_relu = fcrn.build_res_block(input=res2b_relu,block_name='2c',d1=64,d2=256)
-        
-        res3a_relu = fcrn.build_res_block(input=res2c_relu,block_name='3a',d1=128,d2=512,projection=True)
-        res3b_relu = fcrn.build_res_block(input=res3a_relu,block_name='3b',d1=128,d2=512)
-        res3c_relu = fcrn.build_res_block(input=res3b_relu,block_name='3c',d1=128,d2=512)
-        res3d_relu = fcrn.build_res_block(input=res3c_relu,block_name='3d',d1=128,d2=512)
-        
-        res4a_relu = fcrn.build_res_block(input=res3d_relu,block_name='4a',d1=256,d2=1024,projection=True)
-        res4b_relu = fcrn.build_res_block(input=res4a_relu,block_name='4b',d1=256,d2=1024)
-        
-        res5a_relu = fcrn.build_res_block(input=res4b_relu,block_name='5a',d1=512,d2=2048,projection=True)
-        res5b_relu = fcrn.build_res_block(input=res5a_relu,block_name='5b',d1=512,d2=2048)
-        
-        layer1 = fcrn.conv(input=res5b_relu,name='layer1',stride=1,kernel_size=(1,1),num_filters=1024)
-        layer1_BN = fcrn.batch_norm(input=layer1,name='layer1_BN',relu=False)
-        
-        # UP-CONV
-        up_2x = fcrn.build_up_conv_block(input=layer1_BN,block_name='2x',num_filters=512)
-        up_4x = fcrn.build_up_conv_block(input=up_2x, block_name='4x', num_filters=256)
-        up_8x = fcrn.build_up_conv_block(input=up_4x, block_name='8x', num_filters=128)
-        up_16x = fcrn.build_up_conv_block(input=up_8x, block_name='16x', num_filters = 64)
-        #results to 128 x 416 if 2x - 4x. 256 x 832 if 2x - 4x - 8x.  512 x 1664 for 2x - 4x - 8x - 16x
-        
-        pred = fcrn.conv(input=up_16x,name='ConvPred',stride=1,kernel_size=(3,3),num_filters=1)
-        pred = tf.image.resize_bicubic(pred, [KITTI_REDUCED_H, KITTI_REDUCED_W])
-        print("Pred CNN shape: ", pred, "Pred type: ", type(pred))
+        with tf.variable_scope("cnn", reuse = tf.AUTO_REUSE):
+            conv1 = fcrn.conv(input=inputImage,name='conv1',stride=2,kernel_size=(7,7),num_filters=64)
+            bn_conv1 = fcrn.batch_norm(input=conv1,name='bn_conv1',relu=True)
+            pool1 = tf.nn.max_pool(bn_conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1], padding='SAME',name='pool1')
+            
+            res2a_relu = fcrn.build_res_block(input=pool1,block_name='2a',d1=64,d2=256,projection=True,down_size=False)
+            res2b_relu = fcrn.build_res_block(input=res2a_relu,block_name='2b',d1=64,d2=256)
+            res2c_relu = fcrn.build_res_block(input=res2b_relu,block_name='2c',d1=64,d2=256)
+            
+            res3a_relu = fcrn.build_res_block(input=res2c_relu,block_name='3a',d1=128,d2=512,projection=True)
+            res3b_relu = fcrn.build_res_block(input=res3a_relu,block_name='3b',d1=128,d2=512)
+            res3c_relu = fcrn.build_res_block(input=res3b_relu,block_name='3c',d1=128,d2=512)
+            res3d_relu = fcrn.build_res_block(input=res3c_relu,block_name='3d',d1=128,d2=512)
+            
+            res4a_relu = fcrn.build_res_block(input=res3d_relu,block_name='4a',d1=256,d2=1024,projection=True)
+            res4b_relu = fcrn.build_res_block(input=res4a_relu,block_name='4b',d1=256,d2=1024)
+            
+            res5a_relu = fcrn.build_res_block(input=res4b_relu,block_name='5a',d1=512,d2=2048,projection=True)
+            res5b_relu = fcrn.build_res_block(input=res5a_relu,block_name='5b',d1=512,d2=2048)
+            
+            layer1 = fcrn.conv(input=res5b_relu,name='layer1',stride=1,kernel_size=(1,1),num_filters=1024)
+            layer1_BN = fcrn.batch_norm(input=layer1,name='layer1_BN',relu=False)
+            
+            # UP-CONV
+            up_2x = fcrn.build_up_conv_block(input=layer1_BN,block_name='2x',num_filters=512)
+            up_4x = fcrn.build_up_conv_block(input=up_2x, block_name='4x', num_filters=256)
+            up_8x = fcrn.build_up_conv_block(input=up_4x, block_name='8x', num_filters=128)
+            up_16x = fcrn.build_up_conv_block(input=up_8x, block_name='16x', num_filters = 64)
+            #results to 128 x 416 if 2x - 4x. 256 x 832 if 2x - 4x - 8x.  512 x 1664 for 2x - 4x - 8x - 16x
+            
+            drop = tf.nn.dropout(up_16x, keep_prob = 1., name='drop')
+            pred = fcrn.conv(input=drop,name='ConvPred',stride=1,kernel_size=(3,3),num_filters=1)
+            pred = tf.image.resize_bicubic(pred, [KITTI_REDUCED_H, KITTI_REDUCED_W])
+            print("Pred CNN shape: ", pred, "Pred type: ", type(pred))
         return pred
     
     def train(self):
         
+        
         trainData = self.dataset.map(map_func = self.parse_function, num_parallel_calls=4)
         trainData = trainData.batch(self.batch_size)
-        trainData = trainData.prefetch(1)
+        trainData = trainData.prefetch(2)
         
         iterator = trainData.make_initializable_iterator()
         initOp = iterator.initializer
@@ -106,7 +110,7 @@ class CNN(object):
         ground_truths = inputs["image_depths"]
         ground_truths = tf.cast(ground_truths, tf.float32)
         loss = tf.losses.huber_loss(labels = ground_truths, predictions = pred)
-        optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(loss)
+        optimizer = tf.train.MomentumOptimizer(learning_rate = self.learning_rate, momentum = 0.5, use_nesterov = True).minimize(loss)
         globalVar = tf.global_variables_initializer()
         print("Successful optimizer setup")
         
@@ -122,20 +126,72 @@ class CNN(object):
         metric_variables = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics")
         metricsInitOp = tf.variables_initializer(metric_variables)
         
+        #for testing
+        testInput = tf.placeholder(dtype = tf.float32, shape = (self.batch_size, KITTI_REDUCED_H, KITTI_REDUCED_W, 3), name = "test_input")
+        pred = self.create_convNet(testInput)
+        
+        saver = tf.train.Saver()
+        
         with tf.Session() as sess:
             sess.run(globalVar) #init weights, biases and other variables
             sess.run(initOp)
             sess.run(metricsInitOp)
+            
+             # Restore variables from disk.
+            saver.restore(sess, "tmp/model_last_layer.ckpt")
+            
+            #testing only
+            #depthImages = sess.run(image_depths)
+            #self.inpaintDepth(depthImages[0])
+            
             for i in range(self.epoch):
-                for k in range(self.batch_size): 
+                while True:
+                  try:
                     opt = sess.run([optimizer, loss])
                     print("Optimizing! ", opt)
                     sess.run(update_metrics_op)
-                
+                  except tf.errors.OutOfRangeError:
+                    print("End of sequence, looping to next epoch ", (i+1))
+                    sess.run(initOp)
+                    #test image
+                    inputImages = sess.run(image_rgbs)
+                    depthImages = sess.run(image_depths)
+                    predDepth = sess.run(pred, feed_dict = {testInput: inputImages})
+                    plt.imshow(inputImages[0]); plt.show()
+                    plt.imshow(predDepth[0][:,:,0]); plt.show()
+                    plt.imshow(depthImages[0][:,:,0]); plt.show()
+                    
+                    sess.run(initOp) #re-initialize iterator again for next epoch
+                    
+                    #save data
+                    save_path = saver.save(sess, "tmp/model_last_layer.ckpt")
+                    print("Weights saved in path: %s" %save_path)
+                    break
+#                for k in range(self.batch_size): 
+#                    try:
+#                        opt = sess.run([optimizer, loss])
+#                        print("Optimizing! ", opt)
+#                        sess.run(update_metrics_op)
+#                    except: 
+#                        sess.run(initOp)
+#                        print("End of sequence, looping to next batch")
+                        
+
                 # Get the values of the metrics
                 metrics_values = {k: v[0] for k, v in metrics.items()}
                 metrics_val = sess.run(metrics_values)
                 print("Metrics", metrics_val)
+
+    def inpaintDepth(self, depthImage):
+        _,binaryInv = cv2.threshold(depthImage, 0, 1, cv2.THRESH_BINARY_INV)
+        binaryInv = binaryInv.astype("uint8")
+        plt.imshow(binaryInv); plt.show()
+        inpaintImg = cv2.inpaint(depthImage, binaryInv, 1, cv2.INPAINT_TELEA)
+        plt.imshow(inpaintImg); plt.show()
+        
+        return inpaintImg
+                
+                
                 
                 
 

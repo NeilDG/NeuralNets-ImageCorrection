@@ -19,6 +19,4 @@ def main():
     baseCNN.train()
     
    
-    
-   
 main()
