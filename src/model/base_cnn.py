@@ -12,6 +12,7 @@ import cv2
 from model import read_depth as rd
 from model import conv_util
 from model import fcrn_model as fcrn
+from model import tensorboard_writer as tb
 from matplotlib import pyplot as plt
 
 KITTI_REDUCED_H = 128; KITTI_REDUCED_W = 416;
@@ -83,8 +84,8 @@ class CNN(object):
         
         
         trainData = self.dataset.map(map_func = self.parse_function, num_parallel_calls=4)
-        trainData = trainData.batch(self.batch_size)
-        trainData = trainData.prefetch(2)
+        batchRun = trainData.batch(self.batch_size)
+        trainData = batchRun.prefetch(2)
         
         iterator = trainData.make_initializable_iterator()
         initOp = iterator.initializer
@@ -104,19 +105,21 @@ class CNN(object):
 #            'bc3': tf.get_variable('B2', shape=(128), initializer=tf.contrib.layers.xavier_initializer())
 #            }
     
-        pred = self.create_convNet(inputs["image_rgbs"])
+        trainPred = self.create_convNet(inputs["image_rgbs"])
         
         ground_truths = inputs["image_depths"]
         ground_truths = tf.cast(ground_truths, tf.float32)
-        loss = tf.losses.huber_loss(labels = ground_truths, predictions = pred)
+        loss = tf.losses.huber_loss(labels = ground_truths, predictions = trainPred)
         optimizer = tf.train.MomentumOptimizer(learning_rate = self.learning_rate, momentum = 0.5, use_nesterov = True).minimize(loss)
         globalVar = tf.global_variables_initializer()
         print("Successful optimizer setup")
         
         # Define the different metrics
         with tf.variable_scope("metrics"): 
-            metrics = {"mean_squared_error" : tf.metrics.mean_squared_error(labels = ground_truths, predictions = pred),
-                       "rms" : tf.metrics.root_mean_squared_error(labels = ground_truths, predictions = pred)}
+            metrics = {"mean_squared_error" : tf.metrics.mean_squared_error(labels = ground_truths, predictions = trainPred),
+                       "rmse" : tf.metrics.root_mean_squared_error(labels = ground_truths, predictions = trainPred)}
+            tf.summary.scalar('mean_squared_error', metrics["mean_squared_error"])
+            tf.summary.scalar('rmse', metrics["rmse"])
         
         # Group the update ops for the tf.metrics, so that we can run only one op to update them all
         update_metrics_op = tf.group(*[op for _, op in metrics.values()])
@@ -124,10 +127,12 @@ class CNN(object):
         # Get the op to reset the local variables used in tf.metrics, for when we restart an epoch
         metric_variables = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics")
         metricsInitOp = tf.variables_initializer(metric_variables)
+        merged = tf.summary.merge_all()
+        trainWriter = tf.summary.FileWriter('/train', tf.get_default_graph())
         
         #for testing
         testInput = tf.placeholder(dtype = tf.float32, shape = (self.batch_size, KITTI_REDUCED_H, KITTI_REDUCED_W, 3), name = "test_input")
-        pred = self.create_convNet(testInput)
+        testPred = self.create_convNet(testInput)
         
         saver = tf.train.Saver()  
 #        imgNum = 0;
@@ -156,14 +161,15 @@ class CNN(object):
             sess.run(globalVar) #init weights, biases and other variables
             sess.run(initOp)
             sess.run(metricsInitOp)
-            
+            tb.logGradients(sess, loss)
             # Restore variables from disk.
-            #saver.restore(sess, "tmp/model_last_layer.ckpt") 
+            saver.restore(sess, "tmp/model_0330_uint32.ckpt") 
             
             for i in range(self.epoch):
                 while True:
                   try:
                     opt = sess.run([optimizer, loss])
+                    tb.logGradients(sess, loss)
                     print("Optimizing! ", opt)
                     sess.run(update_metrics_op)
                   except tf.errors.OutOfRangeError:
@@ -172,7 +178,7 @@ class CNN(object):
                     #test image
                     inputImages = sess.run(image_rgbs)
                     depthImages = sess.run(image_depths)
-                    predDepth = sess.run(pred, feed_dict = {testInput: inputImages})
+                    predDepth = sess.run(testPred, feed_dict = {testInput: inputImages})
                     plt.imshow(inputImages[0].astype("uint8")); plt.show()
                     plt.imshow(predDepth[0][:,:,0]); plt.show()
                     plt.imshow(depthImages[0][:,:,0]); plt.show()
@@ -188,7 +194,11 @@ class CNN(object):
                 metrics_values = {k: v[0] for k, v in metrics.items()}
                 metrics_val = sess.run(metrics_values)
                 print("Metrics", metrics_val)
-
+                
+                summary = sess.run(merged)
+                trainWriter.add_summary(summary,i)
+                
+        
     def inpaintDepth(self, depthImage, rgbImage):
         _,binaryInv = cv2.threshold(depthImage, 0, 1, cv2.THRESH_BINARY_INV)
         binaryInv = binaryInv.astype("uint8")
@@ -206,17 +216,6 @@ class CNN(object):
         cv2.imwrite(BASE_RGB_DIR + rgbImgName + ".png", rgbImg)
         cv2.imwrite(BASE_DEPTH_DIR + depthImgName + ".png", depthImg)
         print("Image write successful", BASE_RGB_DIR, "  ", BASE_DEPTH_DIR)
-        
-    def logGradients(self, num_layers):
-        gr = tf.get_default_graph()
-        for i in range(num_layers):
-            weight = gr.get_tensor_by_name('layer{}/kernel:0'.format(i + 1))
-            grad = tf.gradients(self.loss, weight)[0]
-            mean = tf.reduce_mean(tf.abs(grad))
-            tf.summary.scalar('mean_{}'.format(i + 1), mean)
-            tf.summary.histogram('histogram_{}'.format(i + 1), grad)
-            tf.summary.histogram('hist_weights_{}'.format(i + 1), grad)
-                   
                 
                 
                 
