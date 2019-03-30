@@ -15,15 +15,14 @@ from model import fcrn_model as fcrn
 from matplotlib import pyplot as plt
 
 KITTI_REDUCED_H = 128; KITTI_REDUCED_W = 416;
-#GROUND_TRUTH_H = 64; GROUND_TRUTH_W = 208
 
 class CNN(object):
     
     def __init__(self, dataset):
         self.dataset = dataset
         self.epoch = 500
-        self.learning_rate = 0.1
-        self.batch_size = 16
+        self.learning_rate = 0.5
+        self.batch_size = 64
         
         
     def parse_function(self, filenameRGB, fileNameDepth):
@@ -31,13 +30,13 @@ class CNN(object):
     
         # Don't use tf.image.decode_image, or the output shape will be undefined
         image = tf.image.decode_png(image_string, channels=3)
-        image = tf.image.convert_image_dtype(image, tf.float32)
+        #image = tf.image.convert_image_dtype(image, tf.float32, saturate = True)
     
         resizedRGB = tf.image.resize_images(image, [KITTI_REDUCED_H, KITTI_REDUCED_W])
         
         image_string = tf.read_file(fileNameDepth)
         image = tf.image.decode_png(image_string, channels = 1)
-        image = tf.image.convert_image_dtype(image, tf.float32)
+        #image = tf.image.convert_image_dtype(image, tf.float32, saturate = True)
 
         resizedDepth = tf.image.resize_images(image, [KITTI_REDUCED_H, KITTI_REDUCED_W])
         return resizedRGB, resizedDepth
@@ -130,19 +129,36 @@ class CNN(object):
         testInput = tf.placeholder(dtype = tf.float32, shape = (self.batch_size, KITTI_REDUCED_H, KITTI_REDUCED_W, 3), name = "test_input")
         pred = self.create_convNet(testInput)
         
-        saver = tf.train.Saver()
+        saver = tf.train.Saver()  
+#        imgNum = 0;
+#        #TODO: add a batch set run and convert depth images first to inpainted versions
+#        with tf.Session() as sess:
+#            sess.run(globalVar)
+#            sess.run(initOp)
+#            
+#            while True:
+#                try:
+#                    rgbImages = sess.run(image_rgbs)
+#                    depthImages = sess.run(image_depths)
+#                    print("Next batch size: " , np.shape(depthImages))
+#                    k = self.batch_size
+#                    for i in range(k):
+#                        inpaintImg = self.inpaintDepth(depthImages[i], rgbImages[i])
+#                        self.writeImg(rgbImages[i], inpaintImg, "rgb_inpaint_%s" % imgNum, "depth_inpaint_%s" % imgNum)
+#                        print("Index: ", i, " K: ", k, "Img num: " ,imgNum)
+#                        imgNum = imgNum + 1
+#                except tf.errors.OutOfRangeError:
+#                    print("Finished all batch")
+#                    break
         
+            
         with tf.Session() as sess:
             sess.run(globalVar) #init weights, biases and other variables
             sess.run(initOp)
             sess.run(metricsInitOp)
             
-             # Restore variables from disk.
-            #saver.restore(sess, "tmp/model_last_layer.ckpt")
-            
-            #testing only
-            #depthImages = sess.run(image_depths)
-            #self.inpaintDepth(depthImages[0])
+            # Restore variables from disk.
+            #saver.restore(sess, "tmp/model_last_layer.ckpt") 
             
             for i in range(self.epoch):
                 while True:
@@ -157,40 +173,50 @@ class CNN(object):
                     inputImages = sess.run(image_rgbs)
                     depthImages = sess.run(image_depths)
                     predDepth = sess.run(pred, feed_dict = {testInput: inputImages})
-                    plt.imshow(inputImages[0]); plt.show()
+                    plt.imshow(inputImages[0].astype("uint8")); plt.show()
                     plt.imshow(predDepth[0][:,:,0]); plt.show()
                     plt.imshow(depthImages[0][:,:,0]); plt.show()
                     
                     sess.run(initOp) #re-initialize iterator again for next epoch
                     
                     #save data
-                    save_path = saver.save(sess, "tmp/model_last_layer.ckpt")
+                    save_path = saver.save(sess, "tmp/model_0330_uint32.ckpt")
                     print("Weights saved in path: %s" %save_path)
-                    break
-#                for k in range(self.batch_size): 
-#                    try:
-#                        opt = sess.run([optimizer, loss])
-#                        print("Optimizing! ", opt)
-#                        sess.run(update_metrics_op)
-#                    except: 
-#                        sess.run(initOp)
-#                        print("End of sequence, looping to next batch")
-                        
+                    break                   
 
                 # Get the values of the metrics
                 metrics_values = {k: v[0] for k, v in metrics.items()}
                 metrics_val = sess.run(metrics_values)
                 print("Metrics", metrics_val)
 
-    def inpaintDepth(self, depthImage):
+    def inpaintDepth(self, depthImage, rgbImage):
         _,binaryInv = cv2.threshold(depthImage, 0, 1, cv2.THRESH_BINARY_INV)
         binaryInv = binaryInv.astype("uint8")
         plt.imshow(binaryInv); plt.show()
-        inpaintImg = cv2.inpaint(depthImage, binaryInv, 1, cv2.INPAINT_TELEA)
+        inpaintImg = cv2.inpaint(depthImage, binaryInv, 32, cv2.INPAINT_TELEA)
         plt.imshow(inpaintImg); plt.show()
+        #plt.imshow(rgbImage); plt.show()
         
         return inpaintImg
-                
+    
+    def writeImg(self, rgbImg, depthImg, rgbImgName, depthImgName):
+        BASE_RGB_DIR = "C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_rgb_inpaint/"
+        BASE_DEPTH_DIR = "C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_depth_inpaint/"
+        
+        cv2.imwrite(BASE_RGB_DIR + rgbImgName + ".png", rgbImg)
+        cv2.imwrite(BASE_DEPTH_DIR + depthImgName + ".png", depthImg)
+        print("Image write successful", BASE_RGB_DIR, "  ", BASE_DEPTH_DIR)
+        
+    def logGradients(self, num_layers):
+        gr = tf.get_default_graph()
+        for i in range(num_layers):
+            weight = gr.get_tensor_by_name('layer{}/kernel:0'.format(i + 1))
+            grad = tf.gradients(self.loss, weight)[0]
+            mean = tf.reduce_mean(tf.abs(grad))
+            tf.summary.scalar('mean_{}'.format(i + 1), mean)
+            tf.summary.histogram('histogram_{}'.format(i + 1), grad)
+            tf.summary.histogram('hist_weights_{}'.format(i + 1), grad)
+                   
                 
                 
                 

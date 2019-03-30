@@ -5,8 +5,6 @@ Created on Mon Feb 11 20:44:41 2019
 @author: NeilDG
 """
 
-import tensorflow as tf
-import numpy as np
 from model import input_fn
 from model import base_cnn
 
