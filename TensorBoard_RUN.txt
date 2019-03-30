@@ -1,0 +1,2 @@
+PS C:\Users\NeilDG\AppData\Local\conda\conda\envs\tensorflow_env\Scripts> .\tensorboard --logdir="C:\Users\NeilDG\Docume
+nts\GithubProjects\NeuralNets-ImageDepthExperiment\src\train\train_result"

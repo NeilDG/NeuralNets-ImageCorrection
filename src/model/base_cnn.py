@@ -17,6 +17,10 @@ from matplotlib import pyplot as plt
 
 KITTI_REDUCED_H = 128; KITTI_REDUCED_W = 416;
 
+#First train: Last layer - Using NYU-  No inpaint
+#Train #2: All layers - From scratch - No inpaint
+#Train #3: Last layer - Using NYU - With inpaint
+#Train #4: All layers - From scratch - With inpaint
 class CNN(object):
     
     def __init__(self, dataset):
@@ -81,8 +85,7 @@ class CNN(object):
         return pred
     
     def train(self):
-        
-        
+
         trainData = self.dataset.map(map_func = self.parse_function, num_parallel_calls=4)
         batchRun = trainData.batch(self.batch_size)
         trainData = batchRun.prefetch(2)
@@ -93,18 +96,7 @@ class CNN(object):
         
         inputs = {"image_rgbs": image_rgbs, "image_depths": image_depths, 'iterator_init_op': initOp}
         print("Finished pre-processing train data with iterator: ", iterator)
-        
-#        weights = {
-#            'wc1': tf.get_variable('W0', shape=(3,3,3,32), initializer=tf.contrib.layers.xavier_initializer()), 
-#            'wc2': tf.get_variable('W1', shape=(3,3,32,64), initializer=tf.contrib.layers.xavier_initializer()), 
-#            'wc3': tf.get_variable('W2', shape=(3,3,64,128), initializer=tf.contrib.layers.xavier_initializer()),
-#            }
-#        biases = {
-#            'bc1': tf.get_variable('B0', shape=(32), initializer=tf.contrib.layers.xavier_initializer()),
-#            'bc2': tf.get_variable('B1', shape=(64), initializer=tf.contrib.layers.xavier_initializer()),
-#            'bc3': tf.get_variable('B2', shape=(128), initializer=tf.contrib.layers.xavier_initializer())
-#            }
-    
+
         trainPred = self.create_convNet(inputs["image_rgbs"])
         
         ground_truths = inputs["image_depths"]
@@ -118,8 +110,9 @@ class CNN(object):
         with tf.variable_scope("metrics"): 
             metrics = {"mean_squared_error" : tf.metrics.mean_squared_error(labels = ground_truths, predictions = trainPred),
                        "rmse" : tf.metrics.root_mean_squared_error(labels = ground_truths, predictions = trainPred)}
-            tf.summary.scalar('mean_squared_error', metrics["mean_squared_error"])
-            tf.summary.scalar('rmse', metrics["rmse"])
+            tf.summary.scalar('mean_squared_error', tf.reduce_mean(metrics["mean_squared_error"]))
+            tf.summary.scalar('rmse', tf.reduce_mean(metrics["rmse"]))
+            tb.logGradients(loss,"cnn/ConvPred/kernel:0", "cnn/ConvPred/last_layer")
         
         # Group the update ops for the tf.metrics, so that we can run only one op to update them all
         update_metrics_op = tf.group(*[op for _, op in metrics.values()])
@@ -127,8 +120,9 @@ class CNN(object):
         # Get the op to reset the local variables used in tf.metrics, for when we restart an epoch
         metric_variables = tf.get_collection(tf.GraphKeys.LOCAL_VARIABLES, scope="metrics")
         metricsInitOp = tf.variables_initializer(metric_variables)
+
         merged = tf.summary.merge_all()
-        trainWriter = tf.summary.FileWriter('/train', tf.get_default_graph())
+        trainWriter = tf.summary.FileWriter('train/train_result', tf.Session().graph)
         
         #for testing
         testInput = tf.placeholder(dtype = tf.float32, shape = (self.batch_size, KITTI_REDUCED_H, KITTI_REDUCED_W, 3), name = "test_input")
@@ -161,7 +155,6 @@ class CNN(object):
             sess.run(globalVar) #init weights, biases and other variables
             sess.run(initOp)
             sess.run(metricsInitOp)
-            tb.logGradients(sess, loss)
             # Restore variables from disk.
             saver.restore(sess, "tmp/model_0330_uint32.ckpt") 
             
@@ -169,7 +162,6 @@ class CNN(object):
                 while True:
                   try:
                     opt = sess.run([optimizer, loss])
-                    tb.logGradients(sess, loss)
                     print("Optimizing! ", opt)
                     sess.run(update_metrics_op)
                   except tf.errors.OutOfRangeError:
