@@ -68,22 +68,22 @@ def sample_build_model(input):
 
     return pred
 
-def build_up_conv_block(input,block_name,num_filters):
+def build_up_conv_block(input,block_name,num_filters, trainable = False):
 
     # Branch 1
     br1_name = "%s_br1" % (block_name)
-    branch1 = build_up_conv_branch(input=input,branch_name=br1_name,relu=True,num_filters=num_filters)
+    branch1 = build_up_conv_branch(input=input,branch_name=br1_name,relu=True,num_filters=num_filters, trainable = trainable)
 
     layerName = "layer%s_Conv" % (block_name)
     layer_br1_conv = conv(input=branch1, name=layerName, stride=1, kernel_size=(3, 3), num_filters=num_filters,
-                  use_bias=True)
+                  trainable = trainable,use_bias=True)
 
     layerName = "layer%s_BN" % (block_name)
     layer_br1_bn = batch_norm(input=layer_br1_conv, name=layerName)
 
     # Branch 2
     br2_name = "%s_br2" % (block_name)
-    branch2 = build_up_conv_branch(input=input, branch_name=br2_name,num_filters=num_filters)
+    branch2 = build_up_conv_branch(input=input, branch_name=br2_name,num_filters=num_filters, trainable = trainable)
 
     layerName = "layer%s_Sum" % (block_name)
     branches_sum = tf.add(layer_br1_bn,branch2, name=layerName)
@@ -93,26 +93,26 @@ def build_up_conv_block(input,block_name,num_filters):
 
     return block
 
-def build_up_conv_branch(input,branch_name,num_filters,relu = False):
+def build_up_conv_branch(input,branch_name,num_filters,relu = False, trainable = False):
 
     layerName = "layer%s_ConvA" % (branch_name)
     conv_A = conv(input=input, name=layerName, stride=1, kernel_size=(3,3), num_filters=num_filters,
-                          use_bias=True)
+                          trainable = trainable, use_bias=True)
 
     layerName = "layer%s_ConvB" % (branch_name)
     padded_input_B = tf.pad(input, [[0, 0], [1, 0], [1, 1], [0, 0]], "CONSTANT")
     conv_B = conv(input=padded_input_B, name=layerName, stride=1, kernel_size=(2, 3), num_filters=num_filters,
-                  use_bias=True,padding='VALID')
+                  trainable = trainable, use_bias=True,padding='VALID')
 
     layerName = "layer%s_ConvC" % (branch_name)
     padded_input_C = tf.pad(input, [[0, 0], [1, 1], [1, 0], [0, 0]], "CONSTANT")
     conv_C = conv(input=padded_input_C, name=layerName, stride=1, kernel_size=(3, 2), num_filters=num_filters,
-                  use_bias=True,padding='VALID')
+                  trainable = trainable, use_bias=True,padding='VALID')
 
     layerName = "layer%s_ConvD" % (branch_name)
     padded_input_D = tf.pad(input, [[0, 0], [1, 0], [1, 0], [0, 0]], "CONSTANT")
     conv_D = conv(input=padded_input_D, name=layerName, stride=1, kernel_size=(2, 2), num_filters=num_filters,
-                  use_bias=True,padding='VALID')
+                  trainable = trainable, use_bias=True,padding='VALID')
 
     left = interleave([conv_A, conv_B], axis=1)
     right = interleave([conv_C, conv_D], axis=1)
@@ -142,41 +142,45 @@ def get_incoming_shape(incoming):
     else:
         raise Exception("Invalid incoming layer.")
 
-def build_res_block(input,block_name,d1,d2,projection = False,down_size = True):
+def build_res_block(input,block_name,d1,d2,projection = False,down_size = True, trainable = False):
     # Projection Block
     #                  Upper Branch
     # res[conv(res)-Bn(bn)]2[Box_no]a[Block_char]_branch2[Lower(1)-Upper(2)]a[order @ Branch(a -> b -> c -> d)]
-    upper_branch = build_upper_branch(input=input,block_name=block_name,in_depth=d1,out_depth=d2,projection=projection,down_size=down_size)
-    lower_branch = build_lower_branch(input=input,block_name=block_name,out_depth=d2,projection = projection,down_size=down_size)
+    upper_branch = build_upper_branch(input=input,block_name=block_name,in_depth=d1,out_depth=d2,projection=projection,down_size=down_size,
+                                      trainable = trainable)
+    lower_branch = build_lower_branch(input=input,block_name=block_name,out_depth=d2,projection = projection,down_size=down_size,
+                                      trainable = trainable)
     res =  tf.add(upper_branch,lower_branch,name='res' + block_name)
     res_relu = tf.nn.relu(res,name='res2a_relu')
     return res_relu
 
-def build_lower_branch(input,block_name,out_depth,projection=False,down_size = True):
+def build_lower_branch(input,block_name,out_depth,projection=False,down_size = True, trainable = False):
     padding = 'SAME'
     stride = 1
     if down_size:
         padding = 'VALID'
         stride = 2
     if projection:
-        res_branch1 = conv(input=input,name='res'+block_name+'_branch1',stride=stride,kernel_size=(1,1),num_filters=out_depth,use_bias=False,padding=padding)
+        res_branch1 = conv(input=input,name='res'+block_name+'_branch1',stride=stride,kernel_size=(1,1),num_filters=out_depth,
+                           trainable = trainable,use_bias=False,padding=padding)
         bn_branch1 = batch_norm(input=res_branch1,name='bn'+block_name+'_branch1')
         return bn_branch1
     return input
 
-def build_upper_branch(input,block_name,in_depth,out_depth,projection = False,down_size = True):
+def build_upper_branch(input,block_name,in_depth,out_depth,projection = False,down_size = True, trainable = False):
     stride = 1
     padding = 'SAME'
     if projection and down_size:
         stride = 2
         padding = 'VALID'
-    res_branch2a = conv(input=input, name='res'+block_name+'_branch2a', stride=stride, kernel_size=(1,1), num_filters=in_depth, use_bias=False,padding=padding)
+    res_branch2a = conv(input=input, name='res'+block_name+'_branch2a', stride=stride, kernel_size=(1,1), num_filters=in_depth,
+                        trainable = trainable, use_bias=False,padding=padding)
     bn_branch2a = batch_norm(input=res_branch2a, name='bn'+ block_name +'_branch2a', relu=True)
     res_branch2b = conv(input=bn_branch2a, name='res'+block_name+'_branch2b', stride=1, kernel_size=(3,3), num_filters=in_depth,
-                          use_bias=False)
+                          trainable = trainable, use_bias=False)
     bn_branch2b = batch_norm(input=res_branch2b, name='bn'+block_name+'_branch2b', relu=True)
     res_branch2c = conv(input=bn_branch2b, name='res'+block_name+'_branch2c', stride=1, kernel_size=(1,1), num_filters=out_depth,
-                          use_bias=False)
+                          trainable = trainable, use_bias=False)
     bn_branch2c = batch_norm(input=res_branch2c, name='bn'+block_name+'_branch2c')
 
     return bn_branch2c
@@ -210,7 +214,7 @@ def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias 
     return layer
 
 
-def batch_norm(input,name,relu = False,isTraining = False):
+def batch_norm(input,name,relu = False):
     '''
     layer = tf.layers.batch_normalization(input=input ,
                                           moving_variance_initializer=tf.constant_initializer(weights[name]['variance'], dtype=tf.float32),
