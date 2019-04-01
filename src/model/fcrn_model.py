@@ -185,6 +185,34 @@ def build_upper_branch(input,block_name,in_depth,out_depth,projection = False,do
 
     return bn_branch2c
 
+def conv_new(input,name,stride,kernel_size,num_filters,trainable = False , use_bias = True,padding = 'SAME'):
+    if use_bias:
+        layer = tf.layers.conv2d(inputs=input,
+                                 strides=(stride, stride),
+                                 filters=num_filters,
+                                 kernel_size=kernel_size,
+                                 padding=padding,
+                                 name=name,
+                                 trainable=trainable,
+                                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
+                                 bias_initializer = tf.contrib.layers.xavier_initializer(),
+                                 #kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
+                                 #bias_initializer=tf.constant_initializer(weights[name]['biases'], dtype=tf.float32),
+                                 use_bias=use_bias)
+    else :
+        layer = tf.layers.conv2d(inputs=input,
+                                 strides=(stride, stride),
+                                 filters=num_filters,
+                                 kernel_size=kernel_size,
+                                 padding=padding,
+                                 name=name,
+                                 trainable=trainable,
+                                 kernel_initializer = tf.contrib.layers.xavier_initializer(),
+                                 #kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
+                                 use_bias=use_bias)
+
+    return layer
+
 def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias = True,padding = 'SAME'):
     if use_bias:
         layer = tf.layers.conv2d(inputs=input,
