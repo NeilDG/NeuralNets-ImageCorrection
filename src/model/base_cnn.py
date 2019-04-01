@@ -26,7 +26,7 @@ class CNN(object):
     def __init__(self, dataset):
         self.dataset = dataset
         self.epoch = 500
-        self.learning_rate = 0.5
+        self.learning_rate = 0.01
         self.batch_size = 64
         
         
@@ -41,6 +41,8 @@ class CNN(object):
         
         image_string = tf.read_file(fileNameDepth)
         image = tf.image.decode_png(image_string, channels = 1)
+        #image = tf.image.adjust_contrast(image, 5.0)
+        #image = tf.image.adjust_saturation(image, 3.0)
         #image = tf.image.convert_image_dtype(image, tf.float32, saturate = True)
 
         resizedDepth = tf.image.resize_images(image, [KITTI_REDUCED_H, KITTI_REDUCED_W])
@@ -79,7 +81,12 @@ class CNN(object):
             #results to 128 x 416 if 2x - 4x. 256 x 832 if 2x - 4x - 8x.  512 x 1664 for 2x - 4x - 8x - 16x
             
             drop = tf.nn.dropout(up_16x, keep_prob = 1., name='drop')
-            pred = fcrn.conv(input=drop,name='ConvPred',stride=1,kernel_size=(3,3),num_filters=1, trainable = True)
+            im_1 = fcrn.conv_new(input=drop,name='ConvIntermediate_1',stride=1,kernel_size=(3,3),num_filters=64, trainable = True)
+            im_2 = fcrn.conv_new(input=im_1,name='ConvIntermediate_2',stride=1,kernel_size=(3,3),num_filters=64, trainable = True)
+            im_3 = fcrn.conv_new(input=im_2,name='ConvIntermediate_3',stride=1,kernel_size=(3,3),num_filters=64, trainable = True)
+            im_4 = fcrn.conv_new(input=im_3,name='ConvIntermediate_4',stride=1,kernel_size=(3,3),num_filters=64, trainable = True)
+            im_5 = fcrn.conv_new(input=im_4,name='ConvIntermediate_5',stride=1,kernel_size=(3,3),num_filters=64, trainable = True)
+            pred = fcrn.conv(input=im_5,name='ConvPred',stride=1,kernel_size=(3,3),num_filters=1, trainable = True)
             pred = tf.image.resize_bicubic(pred, [KITTI_REDUCED_H, KITTI_REDUCED_W])
             print("Pred CNN shape: ", pred, "Pred type: ", type(pred))
         return pred
@@ -111,14 +118,15 @@ class CNN(object):
         with tf.variable_scope("metrics"): 
             metrics = {"mean_squared_error" : tf.metrics.mean_squared_error(labels = ground_truths, predictions = trainPred),
                        "rmse" : tf.metrics.root_mean_squared_error(labels = ground_truths, predictions = trainPred)}
-            tf.summary.scalar('cnn_LastLayerTrain/mean_squared_error', tf.reduce_mean(metrics["mean_squared_error"]))
-            tf.summary.scalar('cnn_LastLayerTrain/rmse', tf.reduce_mean(metrics["rmse"]))
+            tf.summary.scalar('cnn_Intermediate/mean_squared_error', tf.reduce_mean(metrics["mean_squared_error"]))
+            tf.summary.scalar('cnn_Intermediate/rmse', tf.reduce_mean(metrics["rmse"]))
 
             #tb.logGradients(loss, "cnn/layer2x_Conv/kernel:0", "cnn/2x")
             #tb.logGradients(loss, "cnn/layer4x_Conv/kernel:0", "cnn/4x")
             #tb.logGradients(loss, "cnn/layer8x_Conv/kernel:0", "cnn/8x")
-            #tb.logGradients(loss, "cnn/layer16x_Conv/kernel:0", "cnn/16x")
-            tb.logGradients(loss,"cnn/ConvPred/kernel:0", "cnn_LastLayerTrain/ConvPred/last_layer")
+            #tb.logGradients(loss, "cnn/layer16x_Conv/kernel:0", "cnn_Up16x/16x")
+            tb.logGradients(loss,"cnn/ConvIntermediate_1/kernel:0", "cnn_Intermediate/ConvPred/intermediate")
+            tb.logGradients(loss,"cnn/ConvPred/kernel:0", "cnn_Intermediate/ConvPred/last_layer")
         
         # Group the update ops for the tf.metrics, so that we can run only one op to update them all
         update_metrics_op = tf.group(*[op for _, op in metrics.values()])
@@ -161,7 +169,7 @@ class CNN(object):
             sess.run(initOp)
             sess.run(metricsInitOp)
             # Restore variables from disk.
-            #saver.restore(sess, "tmp/model_0330_uint32.ckpt") 
+            saver.restore(sess, "tmp/model_0331_intermediate.ckpt") 
             
             for i in range(self.epoch):
                 while True:
@@ -183,7 +191,7 @@ class CNN(object):
                     sess.run(initOp) #re-initialize iterator again for next epoch
                     
                     #save data
-                    save_path = saver.save(sess, "tmp/model_0331_lastlayer_train.ckpt")
+                    save_path = saver.save(sess, "tmp/model_0331_intermediate.ckpt")
                     print("Weights saved in path: %s" %save_path)
                     break                   
 
@@ -193,7 +201,7 @@ class CNN(object):
                 print("Metrics", metrics_val)
                 
                 summary = sess.run(merged)
-                trainWriter.add_summary(summary,i)
+                trainWriter.add_summary(summary,i + 47)
                 
         
     def inpaintDepth(self, depthImage, rgbImage):

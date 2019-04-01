@@ -95,8 +95,8 @@ class InferenceCNN(object):
         with tf.variable_scope("metrics"): 
             metrics = {"mean_squared_error" : tf.metrics.mean_squared_error(labels = ground_truth, predictions = testPred),
                        "rmse" : tf.metrics.root_mean_squared_error(labels = ground_truth, predictions = testPred)}
-            tf.summary.scalar('Test/NYUModel/mean_squared_error', tf.reduce_mean(metrics["mean_squared_error"]))
-            tf.summary.scalar('Test/NYUModel/rmse', tf.reduce_mean(metrics["rmse"]))
+            tf.summary.scalar('Test/Intermediate/mean_squared_error', tf.reduce_mean(metrics["mean_squared_error"]))
+            tf.summary.scalar('Test/Intermediate/rmse', tf.reduce_mean(metrics["rmse"]))
         
         # Group the update ops for the tf.metrics, so that we can run only one op to update them all
         update_metrics_op = tf.group(*[op for _, op in metrics.values()])
@@ -106,13 +106,17 @@ class InferenceCNN(object):
         metricsInitOp = tf.variables_initializer(metric_variables)
         merged = tf.summary.merge_all()
         trainWriter = tf.summary.FileWriter('train/test_result', tf.Session().graph)
-        
+        45
+        saver = tf.train.Saver()  
         globalVar = tf.global_variables_initializer()
         
         with tf.Session() as sess:
             sess.run(globalVar) #init weights, biases and other variables
             sess.run(initOp)
             sess.run(metricsInitOp)
+            
+            # Restore variables from disk.
+            saver.restore(sess, "tmp/model_0331_intermediate.ckpt") 
             
             testNum = 0;
             while True:
@@ -122,9 +126,9 @@ class InferenceCNN(object):
                     depthImages = sess.run(image_depths)
                     #print("Input image shape: ", np.shape(inputImages), " Depth image shape: ", np.shape(depthImages))
                     predDepth = sess.run(testPred, feed_dict = {testInput: inputImages, ground_truth: depthImages})
-                    plt.imshow(inputImages[0].astype("uint8")); plt.show()
-                    plt.imshow(predDepth[0][:,:,0].astype("uint8")); plt.show()
-                    plt.imshow(depthImages[0][:,:,0].astype("uint8")); plt.show()
+                    plt.imshow(inputImages[0].astype("uint8")); plt.axis("off"); plt.show()
+                    plt.imshow(predDepth[0][:,:,0]);  plt.axis("off"); plt.show()
+                    plt.imshow(depthImages[0][:,:,0]);  plt.axis("off"); plt.show()
                     sess.run(update_metrics_op, feed_dict = {testInput: inputImages, ground_truth: depthImages})
                     
                     # Get the values of the metrics
@@ -132,8 +136,8 @@ class InferenceCNN(object):
                     metrics_val = sess.run(metrics_values, feed_dict = {testInput: inputImages, ground_truth: depthImages})
                     print("Metrics", metrics_val)
                     
-                    summary = sess.run(merged, feed_dict = {testInput: inputImages, ground_truth: depthImages})
-                    trainWriter.add_summary(summary,testNum)
+                    #summary = sess.run(merged, feed_dict = {testInput: inputImages, ground_truth: depthImages})
+                    #trainWriter.add_summary(summary,testNum)
                     
                     testNum = testNum + 1
                   except tf.errors.OutOfRangeError:
