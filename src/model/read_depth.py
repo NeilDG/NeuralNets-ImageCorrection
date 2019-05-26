@@ -16,3 +16,12 @@ def depth_read(filename):
     depth = depth_png.astype(np.float) / 256.
     depth[depth_png == 0] = -1.
     return depth
+
+def depth_read_image(image):
+    # make sure we have a proper 16bit depth map here.. not 8bit!
+    #assert(np.max(image) > 255)
+
+    #depth = image / 256.0
+    depth = image / 1.0;
+    depth[image == 0] = 255
+    return depth
