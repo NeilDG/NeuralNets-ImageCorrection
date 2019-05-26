@@ -15,9 +15,9 @@ def main():
     baseCNN = base_cnn.CNN(tfData)
     baseCNN.train()
     
-    #tfData = myInput.prepareTFData()
-    #inferenceCNN = inference_cnn.InferenceCNN(tfData)
-    #inferenceCNN.infer()
+    tfData = myInput.prepareTFData()
+    inferenceCNN = inference_cnn.InferenceCNN(tfData)
+    inferenceCNN.infer()
     
    
 main()
