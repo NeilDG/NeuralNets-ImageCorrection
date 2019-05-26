@@ -61,13 +61,13 @@ class InputFunction(object):
     def prepareTFData(self):
         myData = self.assembleTrainingData()
         dataset = tf.data.Dataset.from_tensor_slices((myData[0],myData[1]))
-        dataset = dataset.shuffle(len(myData))
+        #dataset = dataset.shuffle(len(myData))
         return dataset;
     
     def prepareTFTestData(self):
         myData = self.assembleTestData()
         dataset = tf.data.Dataset.from_tensor_slices((myData[0],myData[1]))
-        dataset = dataset.shuffle(len(myData))
+        #dataset = dataset.shuffle(len(myData))
         #print("Data RGB shape: ", np.shape(myData[0]), " Data depth shape: ", np.shape(myData[1]))
         return dataset;
     

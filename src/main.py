@@ -11,9 +11,9 @@ from model import inference_cnn
 
 def main():
     myInput = input_fn.InputFunction()
-    #tfData = myInput.prepareTFData()
-    #baseCNN = base_cnn.CNN(tfData)
-    #baseCNN.train()
+    tfData = myInput.prepareTFData()
+    baseCNN = base_cnn.CNN(tfData)
+    baseCNN.train()
     
     tfData = myInput.prepareTFData()
     inferenceCNN = inference_cnn.InferenceCNN(tfData)
