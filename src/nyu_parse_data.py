@@ -13,9 +13,9 @@ from matplotlib import pyplot as plt
 import cv2
 
 # data path
-path_to_depth = 'C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/nyu_depth_v2_labeled.mat'
-SAVE_PATH_RGB = 'C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/nyu_image_rgb/'
-SAVE_PATH_DEPTH = 'C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/nyu_image_depth/'
+path_to_depth = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/nyu_depth_v2_labeled.mat'
+SAVE_PATH_RGB = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/nyu_image_rgb/'
+SAVE_PATH_DEPTH = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/nyu_image_depth/'
 def start_parse():
     print("Start parse of NYU")
     # read mat file
