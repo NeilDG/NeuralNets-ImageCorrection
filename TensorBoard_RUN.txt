@@ -2,3 +2,8 @@ PS C:\Users\NeilDG\AppData\Local\conda\conda\envs\tensorflow_env\Scripts>
 .\tensorboard --logdir="C:\Users\NeilDG\Documents\GithubProjects\NeuralNets-ImageDepthExperiment\src\train\train_result"
 
 .\tensorboard --logdir="C:\Users\NeilDG\Documents\GithubProjects\NeuralNets-ImageDepthExperiment\src\train\test_result"
+
+PS C:\Users\delgallegon\.conda\envs\tensorflow\Scripts> 
+.\tensorboard --logdir="D:\Users\delgallegon\Documents\GithubProjects\NeuralNets-ImageDepthExperiment\src\train\train_result"
+
+.\tensorboard --logdir="D:\Users\delgallegon\Documents\GithubProjects\NeuralNets-ImageDepthExperiment\src\train\test_result"

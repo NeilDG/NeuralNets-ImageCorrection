@@ -8,12 +8,13 @@ Created on Sun Mar 31 10:02:57 2019
 import numpy as np
 import tensorflow as tf
 import cv2
-from model import base_cnn as base
+from model import base_cnn
 from model import fcrn_model as fcrn
 from model import tensorboard_writer as tb
 from matplotlib import pyplot as plt
 
-KITTI_REDUCED_H = 128; KITTI_REDUCED_W = 416;
+IMAGE_H = 480;  IMAGE_W = 640
+#KITTI_REDUCED_H = 128; KITTI_REDUCED_W = 416;
 
 class InferenceCNN(object):
     
@@ -29,13 +30,13 @@ class InferenceCNN(object):
         image = tf.image.decode_png(image_string, channels=3)
         #image = tf.image.convert_image_dtype(image, tf.float32, saturate = True)
     
-        resizedRGB = tf.image.resize_images(image, [KITTI_REDUCED_H, KITTI_REDUCED_W])
+        resizedRGB = tf.image.resize_images(image, [IMAGE_H, IMAGE_W])
         
         image_string = tf.read_file(fileNameDepth)
         image = tf.image.decode_png(image_string, channels = 1)
         #image = tf.image.convert_image_dtype(image, tf.float32, saturate = True)
 
-        resizedDepth = tf.image.resize_images(image, [KITTI_REDUCED_H, KITTI_REDUCED_W])
+        resizedDepth = tf.image.resize_images(image, [IMAGE_H, IMAGE_W])
         
         return resizedRGB, resizedDepth
     
@@ -52,8 +53,8 @@ class InferenceCNN(object):
         print("Finished pre-processing train data with iterator: ", iterator)
         
         #for testing
-        ground_truth = tf.placeholder(dtype = tf.float32, shape = (self.batch_size, KITTI_REDUCED_H, KITTI_REDUCED_W, 1), name = "ground_truth")
-        testInput = tf.placeholder(dtype = tf.float32, shape = (self.batch_size, KITTI_REDUCED_H, KITTI_REDUCED_W, 3), name = "test_input")
+        ground_truth = tf.placeholder(dtype = tf.float32, shape = (self.batch_size, IMAGE_H, IMAGE_W, 1), name = "ground_truth")
+        testInput = tf.placeholder(dtype = tf.float32, shape = (self.batch_size, IMAGE_H, IMAGE_W, 3), name = "test_input")
         testPred = self.baseCNN.create_convNet(testInput)
         
         # Define the different metrics
@@ -80,7 +81,7 @@ class InferenceCNN(object):
             sess.run(metricsInitOp)
             
             # Restore variables from disk.
-            saver.restore(sess, "tmp/model_0331_lastlayer_train.ckpt") 
+            saver.restore(sess, "tmp/model_nyu_052719.ckpt") 
             
             testNum = 0;
             while True:

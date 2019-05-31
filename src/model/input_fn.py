@@ -18,9 +18,25 @@ class InputFunction(object):
     TEST_RGB_DIR = "C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/val_rgb/"
     TEST_DEPTH_DIR = "C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/val_depth/"
     
+    NYU_TRAIN_RGB_DIR = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/nyu_image_rgb/";
+    NYU_TRAIN_DEPTH_DIR = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/nyu_image_depth/";
+    
     def __init__(self):
         print("Started assembly of input data using TF")
         
+    def assemble_training_nyu(self):
+        rgbList = []; depthList = []
+        rgb_images = os.listdir(self.NYU_TRAIN_RGB_DIR)
+        depth_images = os.listdir(self.NYU_TRAIN_DEPTH_DIR)
+        
+        for i in range(len(rgb_images)):
+            rgbImagePath = self.NYU_TRAIN_RGB_DIR + rgb_images[i]
+            depthImagePath = self.NYU_TRAIN_DEPTH_DIR + depth_images[i]
+            
+            rgbList.append(rgbImagePath)
+            depthList.append(depthImagePath)
+        
+        return rgbList, depthList
     
     def assembleTrainingData(self):
         rgbList = []; depthList = []
@@ -59,7 +75,7 @@ class InputFunction(object):
         return rgbList, depthList
     
     def prepareTFData(self):
-        myData = self.assembleTrainingData()
+        myData = self.assemble_training_nyu()
         dataset = tf.data.Dataset.from_tensor_slices((myData[0],myData[1]))
         #dataset = dataset.shuffle(len(myData))
         return dataset;
