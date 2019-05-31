@@ -259,8 +259,8 @@ def conv(input,name,stride,kernel_size,num_filters,trainable = False , use_bias 
                                  padding=padding,
                                  name=name,
                                  trainable=trainable,
-                                 #kernel_initializer = tf.contrib.layers.xavier_initializer(),
-                                 #bias_initializer = tf.contrib.layers.xavier_initializer(),
+                                 #kernel_initializer = tf.keras.initializers.glorot_normal(),
+                                 #bias_initializer = tf.keras.initializers.glorot_normal(),
                                  kernel_initializer=tf.constant_initializer(weights[name]['weights'], dtype=tf.float32),
                                  bias_initializer=tf.constant_initializer(weights[name]['biases'], dtype=tf.float32),
                                  use_bias=use_bias)

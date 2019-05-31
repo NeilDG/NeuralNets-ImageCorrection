@@ -14,10 +14,8 @@ def variable_summaries(var, tag):
 
       tf.summary.histogram('histogram_weights_{}'.format(tag), var)
       
-def logGradients(loss, layerName, labelName):
-    gr = tf.get_default_graph()
-    weight = gr.get_tensor_by_name(layerName)
-    grad = tf.gradients(loss, weight)[0]
-    mean = tf.reduce_mean(tf.abs(grad))
-    tf.summary.scalar('mean_weight_{}'.format(labelName), mean)
-    tf.summary.histogram('hist_weights_{}'.format(labelName), grad)
+def log_weights(train_vars):
+    for i in train_vars:
+        name = i.name.split(":")[0]
+        value = i.value()
+        tf.summary.histogram(name, value)
