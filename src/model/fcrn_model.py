@@ -3,7 +3,7 @@ import numpy as np
 
 #IN_H = 304
 #IN_W = 228
-weights = np.load('C:/Users/NeilDG/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/inference_code/NYU_ResNet-UpProj.npy', encoding='latin1').item()
+weights = np.load('D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/inference_code/NYU_ResNet-UpProj.npy', encoding='latin1', allow_pickle = True).item()
 
 #taken from Deeper Depth Prediction with Fully Convolutional Residual Networks
 def sample_build_model(input):
