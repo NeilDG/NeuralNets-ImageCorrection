@@ -10,6 +10,8 @@ from model import warp_cnn
 from model import torch_image_loader as loader
 from model import torch_image_dataset as image_dataset
 import torch
+import numpy as np
+from matplotlib import pyplot as plt
 
 def load_dataset():
     rgb_list, warp_list, transform_list = loader.assemble_train_data()
@@ -17,7 +19,7 @@ def load_dataset():
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=64,
+        batch_size=1,
         num_workers=0,
         shuffle=True
     )
@@ -25,7 +27,8 @@ def load_dataset():
 
 def start_train():
     for batch_idx, (rgb, warp, transform) in enumerate(load_dataset()):
-        print(batch_idx, rgb, warp)
+        plt.imshow(rgb[0,:,:,:])
+        plt.show()
         
 def main():
     

@@ -27,6 +27,8 @@ class TorchImageDataset(data.Dataset):
         warp_img_id = self.warp_image_list[idx]
         warp_img = cv2.imread(warp_img_id)
         warp_img = torch.from_numpy(warp_img)
+        #plt.imshow(warp_img)
+        #plt.show()
         
         
         transform_id = self.transform_list[idx]
