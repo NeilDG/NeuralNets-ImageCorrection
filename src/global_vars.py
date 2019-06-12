@@ -9,3 +9,4 @@ SAVE_PATH_RGB = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageD
 SAVE_PATH_WARP = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_mod/'
 
 IMAGE_W = 1242; IMAGE_H = 375
+WARP_W = 1442; WARP_H = 575

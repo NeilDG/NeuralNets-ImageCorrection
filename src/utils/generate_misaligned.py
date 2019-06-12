@@ -19,6 +19,7 @@ SAVE_PATH_RGB = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageD
 SAVE_PATH_WARP = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_mod/'
 
 IMAGE_W = 1242; IMAGE_H = 375
+WARP_W = 1442; WARP_H = 575
 
 def get_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
@@ -68,9 +69,10 @@ def generate():
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
         result, M = perform_warp(img, 5, 10)
-        #plt.imshow(result)
-        #plt.show()
+
+
         img = cv2.resize(img, (IMAGE_W, IMAGE_H)) 
+        result = cv2.resize(result, (WARP_W, WARP_H))
         cv2.imwrite(SAVE_PATH_RGB + "orig_" +str(i)+ ".png", img)
         cv2.imwrite(SAVE_PATH_WARP + "warp_" +str(i)+ ".png", result)
         transform_file = open(SAVE_PATH_WARP + "warp_" +str(i)+ ".txt", "w+")
