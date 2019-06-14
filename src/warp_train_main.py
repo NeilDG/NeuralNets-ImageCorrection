@@ -20,35 +20,53 @@ from torchvision import transforms
 
 LR = 0.05
 num_epoch = 100
-BATCH_SIZE = 12
+BATCH_SIZE = 8
 
 def load_dataset():
     rgb_list, warp_list, transform_list = loader.assemble_train_data()
+    print("Length of train images: ", len(rgb_list), len(warp_list))
     
-    print("Length of images: ", len(rgb_list), len(warp_list))
     generic_transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.ToTensor(),
     ])
 
     train_dataset = image_dataset.TorchImageDataset(rgb_list, warp_list, transform_list, image_transform_op = generic_transform)
-    
-    train_dataset.__getitem__(0)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=BATCH_SIZE,
         num_workers=4,
         shuffle=True
     )
+    
     return train_loader
 
+def load_test_dataset():
+    rgb_list, warp_list, transform_list = loader.assemble_test_data()
+    print("Length of test images: ", len(rgb_list), len(warp_list))
+    
+    generic_transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.ToTensor(),
+    ])
+
+    test_dataset = image_dataset.TorchImageDataset(rgb_list, warp_list, transform_list, image_transform_op = generic_transform)
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=BATCH_SIZE,
+        num_workers=4,
+        shuffle=True
+    )
+    
+    return test_loader
+
 def show_transform_image(rgb, M):
+    M = np.append(M, [1.0])
     M = np.reshape(M, (3,3))
-    M[2:2] = 1.0
     print("M predicted contents: ", M)
-    #result = cv2.warpPerspective(rgb, M, (np.shape(rgb)[0], np.shape(rgb)[1]))
-    #plt.imshow(result)
-    #plt.show()
+    result = cv2.warpPerspective(rgb, M, (np.shape(rgb)[1], np.shape(rgb)[0]))
+    plt.imshow(result)
+    plt.show()
 
 def start_train(gpu_dev):
     #initialize tensorboard writer
@@ -67,17 +85,17 @@ def start_train(gpu_dev):
         ave_loss = 0.0
         print("Started training per batch.")
         for batch_idx, (rgb, warp, transform) in enumerate(load_dataset()):
-            rgb_gpu = rgb.to(gpu_dev)
-            rgb_img = rgb[0,:,:,:].numpy()
-            rgb_img = np.moveaxis(rgb_img, -1, 0)
-            rgb_img = np.moveaxis(rgb_img, -1, 0) #for properly displaying image in matplotlib
+            warp_gpu = warp.to(gpu_dev)
+            warp_img = warp[0,:,:,:].numpy()
+            warp_img = np.moveaxis(warp_img, -1, 0)
+            warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
             
             revised_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
             revised_t = revised_t[:, 0:8].to(gpu_dev)
             #print("Revised T type: ", revised_t.type())
             
             optimizer.zero_grad() #reset gradient computer
-            pred = cnn(rgb_gpu)
+            pred = cnn(warp_gpu)
             loss = loss_func(pred, revised_t)
             loss.backward()
             optimizer.step()
@@ -96,10 +114,21 @@ def start_train(gpu_dev):
         print("Current epoch: ", (epoch + 1), " Loss: ", ave_loss)
         writer.add_scalar('warp_exp/MSE_loss', ave_loss, global_step = (epoch + 1))
         writer.close()
-        #cnn.eval()
-        #with torch.no_grad():
-            #single_pred = cnn(rgb[0,:,:,:])
-            #show_transform_image(rgb_img, single_pred.numpy())
+        
+        #evaluate predictions
+        cnn.eval()
+        with torch.no_grad():
+            for batch_idx, (rgb, warp, transform) in enumerate(load_test_dataset()):
+                rgb_img = warp[0,:,:,:].numpy()
+                rgb_img = np.moveaxis(rgb_img, -1, 0)
+                rgb_img = np.moveaxis(rgb_img, -1, 0) #for properly displaying image in matplotlib
+                
+                print("Showing image for batch ID: ", batch_idx)
+                plt.imshow(rgb_img)
+                plt.show()
+                
+                batch_pred = cnn(rgb.to(gpu_dev))
+                show_transform_image(rgb_img, batch_pred[0].cpu().numpy())
       
 def main():
     if(torch.cuda.is_available()) :

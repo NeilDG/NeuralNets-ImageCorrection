@@ -25,7 +25,7 @@ class WarpCNN(nn.Module):
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 8, stride = 1, padding = 1)
         self.pool3 = nn.MaxPool2d(kernel_size=4, stride=2, padding=0)
         
-        self.fc = nn.Linear(405888, 8)
+        self.fc = nn.Linear(754688, 8)
     
     def outputSize(self, in_size, kernel_size, stride, padding):
         output = int((in_size - kernel_size + 2*(padding)) / stride) + 1
