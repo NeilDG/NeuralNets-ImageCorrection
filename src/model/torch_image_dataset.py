@@ -44,7 +44,7 @@ class TorchImageDataset(data.Dataset):
         #print("Contents:", contents, "Shape: ", np.shape(contents))
         transform_values = torch.tensor(contents)
             
-        return img, warp_img, transform_values
+        return img.to(), warp_img, transform_values
 
     def __len__(self):
         return len(self.rgb_image_list)
