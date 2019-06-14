@@ -18,8 +18,8 @@ from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 from torchvision import transforms
 
-LR = 0.05
-num_epoch = 100
+LR = 0.01
+num_epoch = 500
 BATCH_SIZE = 8
 
 def load_dataset():
@@ -74,6 +74,15 @@ def show_transform_image(rgb, M, ground_truth_M):
     plt.imshow(result)
     plt.show()
     
+def normalize(tensor_v, reference_tensor):
+    min_v = torch.min(reference_tensor * 500)
+    range_v = torch.max(reference_tensor * 500) - min_v
+    if range_v > 0:
+        normalised = (tensor_v - min_v) / range_v
+    else:
+        normalised = torch.zeros(tensor_v.size())
+    
+    return normalised
 
 def start_train(gpu_dev):
     #initialize tensorboard writer
@@ -103,6 +112,9 @@ def start_train(gpu_dev):
             
             optimizer.zero_grad() #reset gradient computer
             pred = cnn(warp_gpu)
+            pred = normalize(pred, revised_t)
+            revised_t = normalize(revised_t, revised_t)
+            #print("Norm P: ", pred.numpy()[0:3], " Norm T: ", revised_t.numpy()[0:3])
             loss = loss_func(pred, revised_t)
             loss.backward()
             optimizer.step()
@@ -110,8 +122,8 @@ def start_train(gpu_dev):
             
             if(batch_idx % 25 == 0):
                 print("Batch id: ", batch_idx, "Loss: ", loss)
-                writer.add_scalar('warp_exp/Batch_MSE_Loss', loss, global_step = (batch_idx + 1))
-                writer.close()
+                #writer.add_scalar('warp_exp/Batch_MSE_Loss_' +str(epoch + 1), loss, global_step = (batch_idx + 1))
+                #writer.close()
         
         ave_loss = accum_loss / (batch_idx + 1.0)
         #plt.plot((epoch + 1), ave_loss, "-o")
@@ -119,6 +131,13 @@ def start_train(gpu_dev):
         
         
         print("Current epoch: ", (epoch + 1), " Loss: ", ave_loss)
+        writer.add_histogram('warp_exp/weights_fc', cnn.fc.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp/weights_conv6', cnn.conv6.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp/weights_conv5', cnn.conv5.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp/weights_conv4', cnn.conv4.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp/weights_conv3', cnn.conv3.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp/weights_conv2', cnn.conv2.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp/weights_conv1', cnn.conv1.weight.data, global_step = (epoch + 1))
         writer.add_scalar('warp_exp/MSE_loss', ave_loss, global_step = (epoch + 1))
         writer.close()
         
@@ -126,16 +145,16 @@ def start_train(gpu_dev):
         cnn.eval()
         with torch.no_grad():
             for batch_idx, (rgb, warp, transform) in enumerate(load_test_dataset()):
-                rgb_img = warp[0,:,:,:].numpy()
-                rgb_img = np.moveaxis(rgb_img, -1, 0)
-                rgb_img = np.moveaxis(rgb_img, -1, 0) #for properly displaying image in matplotlib
+                warp_img = warp[0,:,:,:].numpy()
+                warp_img = np.moveaxis(warp_img, -1, 0)
+                warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
                 
                 print("Showing image for batch ID: ", batch_idx)
-                plt.imshow(rgb_img)
+                plt.imshow(warp_img)
                 plt.show()
                 
                 batch_pred = cnn(warp.to(gpu_dev))
-                show_transform_image(rgb_img, batch_pred[0].cpu().numpy(), transform[0])
+                show_transform_image(warp_img, batch_pred[0].cpu().numpy(), transform[0])
                 break
       
 def main():

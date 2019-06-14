@@ -15,7 +15,7 @@ def assemble_train_data():
     rgb_list = []; warp_list = []; transform_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB)
-    temp_cap = 500 #only load 500 images for faster training
+    temp_cap = 2500 #only load 500 images for faster training
     for i in range(temp_cap): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB + images[i]
         rgb_list.append(rgbImagePath)
