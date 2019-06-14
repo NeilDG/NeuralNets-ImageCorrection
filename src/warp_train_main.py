@@ -24,7 +24,7 @@ BATCH_SIZE = 8
 
 def load_dataset():
     rgb_list, warp_list, transform_list = loader.assemble_train_data()
-    print("Length of train images: ", len(rgb_list), len(warp_list))
+    print("Length of train images: ", len(rgb_list), len(warp_list), len(transform_list))
     
     generic_transform = transforms.Compose([
         transforms.ToPILImage(),
@@ -60,13 +60,20 @@ def load_test_dataset():
     
     return test_loader
 
-def show_transform_image(rgb, M):
+def show_transform_image(rgb, M, ground_truth_M):
     M = np.append(M, [1.0])
     M = np.reshape(M, (3,3))
-    print("M predicted contents: ", M)
+    #print("M predicted contents: ", M, "Ground truth: ", ground_truth_M)
+    print("Ground truth")
+    result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
+    plt.imshow(result)
+    plt.show()
+    
+    print("Predicted warp")
     result = cv2.warpPerspective(rgb, M, (np.shape(rgb)[1], np.shape(rgb)[0]))
     plt.imshow(result)
     plt.show()
+    
 
 def start_train(gpu_dev):
     #initialize tensorboard writer
@@ -107,8 +114,8 @@ def start_train(gpu_dev):
                 writer.close()
         
         ave_loss = accum_loss / (batch_idx + 1.0)
-        plt.plot((epoch + 1), ave_loss, "-o")
-        plt.show()
+        #plt.plot((epoch + 1), ave_loss, "-o")
+        #plt.show()
         
         
         print("Current epoch: ", (epoch + 1), " Loss: ", ave_loss)
@@ -127,8 +134,9 @@ def start_train(gpu_dev):
                 plt.imshow(rgb_img)
                 plt.show()
                 
-                batch_pred = cnn(rgb.to(gpu_dev))
-                show_transform_image(rgb_img, batch_pred[0].cpu().numpy())
+                batch_pred = cnn(warp.to(gpu_dev))
+                show_transform_image(rgb_img, batch_pred[0].cpu().numpy(), transform[0])
+                break
       
 def main():
     if(torch.cuda.is_available()) :
