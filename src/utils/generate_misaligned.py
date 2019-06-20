@@ -17,6 +17,7 @@ from os.path import isfile, join
 IMAGE_RGB_DIR = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_rgb/"
 SAVE_PATH_RGB = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_orig/'
 SAVE_PATH_WARP = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_mod/'
+SAVE_PATH_PREDICT = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_predict/'
 
 IMAGE_W = 1242; IMAGE_H = 375
 WARP_W = 1442; WARP_H = 575
@@ -37,6 +38,16 @@ def retrieve_kitti_rgb_list():
                             rgb_list.append(os.path.join(dirpath, f))
     
     return rgb_list
+
+def retrieve_predict_warp_list():
+    warp_list = [];
+    
+    for (dirpath, dirnames, filenames) in os.walk(SAVE_PATH_PREDICT):
+        for f in filenames:
+            if f.endswith(".txt"):
+                warp_list.append(os.path.join(dirpath, f))
+    
+    return warp_list
 
 def perform_warp(img, warp_intensity, displacement, padding = 100):
     #add padding to image to avoid overflow
@@ -96,10 +107,16 @@ def generate():
         result = cv2.resize(result, (WARP_W, WARP_H))
         cv2.imwrite(SAVE_PATH_RGB + "orig_" +str(i)+ ".png", img)
         cv2.imwrite(SAVE_PATH_WARP + "warp_" +str(i)+ ".png", result)
-        transform_file = open(SAVE_PATH_WARP + "warp_" +str(i)+ ".txt", "w+")
         np.savetxt(SAVE_PATH_WARP + "warp_" +str(i)+ ".txt", inverse_M)
-        transform_file.close()
         print("Successfully generated transformed image " ,i, ".")
 
-#Main call
-generate()
+#saves predicted transforms inferred by network. Always set start_index = 0 if you want to
+#override saved predictions
+def save_predicted_transforms(M_list, start_index = 0):
+    for i in range(np.shape(M_list)[0]):
+        np.savetxt(SAVE_PATH_PREDICT + "warp_" +str(i + start_index)+ ".txt", M_list[i])
+        print("Successfully saved predicted M ", str(i + start_index))
+
+if __name__=="__main__": #FIX for broken pipe num_workers issue.
+    #Main call
+    generate()
