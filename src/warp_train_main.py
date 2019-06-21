@@ -10,6 +10,7 @@ from model import warp_cnn
 from model import torch_image_loader as loader
 from utils import generate_misaligned as gm
 import torch
+import math
 from torch import optim
 import numpy as np
 import cv2
@@ -59,7 +60,7 @@ def start_train(gpu_dev):
     loss_func = torch.nn.MSELoss(reduction = 'sum')
     
     #load checkpoints
-    CHECKPATH = 'tmp/warp_cnn_0620.pt'
+    CHECKPATH = 'tmp/warp_cnn_0621.pt'
     if(False):
         checkpoint = torch.load(CHECKPATH)
         cnn.load_state_dict(checkpoint['model_state_dict'])
@@ -90,10 +91,11 @@ def start_train(gpu_dev):
             
             optimizer.zero_grad() #reset gradient computer
             pred = cnn(warp_gpu)
-            pred = pred * 50.0 #amplify difference
-            revised_t = revised_t * 50.0
+            #pred = torch.mul(pred, 50.0)
+            #revised_t = torch.mul(revised_t,50.0)
             
             loss = loss_func(pred, revised_t)
+
             loss.backward()
             optimizer.step()
             accum_loss = accum_loss + loss.cpu().data
@@ -148,8 +150,8 @@ def start_train(gpu_dev):
                 revised_t = revised_t[:, 0:8].to(gpu_dev)
             
                 #note validation loss
-                pred = pred * 50.0
-                revised_t = revised_t * 50.0
+                #pred = torch.mul(pred, 50.0)
+                #revised_t = torch.mul(revised_t,50.0)
                 loss = loss_func(pred, revised_t)
                 accum_loss = accum_loss + loss.cpu().data
                 
