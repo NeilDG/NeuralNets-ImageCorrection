@@ -72,7 +72,7 @@ class WarpCNN(nn.Module):
 #        nn.init.constant_(self.conv7.bias, -1.0)
 #        nn.init.constant_(self.conv8.bias, -1.0)
 #        nn.init.constant_(self.conv9.bias, -1.0)
-#        nn.init.constant_(self.fc.bias, -1.0)
+#        nn.init.constant_(self.fc.bias, 0.4)
     
     def outputSize(self, in_size, kernel_size, stride, padding):
         output = int((in_size - kernel_size + 2*(padding)) / stride) + 1

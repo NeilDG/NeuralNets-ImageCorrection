@@ -17,14 +17,12 @@ from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 from torchvision import transforms
 
-def visualize_transform_dist(M_list, predicted_M_list):
-    
-    print("Sizes: ", np.shape(M_list)[0], np.shape(predicted_M_list)[0])
-    
-    print("Norm of predicted vs actual T")
+def visualize_transform_M(M_list):
+    #print("Norm of predicted vs actual T")
     for i in range(np.shape(M_list)[0]):
         plt.scatter(i, np.linalg.norm(M_list[i]), color = 'g')
-    
+
+def visualize_predict_M(predicted_M_list):
     for i in range(np.shape(predicted_M_list)[0]):
         plt.scatter(i, np.linalg.norm(predicted_M_list[i]), color = 'r')
     
@@ -61,8 +59,16 @@ def main():
         for warp_img in warp:
             warp_list.append(warp_img.numpy())
        
-    visualize_transform_dist(all_transforms, predict_transforms)
-    visualize_input_data(warp_list)
+        visualize_transform_M(all_transforms)
+        all_transforms.clear()
+        all_transforms = []
+        
+        if(batch_idx % 500 == 0):
+            break
+    
+    visualize_predict_M(predict_transforms)
+    
+    #visualize_input_data(warp_list)
     
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     main()
