@@ -116,6 +116,5 @@ dmypy.json
 # Dataset
 dataset/
 
-src/tmp/
 inference_code/
 src/train/

@@ -43,9 +43,9 @@ class WarpCNN(nn.Module):
         self.conv9 = nn.Conv2d(in_channels = 8, out_channels = 8, kernel_size = 3, stride = 1, padding = 1)
         self.pool9 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        self.dropout_conv3 = nn.Dropout(p = 0.5)
-        self.dropout_conv6 = nn.Dropout(p = 0.5)
-        self.dropout_conv9 = nn.Dropout(p = 0.5)
+        self.dropout_conv3 = nn.Dropout2d(p = 0.5)
+        self.dropout_conv6 = nn.Dropout2d(p = 0.5)
+        self.dropout_conv9 = nn.Dropout2d(p = 0.5)
         self.fc = nn.Linear(16, 8)
         
         #init weights
