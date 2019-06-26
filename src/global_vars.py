@@ -13,3 +13,5 @@ SAVE_PATH_WARP_VAL = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-I
 
 IMAGE_W = 1242; IMAGE_H = 375
 WARP_W = 1442; WARP_H = 575
+
+WARPING_CONSTANT = 10000.0 #to enlarge values in ground-truth.

@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 import cv2
 import os
 import random as rand
+import global_vars as gv
 from os.path import isfile, join
 
 #custom data dir location
@@ -91,7 +92,11 @@ def generate():
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M = perform_warp(img, 5, 10)
-        reverse_img = perform_unwarp(result, inverse_M)       
+        inverse_M = inverse_M
+        #print("Inverse M with constant: ", inverse_M)
+        #inverse_M = inverse_M / gv.WARPING_CONSTANT
+        #print("Inverse M without constant: ", inverse_M)
+#        reverse_img = perform_unwarp(result, inverse_M)       
 #        plt.imshow(img)
 #        plt.show()
 #        

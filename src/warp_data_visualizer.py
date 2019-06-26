@@ -13,12 +13,14 @@ from torch import optim
 import torch.nn.functional as F
 import numpy as np
 import cv2
+import global_vars as gv
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 from torchvision import transforms
 
 def visualize_transform_M(M_list):
     #print("Norm of predicted vs actual T")
+    
     for i in range(np.shape(M_list)[0]):
         plt.scatter(i, np.linalg.norm(M_list[i]), color = 'g')
 
@@ -26,13 +28,14 @@ def visualize_predict_M(predicted_M_list):
     for i in range(np.shape(predicted_M_list)[0]):
         plt.scatter(i, np.linalg.norm(predicted_M_list[i]), color = 'r')
     
+    plt.title("Distribution of norm ground-truth T vs predicted T")
     plt.show()
     
-    print("Differences of predicted T")
     for i in range(1, np.shape(predicted_M_list)[0]):
         diff = abs(predicted_M_list[i] - predicted_M_list[i - 1])
         plt.scatter(i - 1, np.linalg.norm(diff), color = 'b')
     
+    plt.title("Differences of predicted T")
     plt.show()
 
 def visualize_input_data(warp_list):

@@ -9,6 +9,7 @@ Main starting point for warp image training
 from model import warp_cnn
 from model import torch_image_loader as loader
 from utils import generate_misaligned as gm
+import global_vars as gv
 import torch
 import math
 from torch import optim
@@ -23,9 +24,11 @@ BATCH_SIZE = 8
 
 
 def show_transform_image(rgb, M, ground_truth_M):
+    #M = M / gv.WARPING_CONSTANT
+    #ground_truth_M = ground_truth_M / gv.WARPING_CONSTANT
+    
     M = np.append(M, [1.0])
     M = np.reshape(M, (3,3))
-    #print("M predicted contents: ", M, "Ground truth: ", ground_truth_M)
     print("Ground truth")
     #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
     result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
@@ -37,6 +40,8 @@ def show_transform_image(rgb, M, ground_truth_M):
     result = cv2.warpPerspective(rgb, M, (np.shape(rgb)[1], np.shape(rgb)[0]))
     plt.imshow(result)
     plt.show()
+    
+    print("M predicted contents: ", M, "Ground truth: ", ground_truth_M, "Norm: ", np.linalg.norm((M - ground_truth_M.numpy())))
 
 def normalize(tensor_v, reference_tensor):
     min_v = torch.min(reference_tensor * 500)
@@ -58,6 +63,7 @@ def start_train(gpu_dev):
     cnn.to(gpu_dev)
     optimizer = optim.Adam(cnn.parameters(),lr = LR)
     loss_func = torch.nn.MSELoss(reduction = 'sum')
+    pairwise_dist = torch.nn.PairwiseDistance()
     
     #load checkpoints
     CHECKPATH = 'tmp/warp_cnn_0621.pt'
@@ -65,7 +71,9 @@ def start_train(gpu_dev):
         checkpoint = torch.load(CHECKPATH)
         cnn.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        epoch = checkpoint['epoch']
+        #epoch = checkpoint['epoch']
+        epoch = 40
+        print("Loaded checkpt ",CHECKPATH, "Current epoch: ", epoch)
     
     for epoch in range(num_epoch):
         cnn.train()
@@ -91,26 +99,21 @@ def start_train(gpu_dev):
             
             optimizer.zero_grad() #reset gradient computer
             pred = cnn(warp_gpu)
-            #pred = torch.mul(pred, 50.0)
-            #revised_t = torch.mul(revised_t,50.0)
             
             loss = loss_func(pred, revised_t)
-
             loss.backward()
             optimizer.step()
             accum_loss = accum_loss + loss.cpu().data
             
             if(batch_idx % 25 == 0):
                 print("Batch id: ", batch_idx, "Loss: ", loss)
-                #writer.add_scalar('warp_exp/Batch_MSE_Loss_' +str(epoch + 1), loss, global_step = (batch_idx + 1))
-                #writer.close()
         
         train_ave_loss = accum_loss / (batch_idx + 1.0)
         
         writer.add_histogram('warp_exp_2/weights/weights_fc', cnn.fc.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv9', cnn.conv6.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv8', cnn.conv6.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv7', cnn.conv6.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp_2/weights/weights_conv9', cnn.conv9.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp_2/weights/weights_conv8', cnn.conv8.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp_2/weights/weights_conv7', cnn.conv7.weight.data, global_step = (epoch + 1))
         writer.add_histogram('warp_exp_2/weights/weights_conv6', cnn.conv6.weight.data, global_step = (epoch + 1))
         writer.add_histogram('warp_exp_2/weights/weights_conv5', cnn.conv5.weight.data, global_step = (epoch + 1))
         writer.add_histogram('warp_exp_2/weights/weights_conv4', cnn.conv4.weight.data, global_step = (epoch + 1))
@@ -119,9 +122,9 @@ def start_train(gpu_dev):
         writer.add_histogram('warp_exp_2/weights/weights_conv1', cnn.conv1.weight.data, global_step = (epoch + 1))
         
         writer.add_histogram('warp_exp_2/bias/bias_fc', cnn.fc.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv9', cnn.conv6.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv8', cnn.conv6.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv7', cnn.conv6.bias.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp_2/bias/bias_conv9', cnn.conv9.bias.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp_2/bias/bias_conv8', cnn.conv8.bias.data, global_step = (epoch + 1))
+        writer.add_histogram('warp_exp_2/bias/bias_conv7', cnn.conv7.bias.data, global_step = (epoch + 1))
         writer.add_histogram('warp_exp_2/bias/bias_conv6', cnn.conv6.bias.data, global_step = (epoch + 1))
         writer.add_histogram('warp_exp_2/bias/bias_conv5', cnn.conv5.bias.data, global_step = (epoch + 1))
         writer.add_histogram('warp_exp_2/bias/bias_conv4', cnn.conv4.bias.data, global_step = (epoch + 1))
@@ -140,8 +143,7 @@ def start_train(gpu_dev):
                 warp_img = np.moveaxis(warp_img, -1, 0)
                 warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
                 
-                print("Showing image for batch ID: ", batch_idx)
-                
+                #print("Showing image for batch ID: ", batch_idx)
                 
                 pred = cnn(warp.to(gpu_dev))
                 predict_M_list.append(pred[0].cpu().numpy())
@@ -150,8 +152,6 @@ def start_train(gpu_dev):
                 revised_t = revised_t[:, 0:8].to(gpu_dev)
             
                 #note validation loss
-                #pred = torch.mul(pred, 50.0)
-                #revised_t = torch.mul(revised_t,50.0)
                 loss = loss_func(pred, revised_t)
                 accum_loss = accum_loss + loss.cpu().data
                 
@@ -166,7 +166,7 @@ def start_train(gpu_dev):
             writer.close()
             
             print("Current epoch: ", (epoch + 1), " Training loss: ", train_ave_loss, "Validation loss: ", validate_ave_loss)
-            if((epoch + 1) % 10 == 0): #only save a batch every 25 epochs
+            if((epoch + 1) % 10 == 0): #only save a batch every X epochs
                 gm.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
                 torch.save(cnn.state_dict(), CHECKPATH)
                 torch.save({'epoch': epoch,
