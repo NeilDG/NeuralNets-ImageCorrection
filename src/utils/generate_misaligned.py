@@ -65,8 +65,10 @@ def perform_warp(img, warp_intensity, displacement, padding = 100):
     second_disp_y = rand.randint(-displacement, displacement) * warp_intensity
 
     pts1 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
-    pts2 = np.float32([[0,0],[x_dim + x_disp,second_disp_x],[second_disp_y,y_dim + y_disp], [x_dim + both_disp, y_dim + both_disp]])
+    #pts2 = np.float32([[0,0],[x_dim + x_disp,second_disp_x],[second_disp_y,y_dim + y_disp], [x_dim + both_disp, y_dim + both_disp]])
+    pts2 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
     M = cv2.getPerspectiveTransform(pts1, pts2)
+    M[0,1] = (rand.random() / warp_intensity) * warp_intensity
     result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
     
     return result, M, np.linalg.inv(M)
@@ -86,16 +88,21 @@ def perform_unwarp(img, inverse_M, padding_deduct = 100):
 
 def generate():
     rgb_list = retrieve_kitti_rgb_list();
+    print("Images found: ", np.size(rgb_list))
     
     #test read image
-    print("Images found: ", np.size(rgb_list))
+#    for i in range(10):
+#        img = cv2.imread(rgb_list[i])
+#        result, M, inverse_M = perform_warp(img, 5, 10)
+#        plt.imshow(img); plt.show()
+#        plt.imshow(result); plt.show()
+#        print("Matrix: ", M)
+    
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M = perform_warp(img, 5, 10)
         inverse_M = inverse_M
-        #print("Inverse M with constant: ", inverse_M)
-        #inverse_M = inverse_M / gv.WARPING_CONSTANT
-        #print("Inverse M without constant: ", inverse_M)
+        
 #        reverse_img = perform_unwarp(result, inverse_M)       
 #        plt.imshow(img)
 #        plt.show()
@@ -106,7 +113,6 @@ def generate():
 #        difference = img - reverse_img
 #        plt.imshow(difference)
 #        plt.show()
-
 
         img = cv2.resize(img, (IMAGE_W, IMAGE_H)) 
         result = cv2.resize(result, (WARP_W, WARP_H))

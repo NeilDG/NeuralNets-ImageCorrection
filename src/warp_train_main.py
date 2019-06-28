@@ -27,21 +27,25 @@ def show_transform_image(rgb, M, ground_truth_M):
     #M = M / gv.WARPING_CONSTANT
     #ground_truth_M = ground_truth_M / gv.WARPING_CONSTANT
     
-    M = np.append(M, [1.0])
-    M = np.reshape(M, (3,3))
-    print("Ground truth")
+    pred_M = np.copy(ground_truth_M)
+    pred_M[0,1] = M
+    
+    #hardcode muna
+    #M = np.append(M, [1.0])
+    #M = np.reshape(M, (3,3))
     #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
     result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
+    plt.title("Ground truth")
     plt.imshow(result)
     plt.show()
     
-    print("Predicted warp")
     #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
-    result = cv2.warpPerspective(rgb, M, (np.shape(rgb)[1], np.shape(rgb)[0]))
+    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
+    plt.title("Predicted warp")
     plt.imshow(result)
     plt.show()
     
-    print("M predicted contents: ", M, "Ground truth: ", ground_truth_M, "Norm: ", np.linalg.norm((M - ground_truth_M.numpy())))
+    print("M predicted contents: ", pred_M, "Ground truth: ", ground_truth_M, "Norm: ", np.linalg.norm((M - ground_truth_M.numpy())))
 
 def normalize(tensor_v, reference_tensor):
     min_v = torch.min(reference_tensor * 500)
@@ -71,8 +75,7 @@ def start_train(gpu_dev):
         checkpoint = torch.load(CHECKPATH)
         cnn.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        #epoch = checkpoint['epoch']
-        epoch = 40
+        epoch = checkpoint['epoch']
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", epoch)
     
     for epoch in range(num_epoch):
@@ -94,7 +97,7 @@ def start_train(gpu_dev):
             rgb_img = np.moveaxis(rgb_img, -1, 0) #for properly displaying image in matplotlib
             
             revised_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-            revised_t = revised_t[:, 0:8].to(gpu_dev)
+            revised_t = revised_t[:,1].to(gpu_dev)
             #print("Revised T type: ", revised_t.type())
             
             optimizer.zero_grad() #reset gradient computer
@@ -137,6 +140,13 @@ def start_train(gpu_dev):
         validate_ave_loss = 0.0
         cnn.eval()
         with torch.no_grad():
+            pred = cnn(warp.to(gpu_dev))
+            print("Training set preview")
+            plt.title("Input image")
+            plt.imshow(warp_img)
+            plt.show()
+            show_transform_image(warp_img, M = pred[0].cpu().numpy(), ground_truth_M = transform[0])
+            
             predict_M_list = []
             for batch_idx, (rgb, warp, transform) in enumerate(loader.load_test_dataset(batch_size = BATCH_SIZE)):
                 warp_img = warp[0,:,:,:].numpy()
@@ -149,7 +159,7 @@ def start_train(gpu_dev):
                 predict_M_list.append(pred[0].cpu().numpy())
                 
                 revised_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-                revised_t = revised_t[:, 0:8].to(gpu_dev)
+                revised_t = revised_t[:, 1].to(gpu_dev)
             
                 #note validation loss
                 loss = loss_func(pred, revised_t)
@@ -158,6 +168,8 @@ def start_train(gpu_dev):
                 #if((epoch + 1) % 20 != 0): #only save a batch every 25 epochs
                     #break
             
+            print("Validation set preview")
+            plt.title("Input image")
             plt.imshow(warp_img)
             plt.show()
             show_transform_image(warp_img, M = pred[0].cpu().numpy(), ground_truth_M = transform[0])
