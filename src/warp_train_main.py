@@ -18,7 +18,7 @@ import cv2
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 
-LR = 0.001
+LR = 0.0005
 num_epoch = 500
 BATCH_SIZE = 8
 
@@ -113,27 +113,27 @@ def start_train(gpu_dev):
         
         train_ave_loss = accum_loss / (batch_idx + 1.0)
         
-        writer.add_histogram('warp_exp_2/weights/weights_fc', cnn.fc.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv9', cnn.conv9.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv8', cnn.conv8.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv7', cnn.conv7.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv6', cnn.conv6.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv5', cnn.conv5.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv4', cnn.conv4.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv3', cnn.conv3.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv2', cnn.conv2.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/weights/weights_conv1', cnn.conv1.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('cnn_v3/weights/weights_fc', cnn.fc.weight.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/weights/weights_conv9', cnn.conv9.weight.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/weights/weights_conv8', cnn.conv8.weight.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/weights/weights_conv7', cnn.conv7.weight.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/weights/weights_conv6', cnn.conv6.weight.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/weights/weights_conv5', cnn.conv5.weight.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/weights/weights_conv4', cnn.conv4.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('cnn_v3/weights/weights_conv3', cnn.conv3.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('cnn_v3/weights/weights_conv2', cnn.conv2.weight.data, global_step = (epoch + 1))
+        writer.add_histogram('cnn_v3/weights/weights_conv1', cnn.conv1.weight.data, global_step = (epoch + 1))
         
-        writer.add_histogram('warp_exp_2/bias/bias_fc', cnn.fc.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv9', cnn.conv9.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv8', cnn.conv8.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv7', cnn.conv7.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv6', cnn.conv6.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv5', cnn.conv5.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv4', cnn.conv4.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv3', cnn.conv3.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv2', cnn.conv2.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('warp_exp_2/bias/bias_conv1', cnn.conv1.bias.data, global_step = (epoch + 1))
+        writer.add_histogram('cnn_v3/bias/bias_fc', cnn.fc.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/bias/bias_conv9', cnn.conv9.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/bias/bias_conv8', cnn.conv8.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/bias/bias_conv7', cnn.conv7.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/bias/bias_conv6', cnn.conv6.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/bias/bias_conv5', cnn.conv5.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('warp_exp_2/bias/bias_conv4', cnn.conv4.bias.data, global_step = (epoch + 1))
+        writer.add_histogram('cnn_v3/bias/bias_conv3', cnn.conv3.bias.data, global_step = (epoch + 1))
+        writer.add_histogram('cnn_v3/bias/bias_conv2', cnn.conv2.bias.data, global_step = (epoch + 1))
+        writer.add_histogram('cnn_v3/bias/bias_conv1', cnn.conv1.bias.data, global_step = (epoch + 1))
         
         #evaluate predictions
         accum_loss = 0.0
