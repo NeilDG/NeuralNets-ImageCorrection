@@ -16,13 +16,13 @@ def assemble_train_data():
     rgb_list = []; warp_list = []; transform_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB)
-    temp_cap = 5000 #only load 500 images for faster training
-    for i in range(temp_cap): #len(images)
+    #temp_cap = 500 #only load 500 images for faster training
+    for i in range(len(images)): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP)
-    for i in range(temp_cap * 2):
+    for i in range(len(images)):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP + images[i]
             transformPath = gv.SAVE_PATH_WARP + images[i].replace(".png", ".txt")
@@ -73,7 +73,7 @@ def load_dataset(batch_size = 8):
 
 def load_test_dataset(batch_size = 8):
     rgb_list, warp_list, transform_list = assemble_test_data()
-    print("Length of test images: ", len(rgb_list), len(warp_list))
+    print("Length of test images: ", len(rgb_list), len(warp_list), len(transform_list))
     
     generic_transform = transforms.Compose([
         transforms.ToPILImage(),

@@ -18,6 +18,18 @@ from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 from torchvision import transforms
 
+def visualize_individual_M(M0, M1, M2, M3):
+    x = np.random.rand(np.shape(M0)[0])
+
+    plt.scatter(x, M0, color = 'g', label = "M0")
+    plt.scatter(x, M1, color = 'r', label = "M1")
+    plt.scatter(x, M2, color = 'b', label = "M2")
+    plt.scatter(x, M3, color = 'y', label = "M3")
+    
+    plt.legend()
+    plt.title("Distribution of generated M elements")
+    plt.show()
+    
 def visualize_transform_M(M_list):
     #print("Norm of predicted vs actual T")
     

@@ -18,17 +18,19 @@ import cv2
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 
-LR = 0.0005
+LR = 0.0001
 num_epoch = 500
-BATCH_SIZE = 8
+BATCH_SIZE = 40
+CNN_VERSION = "cnn_v3.08"
 
 
-def show_transform_image(rgb, M, ground_truth_M):
+def show_transform_image(rgb, M1, M2, ground_truth_M):
     #M = M / gv.WARPING_CONSTANT
     #ground_truth_M = ground_truth_M / gv.WARPING_CONSTANT
     
     pred_M = np.copy(ground_truth_M)
-    pred_M[0,1] = M
+    pred_M[0,0] = M1
+    pred_M[0,1] = M2
     
     #hardcode muna
     #M = np.append(M, [1.0])
@@ -45,7 +47,9 @@ def show_transform_image(rgb, M, ground_truth_M):
     plt.imshow(result)
     plt.show()
     
-    print("M predicted contents: ", pred_M, "Ground truth: ", ground_truth_M, "Norm: ", np.linalg.norm((M - ground_truth_M.numpy())))
+    print("Predicted M1 val: ", M1, "Actual val: ",ground_truth_M[0,0].numpy())
+    print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,1].numpy())
+    #print("M predicted contents: ", pred_M, "Ground truth: ", ground_truth_M, "Norm: ", np.linalg.norm((pred_M - ground_truth_M.numpy())))
 
 def normalize(tensor_v, reference_tensor):
     min_v = torch.min(reference_tensor * 500)
@@ -67,10 +71,14 @@ def start_train(gpu_dev):
     cnn.to(gpu_dev)
     optimizer = optim.Adam(cnn.parameters(),lr = LR)
     loss_func = torch.nn.MSELoss(reduction = 'sum')
-    pairwise_dist = torch.nn.PairwiseDistance()
+    
+    #load second model
+    cnn_2 = warp_cnn.WarpCNN();
+    cnn_2.to(gpu_dev)
+    optimizer_2 = optim.Adam(cnn_2.parameters(),lr = LR)
     
     #load checkpoints
-    CHECKPATH = 'tmp/warp_cnn_0621.pt'
+    CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     if(False):
         checkpoint = torch.load(CHECKPATH)
         cnn.load_state_dict(checkpoint['model_state_dict'])
@@ -84,8 +92,8 @@ def start_train(gpu_dev):
         accum_loss = 0.0
         train_ave_loss = 0.0
         print("Started training per batch.")
-        print("Conv1 biases: ", cnn.conv1.bias.data)
-        print("FC biases: ", cnn.fc.bias.data)
+        #print("Conv1 biases: ", cnn.conv1.bias.data)
+        #print("FC biases: ", cnn.fc.bias.data)
         for batch_idx, (rgb, warp, transform) in enumerate(loader.load_dataset(batch_size = BATCH_SIZE)):
             warp_gpu = warp.to(gpu_dev)
             warp_img = warp[0,:,:,:].numpy()
@@ -96,9 +104,8 @@ def start_train(gpu_dev):
             rgb_img = np.moveaxis(rgb_img, -1, 0)
             rgb_img = np.moveaxis(rgb_img, -1, 0) #for properly displaying image in matplotlib
             
-            revised_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-            revised_t = revised_t[:,1].to(gpu_dev)
-            #print("Revised T type: ", revised_t.type())
+            reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
+            revised_t = torch.reshape(reshaped_t[:,0], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_dev)
             
             optimizer.zero_grad() #reset gradient computer
             pred = cnn(warp_gpu)
@@ -108,32 +115,41 @@ def start_train(gpu_dev):
             optimizer.step()
             accum_loss = accum_loss + loss.cpu().data
             
+            #perform 2nd training
+            revised_t = torch.reshape(reshaped_t[:,1], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_dev)
+            optimizer_2.zero_grad()
+            pred_2 = cnn_2(warp_gpu)
+            loss_2 = loss_func(pred_2, revised_t)
+            loss_2.backward()
+            optimizer_2.step()
+            accum_loss = accum_loss + loss.cpu().data
+            
             if(batch_idx % 25 == 0):
-                print("Batch id: ", batch_idx, "Loss: ", loss)
+                print("Batch id: ", batch_idx, "Loss 1: ", loss, "Loss 2: ", loss_2)
         
         train_ave_loss = accum_loss / (batch_idx + 1.0)
         
-        writer.add_histogram('cnn_v3/weights/weights_fc', cnn.fc.weight.data, global_step = (epoch + 1))
+        writer.add_histogram(CNN_VERSION +'/weights/weights_fc', cnn.fc.weight.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/weights/weights_conv9', cnn.conv9.weight.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/weights/weights_conv8', cnn.conv8.weight.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/weights/weights_conv7', cnn.conv7.weight.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/weights/weights_conv6', cnn.conv6.weight.data, global_step = (epoch + 1))
-#        writer.add_histogram('warp_exp_2/weights/weights_conv5', cnn.conv5.weight.data, global_step = (epoch + 1))
-#        writer.add_histogram('warp_exp_2/weights/weights_conv4', cnn.conv4.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('cnn_v3/weights/weights_conv3', cnn.conv3.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('cnn_v3/weights/weights_conv2', cnn.conv2.weight.data, global_step = (epoch + 1))
-        writer.add_histogram('cnn_v3/weights/weights_conv1', cnn.conv1.weight.data, global_step = (epoch + 1))
+#        writer.add_histogram('cnn_v3/weights/weights_conv5', cnn.conv5.weight.data, global_step = (epoch + 1))
+#        writer.add_histogram('cnn_v3/weights/weights_conv4', cnn.conv4.weight.data, global_step = (epoch + 1))
+        writer.add_histogram(CNN_VERSION +'/weights/weights_conv3', cnn.conv3.weight.data, global_step = (epoch + 1))
+        writer.add_histogram(CNN_VERSION +'/weights/weights_conv2', cnn.conv2.weight.data, global_step = (epoch + 1))
+        writer.add_histogram(CNN_VERSION +'/weights/weights_conv1', cnn.conv1.weight.data, global_step = (epoch + 1))
         
-        writer.add_histogram('cnn_v3/bias/bias_fc', cnn.fc.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('cnn_v3/bias/bias_fc', cnn.fc.bias.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/bias/bias_conv9', cnn.conv9.bias.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/bias/bias_conv8', cnn.conv8.bias.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/bias/bias_conv7', cnn.conv7.bias.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/bias/bias_conv6', cnn.conv6.bias.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/bias/bias_conv5', cnn.conv5.bias.data, global_step = (epoch + 1))
 #        writer.add_histogram('warp_exp_2/bias/bias_conv4', cnn.conv4.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('cnn_v3/bias/bias_conv3', cnn.conv3.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('cnn_v3/bias/bias_conv2', cnn.conv2.bias.data, global_step = (epoch + 1))
-        writer.add_histogram('cnn_v3/bias/bias_conv1', cnn.conv1.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('cnn_v3/bias/bias_conv3', cnn.conv3.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('cnn_v3/bias/bias_conv2', cnn.conv2.bias.data, global_step = (epoch + 1))
+#        writer.add_histogram('cnn_v3/bias/bias_conv1', cnn.conv1.bias.data, global_step = (epoch + 1))
         
         #evaluate predictions
         accum_loss = 0.0
@@ -145,10 +161,11 @@ def start_train(gpu_dev):
             plt.title("Input image")
             plt.imshow(warp_img)
             plt.show()
-            show_transform_image(warp_img, M = pred[0].cpu().numpy(), ground_truth_M = transform[0])
+            show_transform_image(warp_img, M1 = pred[0].cpu().numpy(), M2 = pred_2[0].cpu().numpy(), ground_truth_M = transform[0])
             
             predict_M_list = []
             for batch_idx, (rgb, warp, transform) in enumerate(loader.load_test_dataset(batch_size = BATCH_SIZE)):
+                warp_gpu = warp.to(gpu_dev)
                 warp_img = warp[0,:,:,:].numpy()
                 warp_img = np.moveaxis(warp_img, -1, 0)
                 warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
@@ -158,11 +175,18 @@ def start_train(gpu_dev):
                 pred = cnn(warp.to(gpu_dev))
                 predict_M_list.append(pred[0].cpu().numpy())
                 
-                revised_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-                revised_t = revised_t[:, 1].to(gpu_dev)
+                reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
+                revised_t = torch.reshape(reshaped_t[:,0], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_dev)
             
                 #note validation loss
                 loss = loss_func(pred, revised_t)
+                accum_loss = accum_loss + loss.cpu().data
+                
+                #for second inference
+                revised_t = torch.reshape(reshaped_t[:,1], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_dev)
+                pred_2 = cnn_2(warp_gpu)
+                
+                loss = loss_func(pred_2, revised_t)
                 accum_loss = accum_loss + loss.cpu().data
                 
                 #if((epoch + 1) % 20 != 0): #only save a batch every 25 epochs
@@ -172,13 +196,13 @@ def start_train(gpu_dev):
             plt.title("Input image")
             plt.imshow(warp_img)
             plt.show()
-            show_transform_image(warp_img, M = pred[0].cpu().numpy(), ground_truth_M = transform[0])
+            show_transform_image(warp_img, M1 = pred[0].cpu().numpy(), M2 = pred_2[0].cpu().numpy(), ground_truth_M = transform[0])
             validate_ave_loss = accum_loss / (batch_idx + 1.0)
-            writer.add_scalars('warp_exp_2/MSE_loss', {'training_loss' :train_ave_loss, 'validation_loss' : validate_ave_loss}, global_step = (epoch + 1)) #plot validation loss
+            writer.add_scalars(CNN_VERSION +'/MSE_loss', {'training_loss' :train_ave_loss, 'validation_loss' : validate_ave_loss}, global_step = (epoch + 1)) #plot validation loss
             writer.close()
             
             print("Current epoch: ", (epoch + 1), " Training loss: ", train_ave_loss, "Validation loss: ", validate_ave_loss)
-            if((epoch + 1) % 10 == 0): #only save a batch every X epochs
+            if((epoch + 1) % 5 == 0): #only save a batch every X epochs
                 gm.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
                 torch.save(cnn.state_dict(), CHECKPATH)
                 torch.save({'epoch': epoch,
