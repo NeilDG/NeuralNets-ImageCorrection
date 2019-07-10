@@ -13,26 +13,43 @@ from torch import optim
 import torch.nn.functional as F
 import numpy as np
 import cv2
+import global_vars as gv
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 from torchvision import transforms
 
+def visualize_individual_M(M0, M1, M2, M3):
+    x = np.random.rand(np.shape(M0)[0])
+
+    plt.scatter(x, M0, color = 'g', label = "M0")
+    plt.scatter(x, M1, color = 'r', label = "M1")
+    plt.scatter(x, M2, color = 'b', label = "M2")
+    plt.scatter(x, M3, color = 'y', label = "M3")
+    
+    plt.legend()
+    plt.title("Distribution of generated M elements")
+    plt.show()
+    
 def visualize_transform_M(M_list):
     #print("Norm of predicted vs actual T")
+    
     for i in range(np.shape(M_list)[0]):
         plt.scatter(i, np.linalg.norm(M_list[i]), color = 'g')
 
-def visualize_predict_M(predicted_M_list):
+def visualize_predict_M(baseline_M, predicted_M_list):
     for i in range(np.shape(predicted_M_list)[0]):
-        plt.scatter(i, np.linalg.norm(predicted_M_list[i]), color = 'r')
+        predict_M = np.copy(baseline_M)
+        predict_M[1] = predicted_M_list[i]
+        plt.scatter(i, np.linalg.norm(predict_M), color = 'r')
     
+    plt.title("Distribution of norm ground-truth T vs predicted T")
     plt.show()
     
-    print("Differences of predicted T")
     for i in range(1, np.shape(predicted_M_list)[0]):
         diff = abs(predicted_M_list[i] - predicted_M_list[i - 1])
         plt.scatter(i - 1, np.linalg.norm(diff), color = 'b')
     
+    plt.title("Differences of predicted T")
     plt.show()
 
 def visualize_input_data(warp_list):
@@ -47,13 +64,14 @@ def main():
     all_transforms = []
     predict_transforms = []
     warp_list = []
-    
+    baseline_M = None
     predict_list_files = gm.retrieve_predict_warp_list()
     for pfile in predict_list_files:
         predict_transforms.append(np.loadtxt(pfile))
     
     for batch_idx, (rgb, warp, transform) in enumerate(loader.load_dataset(batch_size = 64)):
         for t in transform:
+            baseline_M = t.numpy()
             all_transforms.append(t.numpy())
         
         for warp_img in warp:
@@ -66,7 +84,7 @@ def main():
         if(batch_idx % 500 == 0):
             break
     
-    visualize_predict_M(predict_transforms)
+    visualize_predict_M(baseline_M, predict_transforms)
     
     #visualize_input_data(warp_list)
     
