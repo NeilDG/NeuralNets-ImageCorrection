@@ -12,7 +12,7 @@ import cv2
 import os
 import random as rand
 import global_vars as gv
-import warp_data_visualizer as wdv
+from visualizers import warp_data_visualizer as wdv
 from os.path import isfile, join
 
 #custom data dir location
@@ -62,12 +62,12 @@ def perform_warp(img, W1 ,W2, W3, W4, padding = 100):
     value=[0,0,0])
     padded_dim = np.shape(padded_image)
 
-#    x_disp = rand.randint(-displacement, displacement) * warp_intensity
-#    y_disp = rand.randint(-displacement, displacement) * warp_intensity
-#    both_disp = rand.randint(-displacement, displacement) * warp_intensity
+#    x_disp = rand.randint(-5, 5) * W1
+#    y_disp = rand.randint(-5, 5) * W1
+#    both_disp = rand.randint(-5, 5) * W1
 #    
-#    second_disp_x = rand.randint(-displacement, displacement) * warp_intensity
-#    second_disp_y = rand.randint(-displacement, displacement) * warp_intensity
+#    second_disp_x = rand.randint(-5, 5) * W1
+#    second_disp_y = rand.randint(-5, 5) * W1
 
     pts1 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
     #pts2 = np.float32([[0,0],[x_dim + x_disp,second_disp_x],[second_disp_y,y_dim + y_disp], [x_dim + both_disp, y_dim + both_disp]])
@@ -75,16 +75,19 @@ def perform_warp(img, W1 ,W2, W3, W4, padding = 100):
     M = cv2.getPerspectiveTransform(pts1, pts2)
     
     while True:
-        M[0,0] = (np.random.random() / W1 ) * W1
-        M[0,1] = (np.random.random() / W2 ) * W2
-        #M[1,0] = (np.random.random() / W3 ) * W3
-        #M[1,1] = (np.random.random() / W4 ) * W4
+        M[0,0] = np.random.random() * W1
+        M[0,1] = np.random.random() * W2
+        M[1,0] = np.random.random() * W3
+        M[1,1] = np.random.random() * W4
+        #M[1,2] = (np.random.random() / W1 ) * W1
+        #M[2,0] = (np.random.random() / W1 ) * W1
+        #M[2,1] = (np.random.random() / W1 ) * W1
         result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
         inverse_M = np.linalg.inv(M)
         
         #do not generate extreme inverse values
-        if(inverse_M[0,0] <= W1 * 3 and inverse_M[0,1] <= W2 * 3):
-            break
+        #if(inverse_M[0,0] <= W1 * 3 and inverse_M[0,1] <= W2 * 3 and inverse_M[1,0] >= 50 and inverse_M[1,1] >= 50):
+        break
     
     return result, M, inverse_M
 
@@ -107,15 +110,15 @@ def check_generate_data():
     
     #test read image
     M0_list = []; M1_list = []; M2_list = []; M3_list = []
-    for i in range(100):
+    for i in range(10):
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() + 3, np.random.rand() + 3, 1, 1)
+        result, M, inverse_M = perform_warp(img, 2, 2, 1.5, 1.5)
         reverse_img = perform_unwarp(result, inverse_M)    
-#        plt.title("Original image"); plt.imshow(img); plt.show()
-#        plt.title("Warped image"); plt.imshow(result); plt.show()
-#        plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
-#        difference = img - reverse_img
-#        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
+        plt.title("Original image"); plt.imshow(img); plt.show()
+        plt.title("Warped image"); plt.imshow(result); plt.show()
+        plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
+        difference = img - reverse_img
+        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
         #print("Inverse Matrix: ", inverse_M)
         M0_list.append(inverse_M[0,0])
@@ -131,7 +134,7 @@ def generate():
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() + 3, np.random.rand() + 3, 1, 1)
+        result, M, inverse_M = perform_warp(img, 1, 1, 1, 1)
         inverse_M = inverse_M
         
 #        reverse_img = perform_unwarp(result, inverse_M)       
@@ -173,4 +176,4 @@ def save_predicted_transforms(M_list, start_index = 0):
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     check_generate_data()
-    generate()
+    #generate()

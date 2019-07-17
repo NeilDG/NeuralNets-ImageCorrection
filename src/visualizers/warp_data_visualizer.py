@@ -5,8 +5,8 @@ Data visualizer for analyzing input data
 @author: delgallegon
 """
 from model import warp_cnn
-from model import torch_image_loader as loader
-from model import torch_image_dataset as image_dataset
+from loaders import torch_image_loader as loader
+from loaders import torch_image_dataset as image_dataset
 from utils import generate_misaligned as gm
 import torch
 from torch import optim
@@ -17,6 +17,36 @@ import global_vars as gv
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
 from torchvision import transforms
+
+def show_transform_image(rgb, M1, M2, M3, M4, ground_truth_M):
+    #M = M / gv.WARPING_CONSTANT
+    #ground_truth_M = ground_truth_M / gv.WARPING_CONSTANT
+    
+    pred_M = np.copy(ground_truth_M)
+    pred_M[0,0] = M1
+    pred_M[0,1] = M2
+    pred_M[1,0] = M3
+    pred_M[1,1] = M4
+    #hardcode muna
+    #M = np.append(M, [1.0])
+    #M = np.reshape(M, (3,3))
+    #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
+    result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
+    
+    plt.title("Ground truth")
+    plt.imshow(result)
+    plt.show()
+    
+    #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
+    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
+    plt.title("Predicted warp")
+    plt.imshow(result)
+    plt.show()
+    
+    print("Predicted M1 val: ", M1, "Actual val: ",ground_truth_M[0,0].numpy())
+    print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,1].numpy())
+    print("Predicted M3 val: ", M3, "Actual val: ",ground_truth_M[1,0].numpy())
+    print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,1].numpy())
 
 def visualize_individual_M(M0, M1, M2, M3):
     x = np.random.rand(np.shape(M0)[0])
