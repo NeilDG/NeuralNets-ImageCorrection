@@ -12,12 +12,15 @@ import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
+from utils import generate_misaligned as gm
+from loaders import torch_image_loader as loader
 import modular_trainer as trainer
 
 LR = 0.0001
 num_epochs = 500
 BATCH_SIZE = 40
 CNN_VERSION = "cnn_v3.09"
+OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
     #initialize tensorboard writer
@@ -35,29 +38,109 @@ def start_train(gpu_device):
     
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
-    #placeholder
+    start_epoch = 1
+    if(False):
+        checkpoint = torch.load(CHECKPATH)
+        start_epoch = checkpoint['epoch']
+        for model in model_list:
+            model.load_saved_states(checkpoint[model.get_name()], checkpoint[model.get_name() + OPTIMIZER_KEY])
+ 
+        print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
+        print("===================================================")
     
-    for epoch in range(num_epochs):
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE)
+    for epoch in range(start_epoch, num_epochs):
+        accum_loss = 0.0
+        train_ave_loss = 0.0
+        val_ave_loss = 0.0
+        for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
+            #train
+            model_list[0].train(gt_index = 0, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[1].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[2].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[3].train(gt_index = 4, current_epoch = epoch, warp = warp, transform = transform)
+            
+            for model in model_list:
+                accum_loss = accum_loss + model.get_batch_loss()
+            
+            if(batch_idx % 25 == 0):
+                print("Batch id: ", batch_idx, 
+                      "\n[",model_list[0].get_name(),"] Loss: ", model_list[0].get_batch_loss(),
+                      "\n[",model_list[1].get_name(),"] Loss: ", model_list[1].get_batch_loss(),
+                      "\n[",model_list[2].get_name(),"] Loss: ", model_list[2].get_batch_loss(),
+                      "\n[",model_list[3].get_name(),"] Loss: ", model_list[3].get_batch_loss())
+            
         
-        #train
-        model_list[0].train(gt_index = 0, current_epoch = epoch)
-        model_list[1].train(gt_index = 1, current_epoch = epoch)
-        model_list[2].train(gt_index = 3, current_epoch = epoch)
-        model_list[3].train(gt_index = 4, current_epoch = epoch)
         
-        #perform inference
+        #log weights in tensorboard
+        for model in model_list:
+            model.log_weights(current_epoch = epoch)
+        
+        train_ave_loss = accum_loss / (len(model_list) * (batch_idx + 1))
+        accum_loss = 0.0
+        
+        #perform inference on training
         warp_img = model_list[-1].get_last_warp_img()
         warp_tensor = model_list[-1].get_last_warp_tensor()
         ground_truth_M = model_list[-1].get_last_transform()
+        ground_truth_tensor = model_list[-1].get_last_transform_tensor()
         plt.title("Training set preview: Input image")
         plt.imshow(warp_img)
+        plt.show()
         
-        M1 = model_list[0].infer(warp_tensor = warp_tensor)
-        M2 = model_list[1].infer(warp_tensor = warp_tensor)
-        M3 = model_list[2].infer(warp_tensor = warp_tensor)
-        M4 = model_list[3].infer(warp_tensor = warp_tensor)
+        M_list = []
+        for model in model_list:
+                M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
+                M_list.append(M)  
+        visualizer.show_transform_image(warp_img, M1 = M_list[0], M2 = M_list[1], 
+                                        M3 = M_list[2], M4 = M_list[3], ground_truth_M = ground_truth_M)
         
-        visualizer.show_transform_image(warp_img, M1 = M1, M2 = M2, M3 = M3, M4 = M4, ground_truth_M = ground_truth_M)
+        
+        accum_loss = 0.0
+        predict_M_list = []
+        
+        #perform validation test
+        for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+            for model in model_list:
+                M, loss = model.batch_infer(warp_tensor = warp, ground_truth_tensor = transform)
+                accum_loss = accum_loss + loss
+                predict_M_list.append(M)
+        
+        M_list = []
+        #perform inference on validation
+        warp_img = model_list[-1].get_last_warp_img()
+        warp_tensor = model_list[-1].get_last_warp_tensor()
+        ground_truth_M = model_list[-1].get_last_transform()
+        ground_truth_tensor = model_list[-1].get_last_transform_tensor()
+        plt.title("Validation set preview: Input image")
+        plt.imshow(warp_img)
+        plt.show()
+        
+        for model in model_list:
+                M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
+                M_list.append(M)
+        visualizer.show_transform_image(warp_img, M1 = M_list[0], M2 = M_list[1], 
+                                        M3 = M_list[2], M4 = M_list[3], ground_truth_M = ground_truth_M)
+        
+        val_ave_loss = accum_loss / (len(model_list) * (batch_idx + 1))
+        print("Total training loss on epoch ", epoch, ": ", train_ave_loss)
+        print("Total validation loss on epoch ", epoch, ": ", val_ave_loss) 
+        
+        writer.add_scalars(CNN_VERSION +'/MSE_loss', {'training_loss' :train_ave_loss, 'validation_loss' : val_ave_loss},
+                           global_step = epoch) #plot validation loss
+        writer.close()
+        
+        if(epoch % 5 == 0 and epoch != 0): #only save a batch every X epochs
+                gm.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
+                save_dict = {'epoch': epoch}
+                for model in model_list:
+                    model_state_dict, optimizer_state_dict = model.get_state_dicts()
+                    save_dict[model.get_name()] = model_state_dict
+                    save_dict[model.get_name() + OPTIMIZER_KEY] = optimizer_state_dict
+                
+                torch.save(save_dict, CHECKPATH)
+                print("Saved model state:", len(save_dict))
 
     
 def main():
