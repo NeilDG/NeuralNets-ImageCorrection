@@ -7,7 +7,7 @@ Created on Fri Jun  7 19:01:36 2019
 
 import torch
 from torch.utils import data
-from model import torch_image_dataset as image_dataset
+from loaders import torch_image_dataset as image_dataset
 import global_vars as gv
 import os
 from torchvision import transforms
@@ -16,13 +16,13 @@ def assemble_train_data():
     rgb_list = []; warp_list = []; transform_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB)
-    #temp_cap = 500 #only load 500 images for faster training
-    for i in range(len(images)): #len(images)
+    temp_cap = 500 #only load 500 images for faster training
+    for i in range(temp_cap): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP)
-    for i in range(len(images)):
+    for i in range(temp_cap * 2):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP + images[i]
             transformPath = gv.SAVE_PATH_WARP + images[i].replace(".png", ".txt")
