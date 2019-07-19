@@ -4,49 +4,62 @@ Created on Sat Jun 15 11:47:47 2019
 Data visualizer for analyzing input data
 @author: delgallegon
 """
-from model import warp_cnn
 from loaders import torch_image_loader as loader
-from loaders import torch_image_dataset as image_dataset
-from utils import generate_misaligned as gm
-import torch
-from torch import optim
-import torch.nn.functional as F
+import os
 import numpy as np
 import cv2
 import global_vars as gv
-from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
-from torchvision import transforms
 
-def show_transform_image(rgb, M1, M2, M3, M4, ground_truth_M):
+#saves predicted transforms inferred by network. Always set start_index = 0 if you want to
+#override saved predictions
+def save_predicted_transforms(M_list, start_index = 0):
+    for i in range(np.shape(M_list)[0]):
+        np.savetxt(gv.SAVE_PATH_PREDICT + "warp_" +str(i + start_index)+ ".txt", M_list[i])
+        print("Successfully saved predicted M ", str(i + start_index))
+
+def retrieve_predict_warp_list():
+    warp_list = [];
+    
+    for (dirpath, dirnames, filenames) in os.walk(gv.SAVE_PATH_PREDICT):
+        for f in filenames:
+            if f.endswith(".txt"):
+                warp_list.append(os.path.join(dirpath, f))
+    
+    return warp_list
+
+def show_transform_image(rgb, M1, M2, M3, M4, ground_truth_M, should_save, current_epoch, save_every_epoch):
     #M = M / gv.WARPING_CONSTANT
     #ground_truth_M = ground_truth_M / gv.WARPING_CONSTANT
+
+    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+    f.set_size_inches(12,10)
     
     pred_M = np.copy(ground_truth_M)
-    pred_M[0,0] = M1
-    pred_M[0,1] = M2
+    pred_M[0,1] = M1
+    pred_M[0,2] = M2
     pred_M[1,0] = M3
-    pred_M[1,1] = M4
-    #hardcode muna
-    #M = np.append(M, [1.0])
-    #M = np.reshape(M, (3,3))
-    #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
+    pred_M[1,2] = M4
     result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
     
-    plt.title("Ground truth")
-    plt.imshow(result)
-    plt.show()
+    ax1.set_title("Ground truth")
+    ax1.imshow(result)
+    
     
     #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
     result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
-    plt.title("Predicted warp")
-    plt.imshow(result)
+    ax2.set_title("Predicted warp")
+    ax2.imshow(result)
+    
+    if(should_save and current_epoch % save_every_epoch == 0):
+        plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
     plt.show()
     
-    print("Predicted M1 val: ", M1, "Actual val: ",ground_truth_M[0,0].numpy())
-    print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,1].numpy())
+    print("Predicted M1 val: ", M1, "Actual val: ",ground_truth_M[0,1].numpy())
+    print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,2].numpy())
     print("Predicted M3 val: ", M3, "Actual val: ",ground_truth_M[1,0].numpy())
-    print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,1].numpy())
+    print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,2].numpy()) 
+
 
 def visualize_individual_M(M0, M1, M2, M3):
     x = np.random.rand(np.shape(M0)[0])
@@ -60,17 +73,20 @@ def visualize_individual_M(M0, M1, M2, M3):
     plt.title("Distribution of generated M elements")
     plt.show()
     
-def visualize_transform_M(M_list):
+def visualize_transform_M(M_list, label, color = 'g'):
     #print("Norm of predicted vs actual T")
-    
+    X = list(range(0, np.shape(M_list)[0]))
+    Y = []
     for i in range(np.shape(M_list)[0]):
-        plt.scatter(i, np.linalg.norm(M_list[i]), color = 'g')
+        Y.append(np.linalg.norm(M_list[i]))
+    
+    plt.scatter(X, Y, color = color, label = label)
+    plt.legend()
 
 def visualize_predict_M(baseline_M, predicted_M_list):
     for i in range(np.shape(predicted_M_list)[0]):
-        predict_M = np.copy(baseline_M)
-        predict_M[1] = predicted_M_list[i]
-        plt.scatter(i, np.linalg.norm(predict_M), color = 'r')
+        plt.scatter(i, np.linalg.norm(predicted_M_list[i]), color = 'r')
+    
     
     plt.title("Distribution of norm ground-truth T vs predicted T")
     plt.show()
@@ -95,7 +111,7 @@ def main():
     predict_transforms = []
     warp_list = []
     baseline_M = None
-    predict_list_files = gm.retrieve_predict_warp_list()
+    predict_list_files = retrieve_predict_warp_list()
     for pfile in predict_list_files:
         predict_transforms.append(np.loadtxt(pfile))
     
@@ -107,7 +123,22 @@ def main():
         for warp_img in warp:
             warp_list.append(warp_img.numpy())
        
-        visualize_transform_M(all_transforms)
+        visualize_transform_M(all_transforms, color = 'g', label = "training set")
+        all_transforms.clear()
+        all_transforms = []
+        
+        if(batch_idx % 500 == 0):
+            break
+        
+    for batch_idx, (rgb, warp, transform) in enumerate(loader.load_test_dataset(batch_size = 64)):
+        for t in transform:
+            baseline_M = t.numpy()
+            all_transforms.append(t.numpy())
+        
+        for warp_img in warp:
+            warp_list.append(warp_img.numpy())
+       
+        visualize_transform_M(all_transforms, color = 'b', label = "test set")
         all_transforms.clear()
         all_transforms = []
         

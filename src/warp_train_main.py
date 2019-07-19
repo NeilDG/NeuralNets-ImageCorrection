@@ -16,10 +16,10 @@ from utils import generate_misaligned as gm
 from loaders import torch_image_loader as loader
 import modular_trainer as trainer
 
-LR = 0.0001
+LR = 0.001
 num_epochs = 500
 BATCH_SIZE = 40
-CNN_VERSION = "cnn_v3.09"
+CNN_VERSION = "cnn_v3.11"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -56,10 +56,10 @@ def start_train(gpu_device):
         val_ave_loss = 0.0
         for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
             #train
-            model_list[0].train(gt_index = 0, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[1].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[0].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[1].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform)
             model_list[2].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[3].train(gt_index = 4, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[3].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform)
             
             for model in model_list:
                 accum_loss = accum_loss + model.get_batch_loss()
@@ -94,7 +94,8 @@ def start_train(gpu_device):
                 M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
                 M_list.append(M)  
         visualizer.show_transform_image(warp_img, M1 = M_list[0], M2 = M_list[1], 
-                                        M3 = M_list[2], M4 = M_list[3], ground_truth_M = ground_truth_M)
+                                        M3 = M_list[2], M4 = M_list[3], ground_truth_M = ground_truth_M,
+                                        should_save = False, current_epoch = epoch, save_every_epoch = 5)
         
         
         accum_loss = 0.0
@@ -102,10 +103,12 @@ def start_train(gpu_device):
         
         #perform validation test
         for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+            model_Ms = []
             for model in model_list:
                 M, loss = model.batch_infer(warp_tensor = warp, ground_truth_tensor = transform)
                 accum_loss = accum_loss + loss
-                predict_M_list.append(M)
+                model_Ms.append(M)
+            predict_M_list.append(model_Ms)
         
         M_list = []
         #perform inference on validation
@@ -121,7 +124,8 @@ def start_train(gpu_device):
                 M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
                 M_list.append(M)
         visualizer.show_transform_image(warp_img, M1 = M_list[0], M2 = M_list[1], 
-                                        M3 = M_list[2], M4 = M_list[3], ground_truth_M = ground_truth_M)
+                                        M3 = M_list[2], M4 = M_list[3], ground_truth_M = ground_truth_M,
+                                        should_save = True, current_epoch = epoch, save_every_epoch = 5)
         
         val_ave_loss = accum_loss / (len(model_list) * (batch_idx + 1))
         print("Total training loss on epoch ", epoch, ": ", train_ave_loss)
@@ -131,8 +135,8 @@ def start_train(gpu_device):
                            global_step = epoch) #plot validation loss
         writer.close()
         
-        if(epoch % 5 == 0 and epoch != 0): #only save a batch every X epochs
-                gm.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
+        if(epoch % 1 == 0 and epoch != 0): #only save a batch every X epochs
+                visualizer.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
                 save_dict = {'epoch': epoch}
                 for model in model_list:
                     model_state_dict, optimizer_state_dict = model.get_state_dicts()

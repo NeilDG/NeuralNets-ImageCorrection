@@ -24,10 +24,11 @@ class WarpCNN(nn.Module):
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 48, kernel_size = 3, stride = 3, padding = 1)
         self.pool3 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
         
-        self.conv4 = nn.Conv2d(in_channels = 48, out_channels = 24, kernel_size = 2, stride = 2, padding = 1)
+        self.conv4 = nn.Conv2d(in_channels = 48, out_channels = 32, kernel_size = 2, stride = 2, padding = 1)
         self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        self.conv5 = nn.Conv2d(in_channels = 24, out_channels = 24, kernel_size = 2, stride = 2, padding = 1)
+        self.conv4_dropout = nn.Dropout2d(p = 0.5)
+        self.conv5 = nn.Conv2d(in_channels = 32, out_channels = 24, kernel_size = 2, stride = 2, padding = 1)
         
         self.fc = nn.Linear(48, 1)
         
@@ -57,6 +58,8 @@ class WarpCNN(nn.Module):
         
         x = F.leaky_relu(self.conv4(x))
         x = self.pool4(x)
+        
+        #x = self.conv4_dropout(x)
         
         x = F.leaky_relu(self.conv5(x))
         

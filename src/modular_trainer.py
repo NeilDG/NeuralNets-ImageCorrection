@@ -26,7 +26,7 @@ class ModularTrainer:
         
         self.model = warp_cnn.WarpCNN()
         self.model.to(self.gpu_device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr = self.lr)
+        self.optimizer = optim.Adam(self.model.parameters(), lr = self.lr, weight_decay = 0.0)
         self.loss_func = torch.nn.MSELoss(reduction = 'sum')
        
     #Specify the gt_index in the vector M to used as ground-truth
