@@ -16,10 +16,10 @@ from utils import generate_misaligned as gm
 from loaders import torch_image_loader as loader
 import modular_trainer as trainer
 
-LR = 0.001
+LR = 0.0001
 num_epochs = 500
-BATCH_SIZE = 40
-CNN_VERSION = "cnn_v3.11"
+BATCH_SIZE = 32
+CNN_VERSION = "cnn_v3.13.1"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -34,6 +34,8 @@ def start_train(gpu_device):
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/3', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = writer, lr = LR))
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+                                             writer = writer, lr = LR))
+    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = writer, lr = LR))
     
     #checkpoint loading here
@@ -60,6 +62,7 @@ def start_train(gpu_device):
             model_list[1].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform)
             model_list[2].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform)
             model_list[3].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[4].train(gt_index = 6, current_epoch = epoch, warp = warp, transform = transform)
             
             for model in model_list:
                 accum_loss = accum_loss + model.get_batch_loss()
@@ -69,7 +72,8 @@ def start_train(gpu_device):
                       "\n[",model_list[0].get_name(),"] Loss: ", model_list[0].get_batch_loss(),
                       "\n[",model_list[1].get_name(),"] Loss: ", model_list[1].get_batch_loss(),
                       "\n[",model_list[2].get_name(),"] Loss: ", model_list[2].get_batch_loss(),
-                      "\n[",model_list[3].get_name(),"] Loss: ", model_list[3].get_batch_loss())
+                      "\n[",model_list[3].get_name(),"] Loss: ", model_list[3].get_batch_loss(),
+                      "\n[",model_list[4].get_name(),"] Loss: ", model_list[4].get_batch_loss())
             
         
         
@@ -85,16 +89,13 @@ def start_train(gpu_device):
         warp_tensor = model_list[-1].get_last_warp_tensor()
         ground_truth_M = model_list[-1].get_last_transform()
         ground_truth_tensor = model_list[-1].get_last_transform_tensor()
-        plt.title("Training set preview: Input image")
-        plt.imshow(warp_img)
-        plt.show()
         
         M_list = []
         for model in model_list:
                 M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
                 M_list.append(M)  
-        visualizer.show_transform_image(warp_img, M1 = M_list[0], M2 = M_list[1], 
-                                        M3 = M_list[2], M4 = M_list[3], ground_truth_M = ground_truth_M,
+        visualizer.show_transform_image("Training set preview: Input image", warp_img, M1 = M_list[0], M2 = M_list[1], 
+                                        M3 = M_list[2], M4 = M_list[3], M5 = M_list[4], ground_truth_M = ground_truth_M,
                                         should_save = False, current_epoch = epoch, save_every_epoch = 5)
         
         
@@ -116,16 +117,13 @@ def start_train(gpu_device):
         warp_tensor = model_list[-1].get_last_warp_tensor()
         ground_truth_M = model_list[-1].get_last_transform()
         ground_truth_tensor = model_list[-1].get_last_transform_tensor()
-        plt.title("Validation set preview: Input image")
-        plt.imshow(warp_img)
-        plt.show()
         
         for model in model_list:
                 M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
                 M_list.append(M)
-        visualizer.show_transform_image(warp_img, M1 = M_list[0], M2 = M_list[1], 
-                                        M3 = M_list[2], M4 = M_list[3], ground_truth_M = ground_truth_M,
-                                        should_save = True, current_epoch = epoch, save_every_epoch = 5)
+        visualizer.show_transform_image("Validation set preview: Input image", warp_img, M1 = M_list[0], M2 = M_list[1], 
+                                        M3 = M_list[2], M4 = M_list[3], M5 = M_list[4], ground_truth_M = ground_truth_M,
+                                        should_save = True, current_epoch = epoch, save_every_epoch = 3)
         
         val_ave_loss = accum_loss / (len(model_list) * (batch_idx + 1))
         print("Total training loss on epoch ", epoch, ": ", train_ave_loss)

@@ -28,9 +28,44 @@ def retrieve_predict_warp_list():
     
     return warp_list
 
-def show_transform_image(rgb, M1, M2, M3, M4, ground_truth_M, should_save, current_epoch, save_every_epoch):
-    #M = M / gv.WARPING_CONSTANT
-    #ground_truth_M = ground_truth_M / gv.WARPING_CONSTANT
+def show_transform_image_test(title, rgb, M1, M2, M3, M4, M5, ground_truth_M, should_save, index):
+    f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
+    f.set_size_inches(12,10)
+    
+    ax1.set_title(title)
+    ax1.imshow(rgb)
+    
+    pred_M = np.copy(ground_truth_M)
+    pred_M[0,1] = M1
+    pred_M[0,2] = M2
+    pred_M[1,0] = M3
+    pred_M[1,2] = M4
+    pred_M[2,0] = M5
+    
+    result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
+    ax2.set_title("Ground truth")
+    ax2.imshow(result)
+    
+    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
+    ax3.set_title("Predicted warp")
+    ax3.imshow(result)
+    
+    if(should_save):
+        plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_"+str(index)+ ".png", bbox_inches='tight', pad_inches=0)
+    plt.show()
+    
+    print("Predicted M1 val: ", M1, "Actual val: ",ground_truth_M[0,1].numpy())
+    print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,2].numpy())
+    print("Predicted M3 val: ", M3, "Actual val: ",ground_truth_M[1,0].numpy())
+    print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,2].numpy())
+    print("Predicted M5 val: ", M5, "Actual val: ",ground_truth_M[2,0].numpy())
+    
+def show_transform_image(title, rgb, M1, M2, M3, M4, M5, ground_truth_M, should_save, current_epoch, save_every_epoch):
+    plt.title(title)
+    plt.imshow(rgb)
+    if(should_save and current_epoch % save_every_epoch == 0):
+        plt.savefig(gv.IMAGE_PATH_PREDICT + "/input_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
+    plt.show()
 
     f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
     f.set_size_inches(12,10)
@@ -40,6 +75,7 @@ def show_transform_image(rgb, M1, M2, M3, M4, ground_truth_M, should_save, curre
     pred_M[0,2] = M2
     pred_M[1,0] = M3
     pred_M[1,2] = M4
+    pred_M[2,0] = M5
     result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
     
     ax1.set_title("Ground truth")
@@ -58,7 +94,8 @@ def show_transform_image(rgb, M1, M2, M3, M4, ground_truth_M, should_save, curre
     print("Predicted M1 val: ", M1, "Actual val: ",ground_truth_M[0,1].numpy())
     print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,2].numpy())
     print("Predicted M3 val: ", M3, "Actual val: ",ground_truth_M[1,0].numpy())
-    print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,2].numpy()) 
+    print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,2].numpy())
+    print("Predicted M5 val: ", M5, "Actual val: ",ground_truth_M[2,0].numpy()) 
 
 
 def visualize_individual_M(M0, M1, M2, M3):
