@@ -12,14 +12,13 @@ import cv2
 import os
 import random as rand
 import global_vars as gv
-import warp_data_visualizer as wdv
+from visualizers import warp_data_visualizer as wdv
 from os.path import isfile, join
 
 #custom data dir location
 IMAGE_RGB_DIR = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_rgb/"
 SAVE_PATH_RGB = 'C:/NN_Dataset/warp_rgb_orig/'
 SAVE_PATH_WARP = 'C:/NN_Dataset/warp_rgb_mod/'
-SAVE_PATH_PREDICT = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_predict/'
 
 SAVE_PATH_RGB_VAL = 'C:/NN_Dataset/warp_rgb_orig_val/'
 SAVE_PATH_WARP_VAL = 'C:/NN_Dataset/warp_rgb_mod_val/'
@@ -45,16 +44,6 @@ def retrieve_kitti_rgb_list():
     
     return rgb_list
 
-def retrieve_predict_warp_list():
-    warp_list = [];
-    
-    for (dirpath, dirnames, filenames) in os.walk(SAVE_PATH_PREDICT):
-        for f in filenames:
-            if f.endswith(".txt"):
-                warp_list.append(os.path.join(dirpath, f))
-    
-    return warp_list
-
 def perform_warp(img, W1 ,W2, W3, W4, padding = 100):
     #add padding to image to avoid overflow
     x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
@@ -62,29 +51,32 @@ def perform_warp(img, W1 ,W2, W3, W4, padding = 100):
     value=[0,0,0])
     padded_dim = np.shape(padded_image)
 
-#    x_disp = rand.randint(-displacement, displacement) * warp_intensity
-#    y_disp = rand.randint(-displacement, displacement) * warp_intensity
-#    both_disp = rand.randint(-displacement, displacement) * warp_intensity
+#    x_disp = rand.randint(-5, 5) * W1
+#    y_disp = rand.randint(-5, 5) * W1
+#    both_disp = rand.randint(-5, 5) * W1
 #    
-#    second_disp_x = rand.randint(-displacement, displacement) * warp_intensity
-#    second_disp_y = rand.randint(-displacement, displacement) * warp_intensity
+#    second_disp_x = rand.randint(-5, 5) * W1
+#    second_disp_y = rand.randint(-5, 5) * W1
 
     pts1 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
     #pts2 = np.float32([[0,0],[x_dim + x_disp,second_disp_x],[second_disp_y,y_dim + y_disp], [x_dim + both_disp, y_dim + both_disp]])
     pts2 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
     M = cv2.getPerspectiveTransform(pts1, pts2)
-    
+    #print("Original M: ", M)
     while True:
-        M[0,0] = (np.random.random() / W1 ) * W1
-        M[0,1] = (np.random.random() / W2 ) * W2
-        #M[1,0] = (np.random.random() / W3 ) * W3
-        #M[1,1] = (np.random.random() / W4 ) * W4
+        M[0,1] = M[0,1] + (np.random.random() * W1) - (np.random.random() * W1)
+        M[0,2] = M[0,2] + (np.random.random() * W2) - (np.random.random() * W2)
+        M[1,0] = M[1,0] + (np.random.random() * W3) - (np.random.random() * W3)
+        M[1,2] = M[1,2] + (np.random.random() * W4) - (np.random.random() * W4)
         result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
         inverse_M = np.linalg.inv(M)
         
+        #print("New M: ", M)
         #do not generate extreme inverse values
-        if(inverse_M[0,0] <= W1 * 3 and inverse_M[0,1] <= W2 * 3):
+        if(abs(inverse_M[0,1]) <= W1 * 5 and abs(inverse_M[0,2]) <= W2 * 5 and abs(inverse_M[1,0]) <= W3 * 5 and abs(inverse_M[1,2]) <= W4 * 5):
             break
+        else:
+            M = cv2.getPerspectiveTransform(pts1, pts2)
     
     return result, M, inverse_M
 
@@ -109,7 +101,7 @@ def check_generate_data():
     M0_list = []; M1_list = []; M2_list = []; M3_list = []
     for i in range(100):
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() + 3, np.random.rand() + 3, 1, 1)
+        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5)
         reverse_img = perform_unwarp(result, inverse_M)    
 #        plt.title("Original image"); plt.imshow(img); plt.show()
 #        plt.title("Warped image"); plt.imshow(result); plt.show()
@@ -118,10 +110,10 @@ def check_generate_data():
 #        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
         #print("Inverse Matrix: ", inverse_M)
-        M0_list.append(inverse_M[0,0])
-        M1_list.append(inverse_M[0,1])
+        M0_list.append(inverse_M[0,1])
+        M1_list.append(inverse_M[0,2])
         M2_list.append(inverse_M[1,0])
-        M3_list.append(inverse_M[1,1])
+        M3_list.append(inverse_M[1,2])
     
     wdv.visualize_individual_M(M0_list, M1_list, M2_list, M3_list)
     
@@ -131,7 +123,7 @@ def generate():
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() + 3, np.random.rand() + 3, 1, 1)
+        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5)
         inverse_M = inverse_M
         
 #        reverse_img = perform_unwarp(result, inverse_M)       
@@ -162,13 +154,6 @@ def generate():
                 print("Successfully generated transformed image " ,i, ". Saved as val.")
         
     print("Finished generating dataset!")
-
-#saves predicted transforms inferred by network. Always set start_index = 0 if you want to
-#override saved predictions
-def save_predicted_transforms(M_list, start_index = 0):
-    for i in range(np.shape(M_list)[0]):
-        np.savetxt(SAVE_PATH_PREDICT + "warp_" +str(i + start_index)+ ".txt", M_list[i])
-        print("Successfully saved predicted M ", str(i + start_index))
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
