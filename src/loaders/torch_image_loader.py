@@ -17,12 +17,12 @@ def assemble_train_data():
     
     images = os.listdir(gv.SAVE_PATH_RGB)
     temp_cap = 500 #only load 500 images for faster training
-    for i in range(len(images)): #len(images)
+    for i in range(temp_cap): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP)
-    for i in range(len(images)):
+    for i in range(temp_cap * 2):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP + images[i]
             transformPath = gv.SAVE_PATH_WARP + images[i].replace(".png", ".txt")
@@ -36,12 +36,12 @@ def assemble_test_data():
     
     images = os.listdir(gv.SAVE_PATH_RGB_VAL)
     temp_cap = 500 #only load N images for faster training
-    for i in range(len(images)): #len(images)
+    for i in range(temp_cap): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB_VAL + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP_VAL)
-    for i in range(len(images)):
+    for i in range(temp_cap * 2):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP_VAL + images[i]
             transformPath = gv.SAVE_PATH_WARP_VAL + images[i].replace(".png", ".txt")

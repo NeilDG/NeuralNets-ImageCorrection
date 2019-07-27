@@ -28,7 +28,7 @@ def retrieve_predict_warp_list():
     
     return warp_list
 
-def show_transform_image_test(title, rgb, M1, M2, M3, M4, M5, ground_truth_M, should_save, index):
+def show_transform_image_test(title, rgb, M1, M2, M3, M4, M5, M6, ground_truth_M, should_save, index):
     f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
     f.set_size_inches(12,10)
     
@@ -41,6 +41,7 @@ def show_transform_image_test(title, rgb, M1, M2, M3, M4, M5, ground_truth_M, sh
     pred_M[1,0] = M3
     pred_M[1,2] = M4
     pred_M[2,0] = M5
+    pred_M[2,1] = M6
     
     result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
     ax2.set_title("Ground truth")
@@ -59,8 +60,9 @@ def show_transform_image_test(title, rgb, M1, M2, M3, M4, M5, ground_truth_M, sh
     print("Predicted M3 val: ", M3, "Actual val: ",ground_truth_M[1,0].numpy())
     print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,2].numpy())
     print("Predicted M5 val: ", M5, "Actual val: ",ground_truth_M[2,0].numpy())
+    print("Predicted M6 val: ", M6, "Actual val: ",ground_truth_M[2,1].numpy())
     
-def show_transform_image(title, rgb, M1, M2, M3, M4, M5, ground_truth_M, should_save, current_epoch, save_every_epoch):
+def show_transform_image(title, rgb, M1, M2, M3, M4, M5, M6, ground_truth_M, should_save, current_epoch, save_every_epoch):
     plt.title(title)
     plt.imshow(rgb)
     if(should_save and current_epoch % save_every_epoch == 0):
@@ -76,6 +78,7 @@ def show_transform_image(title, rgb, M1, M2, M3, M4, M5, ground_truth_M, should_
     pred_M[1,0] = M3
     pred_M[1,2] = M4
     pred_M[2,0] = M5
+    pred_M[2,1] = M6
     result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
     
     ax1.set_title("Ground truth")
@@ -95,7 +98,8 @@ def show_transform_image(title, rgb, M1, M2, M3, M4, M5, ground_truth_M, should_
     print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,2].numpy())
     print("Predicted M3 val: ", M3, "Actual val: ",ground_truth_M[1,0].numpy())
     print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,2].numpy())
-    print("Predicted M5 val: ", M5, "Actual val: ",ground_truth_M[2,0].numpy()) 
+    print("Predicted M5 val: ", M5, "Actual val: ",ground_truth_M[2,0].numpy())
+    print("Predicted M6 val: ", M6, "Actual val: ",ground_truth_M[2,1].numpy())
 
 
 def visualize_individual_M(M0, M1, M2, M3):

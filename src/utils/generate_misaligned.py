@@ -44,7 +44,7 @@ def retrieve_kitti_rgb_list():
     
     return rgb_list
 
-def perform_warp(img, W1 ,W2, W3, W4, padding = 100):
+def perform_warp(img, W1 ,W2, W3, W4, W5, padding = 100):
     #add padding to image to avoid overflow
     x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
     padded_image = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_CONSTANT,
@@ -68,6 +68,8 @@ def perform_warp(img, W1 ,W2, W3, W4, padding = 100):
         M[0,2] = M[0,2] + (np.random.random() * W2) - (np.random.random() * W2)
         M[1,0] = M[1,0] + (np.random.random() * W3) - (np.random.random() * W3)
         M[1,2] = M[1,2] + (np.random.random() * W4) - (np.random.random() * W4)
+        M[2,0] = M[2,0] + (np.random.random() * W5) - (np.random.random() * W5)
+        M[2,1] = M[2,1] + (np.random.random() * W5) - (np.random.random() * W5)
         result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
         inverse_M = np.linalg.inv(M)
         
@@ -101,7 +103,7 @@ def check_generate_data():
     M0_list = []; M1_list = []; M2_list = []; M3_list = []
     for i in range(100):
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5)
+        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
         reverse_img = perform_unwarp(result, inverse_M)    
 #        plt.title("Original image"); plt.imshow(img); plt.show()
 #        plt.title("Warped image"); plt.imshow(result); plt.show()
@@ -123,7 +125,7 @@ def generate():
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5)
+        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
         inverse_M = inverse_M
         
 #        reverse_img = perform_unwarp(result, inverse_M)       
