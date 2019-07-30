@@ -9,17 +9,14 @@ Main starting point for warp image training
 
 from visualizers import warp_data_visualizer as visualizer
 import torch
-import numpy as np
 from torch.utils.tensorboard import SummaryWriter
-from matplotlib import pyplot as plt
-from utils import generate_misaligned as gm
 from loaders import torch_image_loader as loader
 import modular_trainer as trainer
 
-LR = 0.001
+LR = 0.0001
 num_epochs = 500
 BATCH_SIZE = 32
-CNN_VERSION = "cnn_v3.14"
+CNN_VERSION = "cnn_v3.14.1"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -36,9 +33,9 @@ def start_train(gpu_device):
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = writer, lr = LR))
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = 0.01))
+                                             writer = writer, lr = LR))
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/6', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = 0.01))
+                                             writer = writer, lr = LR))
     
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'

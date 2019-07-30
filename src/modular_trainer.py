@@ -121,4 +121,7 @@ class ModularTrainer:
     
     def get_name(self):
         return self.name
+    
+    def get_model_layer(self):
+        return self.model.get_last_layer_activation();
         

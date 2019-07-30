@@ -100,11 +100,11 @@ def check_generate_data():
     print("Images found: ", np.size(rgb_list))
     
     #test read image
-    M0_list = []; M1_list = []; M2_list = []; M3_list = []
-    for i in range(100):
+    M0_list = []; M1_list = []; M2_list = []; M3_list = []; M4_list= []; M5_list = []
+    for i in range(1000):
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
-        reverse_img = perform_unwarp(result, inverse_M)    
+#        reverse_img = perform_unwarp(result, inverse_M)    
 #        plt.title("Original image"); plt.imshow(img); plt.show()
 #        plt.title("Warped image"); plt.imshow(result); plt.show()
 #        plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
@@ -116,8 +116,10 @@ def check_generate_data():
         M1_list.append(inverse_M[0,2])
         M2_list.append(inverse_M[1,0])
         M3_list.append(inverse_M[1,2])
+        M4_list.append(inverse_M[2,0])
+        M5_list.append(inverse_M[2,1])
     
-    wdv.visualize_individual_M(M0_list, M1_list, M2_list, M3_list)
+    wdv.visualize_individual_M(M0_list, M1_list, M2_list, M3_list, M4_list, M5_list)
     
 def generate():
     rgb_list = retrieve_kitti_rgb_list();
@@ -160,4 +162,4 @@ def generate():
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     check_generate_data()
-    generate()
+    #generate()

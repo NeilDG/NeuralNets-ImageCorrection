@@ -102,20 +102,21 @@ def show_transform_image(title, rgb, M1, M2, M3, M4, M5, M6, ground_truth_M, sho
     print("Predicted M6 val: ", M6, "Actual val: ",ground_truth_M[2,1].numpy())
 
 
-def visualize_individual_M(M0, M1, M2, M3):
+def visualize_individual_M(M0, M1, M2, M3, M4, M5):
     x = np.random.rand(np.shape(M0)[0])
 
-    plt.scatter(x, M0, color = 'g', label = "M0")
-    plt.scatter(x, M1, color = 'r', label = "M1")
-    plt.scatter(x, M2, color = 'b', label = "M2")
-    plt.scatter(x, M3, color = 'y', label = "M3")
-    
+    plt.scatter(x, M0, color = 'g', label = "M1")
+    plt.scatter(x, M1, color = 'r', label = "M2")
+    plt.scatter(x, M2, color = 'b', label = "M3")
+    plt.scatter(x, M3, color = 'c', label = "M4")
+    plt.scatter(x, M4, color = 'm', label = "M5")
+    plt.scatter(x, M5, color = 'y', label = "M6")
     plt.legend()
     plt.title("Distribution of generated M elements")
     plt.show()
     
 def visualize_transform_M(M_list, label, color = 'g'):
-    #print("Norm of predicted vs actual T")
+    
     X = list(range(0, np.shape(M_list)[0]))
     Y = []
     for i in range(np.shape(M_list)[0]):
@@ -125,9 +126,16 @@ def visualize_transform_M(M_list, label, color = 'g'):
     plt.legend()
 
 def visualize_predict_M(baseline_M, predicted_M_list):
+    X = list(range(0, np.shape(predicted_M_list)[0]))
+    Y = []
     for i in range(np.shape(predicted_M_list)[0]):
-        plt.scatter(i, np.linalg.norm(predicted_M_list[i]), color = 'r')
+        #appends hard-coded 1.0s to make this a 9-vector for homography correctness
+        modified_list = np.append(predicted_M_list[i], [1.0, 1.0, 1.0], axis = 0) 
+        print("Predict transform size: ", np.shape(modified_list))
+        Y.append(np.linalg.norm(modified_list))
     
+    plt.scatter(X, Y, color = 'r', label = "predictions")
+    plt.legend()
     
     plt.title("Distribution of norm ground-truth T vs predicted T")
     plt.show()

@@ -17,12 +17,12 @@ def assemble_train_data():
     
     images = os.listdir(gv.SAVE_PATH_RGB)
     temp_cap = 500 #only load 500 images for faster training
-    for i in range(temp_cap): #len(images)
+    for i in range(len(images)): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP)
-    for i in range(temp_cap * 2):
+    for i in range(len(images)):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP + images[i]
             transformPath = gv.SAVE_PATH_WARP + images[i].replace(".png", ".txt")
@@ -31,17 +31,22 @@ def assemble_train_data():
         
     return rgb_list, warp_list, transform_list
 
-def assemble_test_data():
+def assemble_test_data(full_infer = False):
     rgb_list = []; warp_list = []; transform_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB_VAL)
     temp_cap = 500 #only load N images for faster training
-    for i in range(temp_cap): #len(images)
+    image_len = temp_cap
+    
+    if(full_infer):
+        image_len = len(images)
+    
+    for i in range(image_len): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB_VAL + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP_VAL)
-    for i in range(temp_cap * 2):
+    for i in range(image_len * 2):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP_VAL + images[i]
             transformPath = gv.SAVE_PATH_WARP_VAL + images[i].replace(".png", ".txt")
@@ -71,8 +76,8 @@ def load_dataset(batch_size = 8):
     
     return train_loader
 
-def load_test_dataset(batch_size = 8):
-    rgb_list, warp_list, transform_list = assemble_test_data()
+def load_test_dataset(batch_size = 8, full_infer = False):
+    rgb_list, warp_list, transform_list = assemble_test_data(full_infer = full_infer)
     print("Length of test images: ", len(rgb_list), len(warp_list), len(transform_list))
     
     generic_transform = transforms.Compose([
