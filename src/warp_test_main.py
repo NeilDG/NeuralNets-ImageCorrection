@@ -9,7 +9,7 @@ Contains inference operations and visualization of results
 
 
 
-from visualizers import warp_data_visualizer as visualizer
+from visualizers import warp_data_visualizer as warp_visualizer
 import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
@@ -18,21 +18,11 @@ from loaders import torch_image_loader as loader
 import modular_trainer as trainer
 import warp_train_main as train_main
 from utils import tensor_utils
-from visualizers import filter_visualizer
+from visualizers import results_visualizer
 
 
 BATCH_SIZE = 32
 OPTIMIZER_KEY = "optimizer"
-
-def visualize_results(warp_img, M_list, ground_truth_M, index, p = 0.03):
-    chance_to_save = np.random.rand()
-    if(chance_to_save <= p):
-        should_save = True
-        visualizer.show_transform_image_test("Validation set: Input image", warp_img, M1 = M_list[0], M2 = M_list[1], 
-                                        M3 = M_list[2], M4 = M_list[3], M5 = M_list[4], M6 = M_list[5], ground_truth_M = ground_truth_M,
-                                        should_save = should_save, index = index)
-    else:
-        should_save = False
     
 def start_test(gpu_device):
     model_list = []
@@ -57,40 +47,42 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = True)
+    test_dataset = loader.load_test_dataset(batch_size = 1, full_infer = False)
     #perform inference on batches
     overall_index = 0;
-#    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
-#        print("Batch idx: ", batch_idx)
-#        for index in range(len(warp)):
-#            model_Ms = [];
-#            for model in model_list:
-#                warp_candidate = torch.unsqueeze(warp[index,:,:,:], 0).to(gpu_device)
-#                reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
-#                gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
-#        
-#                M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
-#                model_Ms.append(M)
-#            
-#            #chance visualize and save result
-#            warp_img = tensor_utils.convert_to_matplotimg(warp, index)
-#            visualize_results(warp_img = warp_img, M_list = model_Ms, ground_truth_M = transform[index], index = overall_index)
-#            overall_index = overall_index + 1
+    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+        print("Batch idx: ", batch_idx)
+        for index in range(len(warp)):
+            model_Ms = [];
+            for model in model_list:
+                warp_candidate = torch.unsqueeze(warp[index,:,:,:],  0).to(gpu_device)
+                reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
+                gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
+        
+                M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
+                model_Ms.append(M)
+            
+            #chance visualize and save result
+            warp_img = tensor_utils.convert_to_matplotimg(warp, index)
+            rgb_img = tensor_utils.convert_to_matplotimg(rgb, index)
+            warp_visualizer.visualize_results(warp_img = warp_img, rgb_img = rgb_img, M_list = model_Ms, ground_truth_M = transform[index], index = overall_index)
+            overall_index = overall_index + 1
         
     
     #visualize each layer's output
-    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
-        #get first data per batch only
-        model_Ms = [];
-        for model in model_list:
-            warp_candidate = torch.unsqueeze(warp[0,:,:,:], 0).to(gpu_device)
-            reshaped_t = torch.reshape(transform[0], (1, 9)).type('torch.FloatTensor')
-            gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
-    
-            M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
-            model_Ms.append(M)
-        
-        filter_visualizer.visualize_layer(model_list[0].get_model_layer()[0], filter_range = 64, resize_scale = 2)
+#    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+#        #get first data per batch only
+#        model_Ms = [];
+#        for model in model_list:
+#            warp_candidate = torch.unsqueeze(warp[0,:,:,:], 0).to(gpu_device)
+#            reshaped_t = torch.reshape(transform[0], (1, 9)).type('torch.FloatTensor')
+#            gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
+#    
+#            M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
+#            model_Ms.append(M)
+#        
+#        conv_activation, pool_activation = model_list[0].get_model_layer(3)
+#        results_visualizer.visualize_layer(conv_activation, filter_range = 48, resize_scale = 2)
         
 def main():
     if(torch.cuda.is_available()) :
