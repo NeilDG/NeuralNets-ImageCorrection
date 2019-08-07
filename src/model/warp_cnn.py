@@ -20,8 +20,12 @@ class WarpCNN(nn.Module):
         self.conv1 = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=6, stride=2, padding=1)
         self.pool1 = nn.MaxPool2d(kernel_size=6, stride=2, padding=0)
         
+        self.conv1_dropout = nn.Dropout2d(p = 0.5)
+        
         self.conv2 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 4, stride = 2, padding = 1)
         self.pool2 = nn.MaxPool2d(kernel_size=4, stride=2, padding=0)
+        
+        self.conv2_dropout = nn.Dropout2d(p = 0.5)
         
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)
         self.pool3 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
@@ -60,6 +64,11 @@ class WarpCNN(nn.Module):
 #        nn.init.xavier_uniform_(self.conv6.weight)
 #        nn.init.xavier_uniform_(self.conv7.weight)
         nn.init.xavier_uniform_(self.fc.weight)
+        
+        self.layer_activations = [0, 1, 2, 3];
+        self.pool_activations = [0, 1, 2, 3];
+        
+        self.flag = False
     
     def outputSize(self, in_size, kernel_size, stride, padding):
         output = int((in_size - kernel_size + 2*(padding)) / stride) + 1
@@ -69,30 +78,42 @@ class WarpCNN(nn.Module):
         #print("Forward pass")
         
         x = F.leaky_relu(self.conv1(x))
-        self.layer_activations.append(x.cpu().clone().detach())
+        if(self.flag):
+            self.layer_activations[0] = x.cpu().clone().detach()
         
         x = self.pool1(x)
-        self.pool_activations.append(x.cpu().clone().detach())
+        if(self.flag):
+            self.pool_activations[0] = x.cpu().clone().detach()
 
+        #x = self.conv1_dropout(x)
+        
         x = F.leaky_relu(self.conv2(x))
-        self.layer_activations.append(x.cpu().clone().detach())
+        if(self.flag):
+            self.layer_activations[1] = x.cpu().clone().detach()
         
         x = self.pool2(x)
-        self.pool_activations.append(x.cpu().clone().detach())
+        if(self.flag):
+            self.pool_activations[1] = x.cpu().clone().detach()
+        
+        #x = self.conv2_dropout(x)
         
         x = F.leaky_relu(self.conv3(x))
-        self.layer_activations.append(x.cpu().clone().detach())
+        if(self.flag):
+            self.layer_activations[2] = x.cpu().clone().detach()
         
         x = self.pool3(x)
-        self.pool_activations.append(x.cpu().clone().detach())
+        if(self.flag):
+            self.pool_activations[2] = x.cpu().clone().detach()
         
         x = F.leaky_relu(self.conv4(x))
-        self.layer_activations.append(x.cpu().clone().detach())
+        if(self.flag):
+           self.layer_activations[3] = x.cpu().clone().detach()
         
         x = self.pool4(x)
-        self.pool_activations.append(x.cpu().clone().detach())
+        if(self.flag):
+            self.pool_activations[3] = x.cpu().clone().detach()
         
-        x = self.conv4_dropout(x)
+        #x = self.conv4_dropout(x)
         
 #        x = F.leaky_relu(self.conv5(x))
 #        x = self.pool5(x)
@@ -110,5 +131,8 @@ class WarpCNN(nn.Module):
         
         return x
     
+    def flag_visualize_layer(self,flag):
+        self.flag = flag
+        
     def get_layer_activation(self, index):
         return self.layer_activations[index], self.pool_activations[index]

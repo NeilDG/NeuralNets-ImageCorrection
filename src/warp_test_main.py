@@ -19,6 +19,7 @@ import modular_trainer as trainer
 import warp_train_main as train_main
 from utils import tensor_utils
 from visualizers import results_visualizer
+import global_vars as gv
 
 
 BATCH_SIZE = 32
@@ -33,21 +34,25 @@ def start_test(gpu_device):
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/3', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = None, gt_index = 3, lr = train_main.LR))
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 5, lr = train_main.LR))
+                                             writer = None, gt_index = 4, lr = train_main.LR))
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 6, lr = train_main.LR))
+                                             writer = None, gt_index = 5, lr = train_main.LR))
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/6', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+                                             writer = None, gt_index = 6, lr = train_main.LR))
+    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/7', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = None, gt_index = 7, lr = train_main.LR))
+    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/8', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+                                             writer = None, gt_index = 8, lr = train_main.LR))
     
     #checkpoint loading here
-    CHECKPATH = 'tmp/' + train_main.CNN_VERSION +'.pt'
+    CHECKPATH = 'tmp/' + train_main.LAST_STABLE_CNN_VERSION +'.pt'
     checkpoint = torch.load(CHECKPATH)
     for model in model_list:
         model.load_saved_states(checkpoint[model.get_name()], checkpoint[model.get_name() + OPTIMIZER_KEY])
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = 1, full_infer = False)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = True)
     #perform inference on batches
     overall_index = 0;
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
@@ -67,8 +72,7 @@ def start_test(gpu_device):
             rgb_img = tensor_utils.convert_to_matplotimg(rgb, index)
             warp_visualizer.visualize_results(warp_img = warp_img, rgb_img = rgb_img, M_list = model_Ms, ground_truth_M = transform[index], index = overall_index)
             overall_index = overall_index + 1
-        
-    
+                    
     #visualize each layer's output
 #    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
 #        #get first data per batch only
@@ -83,7 +87,72 @@ def start_test(gpu_device):
 #        
 #        conv_activation, pool_activation = model_list[0].get_model_layer(3)
 #        results_visualizer.visualize_layer(conv_activation, filter_range = 48, resize_scale = 2)
+    
+    measure_performance(gpu_device, model_list, test_dataset)
+
+def compute_dataset_mean(model_list, test_dataset):
+    accumulate_T = np.zeros(9)
+    count = 0     
+    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+        for index in range(len(warp)):
+            reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
+            accumulate_T = accumulate_T + reshaped_t.numpy()
+            count = count + 1
+             
+    dataset_mean = accumulate_T / count * 1.0
+    np.savetxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt", dataset_mean)
+
+def measure_performance(gpu_device,model_list, test_dataset):
+    dataset_mean = np.loadtxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt")
+    print("Dataset mean is: ", dataset_mean)
+    
+    count = 0;
+    accum_mae = [0.0, 0.0] #dataset mean, our method
+    average_MAE = [0.0, 0.0] 
+    accum_mse = [0.0, 0.0]
+    average_MSE = [0.0, 0.0]
+    average_RMSE = [0.0, 0.0]
+    
+    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+        for i in range(np.shape(warp)[0]):
+            model_Ms = []; log_Ms = []
+            warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0).to(gpu_device)
+            reshaped_t = torch.reshape(transform[i], (1, 9)).type('torch.FloatTensor')
+            for model in model_list:
+                gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
+                M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
+                model_Ms.append(M)
+                log_Ms.append(np.log(np.absolute(M)))
         
+            model_Ms.append(1.0) #append 1.0 as element M[2,2]
+            accum_mae[0] = accum_mae[0] + np.absolute(dataset_mean - reshaped_t.numpy())
+            accum_mae[1] = accum_mae[1] + np.absolute(model_Ms - reshaped_t.numpy())
+            
+            accum_mse[0] = accum_mse[0] + np.power(np.absolute(dataset_mean - reshaped_t.numpy()),2)
+            accum_mse[1] = accum_mse[1] + np.power(np.absolute(model_Ms - reshaped_t.numpy()),2)
+            
+            count = count + 1
+        
+        #print("Batch id: ", batch_idx, "Count: ", count)
+    
+    average_MAE[0] = np.round(np.sum(accum_mae[0] / (count * 1.0)), 4)
+    average_MAE[1] = np.round(np.sum(accum_mae[1] / (count * 1.0)), 4)
+    
+    average_MSE[0] = np.round(np.sum(accum_mse[0] / (count * 1.0)), 4)
+    average_MSE[1] = np.round(np.sum(accum_mse[1] / (count * 1.0)), 4)
+    
+    average_RMSE[0] = np.round(np.sqrt(average_MSE[0]), 4)
+    average_RMSE[1] = np.round(np.sqrt(average_MSE[1]), 4)
+    
+    print("Average MAE using dataset mean: ", average_MAE[0])
+    print("Average MAE using our method: ", average_MAE[1])
+    
+    print("Average MSE using dataset mean: ", average_MSE[0])
+    print("Average MSE using our method: ", average_MSE[1])
+    
+    print("Average RMSE using dataset mean: ", average_RMSE[0])
+    print("Average RMSE using our method: ", average_RMSE[1])
+                
 def main():
     if(torch.cuda.is_available()) :
         print("NVIDIA CUDA is ready! ^_^")

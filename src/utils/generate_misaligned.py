@@ -101,6 +101,7 @@ def check_generate_data():
     
     #test read image
     M0_list = []; M1_list = []; M2_list = []; M3_list = []; M4_list= []; M5_list = []
+    
     for i in range(1000):
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
@@ -112,14 +113,22 @@ def check_generate_data():
 #        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
         #print("Inverse Matrix: ", inverse_M)
-        M0_list.append(inverse_M[0,1])
-        M1_list.append(inverse_M[0,2])
-        M2_list.append(inverse_M[1,0])
-        M3_list.append(inverse_M[1,2])
-        M4_list.append(inverse_M[2,0])
-        M5_list.append(inverse_M[2,1])
+        M0_list.append(inverse_M[0,0])
+        M1_list.append(inverse_M[1,1])
+#        M2_list.append(inverse_M[1,0])
+#        M3_list.append(inverse_M[1,2])
+#        M4_list.append(inverse_M[2,0])
+#        M5_list.append(inverse_M[2,1])
     
-    wdv.visualize_individual_M(M0_list, M1_list, M2_list, M3_list, M4_list, M5_list)
+    M_parent_list = [];
+    M_parent_list.append(M0_list)
+    M_parent_list.append(M1_list)
+#    M_parent_list.append(M2_list)
+#    M_parent_list.append(M3_list)
+#    M_parent_list.append(M4_list)
+#    M_parent_list.append(M5_list)
+    
+    wdv.visualize_M_list(M_list = M_parent_list)
     
 def generate():
     rgb_list = retrieve_kitti_rgb_list();

@@ -60,7 +60,7 @@ def warp_perspective_least_squares(warp_img, rgb_img, index):
     im2Gray = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
     
     # Detect ORB features and compute descriptors.
-    orb = cv2.ORB_create(500)
+    orb = cv2.ORB_create(700)
     keypoints1, descriptors1 = orb.detectAndCompute(im1Gray, None)
     keypoints2, descriptors2 = orb.detectAndCompute(im2Gray, None)
   
@@ -72,7 +72,7 @@ def warp_perspective_least_squares(warp_img, rgb_img, index):
     matches.sort(key=lambda x: x.distance, reverse=False)
     
     #remove not so good matches
-    good_match_threshold = 0.15
+    good_match_threshold = 0.20
     numGoodMatches = int(len(matches) * good_match_threshold)
     matches = matches[:numGoodMatches]
   
@@ -89,35 +89,25 @@ def warp_perspective_least_squares(warp_img, rgb_img, index):
    
     # Find homography
     h, mask = cv2.findHomography(points1, points2, cv2.RANSAC)
-    print("Resulting H:" , h, np.shape(h), "Key points shape: ", np.shape(keypoints1), np.shape(keypoints2))
+    #print("Resulting H:" , h, np.shape(h), "Key points shape: ", np.shape(keypoints1), np.shape(keypoints2))
     # Use homography
     height, width, channels = rgb_img.shape
-    result_img = cv2.warpPerspective(warp_img, h, (width, height))
-  
-    print("Original Shape: ", np.shape(warp_img), np.shape(rgb_img))
-    print("Image shape: ", np.shape(result_img))
-    
-    f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
-    f.set_size_inches(8,7)
-    
-    ax1.imshow(warp_img)
-    ax1.set_title("Distorted image")
-    
-    ax2.imshow(result_img)
-    ax2.set_title("Corrected image using homography estimation")
+    if(np.shape(h) == (3,3)):
+        result_img = cv2.warpPerspective(warp_img, h, (gv.WARP_W, gv.WARP_H))
+    else:
+        print("H is not 3x3!")
+        result_img = warp_img
+    im1Gray = None
+    im2Gray = None
+    im_matches = None
+    points1 = None
+    points2 = None
 
-    ax3.imshow(rgb_img)
-    ax3.set_title("Ground truth image")
-    
-    plt.savefig(gv.IMAGE_PATH_PREDICT + "/least_squares_"+str(index)+ ".png", bbox_inches='tight', pad_inches=0)
-    
-    plt.show()
     return result_img
     
-def show_transform_image_test(title, rgb, M1, M2, M3, M4, M5, M6, ground_truth_M, should_save, index):
+def show_transform_image_test(rgb, least_squares_img, M_list, ground_truth_M, should_save, index):
 
-    
-    f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
+    f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
     f.set_size_inches(12,10)
     
     hide_plot_legend(ax1)
@@ -125,17 +115,23 @@ def show_transform_image_test(title, rgb, M1, M2, M3, M4, M5, M6, ground_truth_M
     ax1.imshow(rgb)
     
     pred_M = np.copy(ground_truth_M)
-    pred_M[0,1] = M1
-    pred_M[0,2] = M2
-    pred_M[1,0] = M3
-    pred_M[1,2] = M4
-    pred_M[2,0] = M5
-    pred_M[2,1] = M6
+    pred_M[0,0] = M_list[0]
+    pred_M[0,1] = M_list[1]
+    pred_M[0,2] = M_list[2]
+    pred_M[1,0] = M_list[3]
+    pred_M[1,1] = M_list[4]
+    pred_M[1,2] = M_list[5]
+    pred_M[2,0] = M_list[6]
+    pred_M[2,1] = M_list[7]
     
     result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
-    hide_plot_legend(ax2)
+    hide_plot_legend(ax4)
     #ax2.set_title("Ground truth")
-    ax2.imshow(result)
+    ax4.imshow(result)
+    
+    hide_plot_legend(ax2)
+    #ax2.set_title("Least squares warp")
+    ax2.imshow(least_squares_img)
     
     result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
     hide_plot_legend(ax3)
@@ -145,17 +141,22 @@ def show_transform_image_test(title, rgb, M1, M2, M3, M4, M5, M6, ground_truth_M
     if(should_save):
         plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_"+str(index)+ ".png", bbox_inches='tight', pad_inches=0)
     plt.show()
+    plt.close()
     
-    print("Predicted M1 val: ", M1, "Actual val: ",ground_truth_M[0,1].numpy())
-    print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,2].numpy())
-    print("Predicted M3 val: ", M3, "Actual val: ",ground_truth_M[1,0].numpy())
-    print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,2].numpy())
-    print("Predicted M5 val: ", M5, "Actual val: ",ground_truth_M[2,0].numpy())
-    print("Predicted M6 val: ", M6, "Actual val: ",ground_truth_M[2,1].numpy())
+    print("Input size: ", np.shape(rgb), "Predict size: ", np.shape(result), " Least squares size: ", np.shape(least_squares_img))
+    
+    print("Predicted M1 val: ", M_list[0], "Actual val: ",ground_truth_M[0,0].numpy())
+    print("Predicted M2 val: ", M_list[1], "Actual val: ",ground_truth_M[0,1].numpy())
+    print("Predicted M3 val: ", M_list[2], "Actual val: ",ground_truth_M[0,2].numpy())
+    print("Predicted M4 val: ", M_list[3], "Actual val: ",ground_truth_M[1,0].numpy())
+    print("Predicted M5 val: ", M_list[4], "Actual val: ",ground_truth_M[1,1].numpy())
+    print("Predicted M6 val: ", M_list[5], "Actual val: ",ground_truth_M[1,2].numpy())
+    print("Predicted M7 val: ", M_list[6], "Actual val: ",ground_truth_M[2,0].numpy())
+    print("Predicted M8 val: ", M_list[7], "Actual val: ",ground_truth_M[2,1].numpy())
     
 #TODO: Refactor Ms. Too many parameters
-def show_transform_image(title, rgb, M1, M2, M3, M4, M5, M6, M7, ground_truth_M, should_save, current_epoch, save_every_epoch):
-    plt.title(title)
+def show_transform_image(rgb, M_list, ground_truth_M, should_save, current_epoch, save_every_epoch):
+    plt.title("Input image")
     plt.imshow(rgb)
     if(should_save and current_epoch % save_every_epoch == 0):
         plt.savefig(gv.IMAGE_PATH_PREDICT + "/input_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
@@ -165,14 +166,14 @@ def show_transform_image(title, rgb, M1, M2, M3, M4, M5, M6, M7, ground_truth_M,
     f.set_size_inches(12,10)
     
     pred_M = np.ones((3,3))
-    pred_M[0,0] = M1
-    pred_M[0,1] = M2
-    pred_M[0,2] = M3
-    pred_M[1,0] = M4
-    pred_M[1,1] = M1
-    pred_M[1,2] = M5
-    pred_M[2,0] = M6
-    pred_M[2,1] = M7
+    pred_M[0,0] = M_list[0]
+    pred_M[0,1] = M_list[1]
+    pred_M[0,2] = M_list[2]
+    pred_M[1,0] = M_list[3]
+    pred_M[1,1] = M_list[4]
+    pred_M[1,2] = M_list[5]
+    pred_M[2,0] = M_list[6]
+    pred_M[2,1] = M_list[7]
     
     result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
     
@@ -189,28 +190,32 @@ def show_transform_image(title, rgb, M1, M2, M3, M4, M5, M6, M7, ground_truth_M,
         plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
     plt.show()
     
-    print("Predicted M1 val: ", M1, "Actual val: ",ground_truth_M[0,0].numpy())
-    print("Predicted M2 val: ", M2, "Actual val: ",ground_truth_M[0,1].numpy())
-    print("Predicted M3 val: ", M3, "Actual val: ",ground_truth_M[0,2].numpy())
-    print("Predicted M4 val: ", M4, "Actual val: ",ground_truth_M[1,0].numpy())
-    print("Predicted M5 val: ", M1, "Actual val: ",ground_truth_M[1,1].numpy())
-    print("Predicted M6 val: ", M5, "Actual val: ",ground_truth_M[1,2].numpy())
-    print("Predicted M7 val: ", M6, "Actual val: ",ground_truth_M[2,0].numpy())
-    print("Predicted M8 val: ", M7, "Actual val: ",ground_truth_M[2,1].numpy())
+    print("Predicted M1 val: ", M_list[0], "Actual val: ",ground_truth_M[0,0].numpy())
+    print("Predicted M2 val: ", M_list[1], "Actual val: ",ground_truth_M[0,1].numpy())
+    print("Predicted M3 val: ", M_list[2], "Actual val: ",ground_truth_M[0,2].numpy())
+    print("Predicted M4 val: ", M_list[3], "Actual val: ",ground_truth_M[1,0].numpy())
+    print("Predicted M5 val: ", M_list[4], "Actual val: ",ground_truth_M[1,1].numpy())
+    print("Predicted M6 val: ", M_list[5], "Actual val: ",ground_truth_M[1,2].numpy())
+    print("Predicted M7 val: ", M_list[6], "Actual val: ",ground_truth_M[2,0].numpy())
+    print("Predicted M8 val: ", M_list[7], "Actual val: ",ground_truth_M[2,1].numpy())
 
 
-def visualize_individual_M(M0, M1, M2, M3, M4, M5):
+def visualize_M_list(M_list):
+    color=iter(['r', 'g', 'b', 'y', 'c', 'm', 'y']) 
+    
+    for i in range(np.shape(M_list)[0]):
+        c = next(color)
+        visualize_individual_M(M_list[i], color = c, label = "M" + str(i))
+      
+    plt.show()
+    
+def visualize_individual_M(M0, color, label):
     x = np.random.rand(np.shape(M0)[0])
 
-    plt.scatter(x, M0, color = 'g', label = "M1")
-    plt.scatter(x, M1, color = 'r', label = "M2")
-    plt.scatter(x, M2, color = 'b', label = "M3")
-    plt.scatter(x, M3, color = 'c', label = "M4")
-    plt.scatter(x, M4, color = 'm', label = "M5")
-    plt.scatter(x, M5, color = 'y', label = "M6")
+    plt.scatter(x, M0, color = color, label = label)
     plt.legend()
     plt.title("Distribution of generated M elements")
-    plt.show()
+    #plt.show()
     
 def visualize_transform_M(M_list, label, color = 'g'):
     
@@ -254,14 +259,12 @@ def visualize_input_data(warp_list):
 
 def visualize_results(warp_img, rgb_img, M_list, ground_truth_M, index, p = 0.03):
     chance_to_save = np.random.rand()
-    warp_perspective_least_squares(warp_img, rgb_img, index)
     
     if(chance_to_save <= p):
         should_save = True
-        warp_perspective_least_squares(warp_img, rgb_img, index)
-#        show_transform_image_test("Input image", warp_img, M1 = M_list[0], M2 = M_list[1], 
-#                                        M3 = M_list[2], M4 = M_list[3], M5 = M_list[4], M6 = M_list[5], ground_truth_M = ground_truth_M,
-#                                        should_save = should_save, index = index)
+        least_squares_img = warp_perspective_least_squares(warp_img, rgb_img, index)
+        show_transform_image_test(rgb = warp_img, least_squares_img = least_squares_img, M_list = M_list, ground_truth_M = ground_truth_M,
+                                        should_save = should_save, index = index)
         
     
 def main():
