@@ -10,6 +10,7 @@ import numpy as np
 import cv2
 import global_vars as gv
 from matplotlib import pyplot as plt
+from skimage.measure import compare_ssim
 
 #saves predicted transforms inferred by network. Always set start_index = 0 if you want to
 #override saved predictions
@@ -51,7 +52,7 @@ def hide_plot_legend(ax):
     ax.axes.get_yaxis().set_visible(False)
 
 #performs perspective transformation by least squares
-def warp_perspective_least_squares(warp_img, rgb_img, index):
+def warp_perspective_least_squares(warp_img, rgb_img):
     
     warp_img = np.moveaxis(warp_img, -3, 0); warp_img = np.uint8(warp_img * 255)
     rgb_img = np.moveaxis(rgb_img, -3, 0); rgb_img = np.uint8(rgb_img * 255)
@@ -96,6 +97,7 @@ def warp_perspective_least_squares(warp_img, rgb_img, index):
         result_img = cv2.warpPerspective(warp_img, h, (gv.WARP_W, gv.WARP_H))
     else:
         print("H is not 3x3!")
+        h = np.ones((3,3))
         result_img = warp_img
     im1Gray = None
     im2Gray = None
@@ -103,7 +105,7 @@ def warp_perspective_least_squares(warp_img, rgb_img, index):
     points1 = None
     points2 = None
 
-    return result_img
+    return result_img, h
     
 def show_transform_image_test(rgb, least_squares_img, M_list, ground_truth_M, should_save, index):
 
@@ -179,7 +181,6 @@ def show_transform_image(rgb, M_list, ground_truth_M, should_save, current_epoch
     
     ax1.set_title("Ground truth")
     ax1.imshow(result)
-    
     
     #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
     result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
@@ -262,10 +263,29 @@ def visualize_results(warp_img, rgb_img, M_list, ground_truth_M, index, p = 0.03
     
     if(chance_to_save <= p):
         should_save = True
-        least_squares_img = warp_perspective_least_squares(warp_img, rgb_img, index)
+        least_squares_img, h = warp_perspective_least_squares(warp_img, rgb_img)
         show_transform_image_test(rgb = warp_img, least_squares_img = least_squares_img, M_list = M_list, ground_truth_M = ground_truth_M,
                                         should_save = should_save, index = index)
         
+def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own):
+    mean_img = cv2.warpPerspective(rgb_img, matrix_mean, (np.shape(rgb_img)[1], np.shape(rgb_img)[0]))
+    h_img = cv2.warpPerspective(rgb_img, matrix_H, (np.shape(rgb_img)[1], np.shape(rgb_img)[0]))
+    print("matrix type:",type(matrix_own), type(matrix_H))
+    own_img = cv2.warpPerspective(rgb_img, matrix_own, (np.shape(rgb_img)[1], np.shape(rgb_img)[0]))
+    
+    SSIM = [0.0, 0.0, 0.0]
+    SSIM[0] = compare_ssim(mean_img, rgb_img)
+    f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
+    f.set_size_inches(12,10)
+    
+    ax1.set_title("Input image")
+    ax1.imshow(warp_img)
+    
+    ax2.set_title("Mean img: ", SSIM[0])
+    ax2.imshow(mean_img)
+    plt.show()
+    
+    return SSIM
     
 def main():
     all_transforms = []
