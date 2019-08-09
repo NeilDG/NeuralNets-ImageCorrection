@@ -74,7 +74,14 @@ class ModularTrainer:
         with torch.no_grad():
             pred = self.model(warp_tensor.to(self.gpu_device))
             loss = self.loss_func(pred, ground_truth_tensor)
-            return pred[0].cpu().numpy(), loss.cpu().data #return 1 sample of prediction
+            return pred[0].cpu().numpy()[0], loss.cpu().data #return 1 sample of prediction
+    
+    def blind_infer(self, warp_tensor):    
+        #output preview
+        self.model.eval()
+        with torch.no_grad():
+            pred = self.model(warp_tensor.to(self.gpu_device))
+            return pred[0].cpu().numpy()[0] #return 1 sample of prediction
     
     def batch_infer(self, warp_tensor, ground_truth_tensor):    
         #output preview
@@ -124,4 +131,7 @@ class ModularTrainer:
     
     def get_model_layer(self, index):
         return self.model.get_layer_activation(index = index)
+    
+    def flag_visualize_layer(self, flag):
+        self.model.flag_visualize_layer(flag)
         

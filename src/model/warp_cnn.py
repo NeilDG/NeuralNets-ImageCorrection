@@ -46,23 +46,10 @@ class WarpCNN(nn.Module):
         
         self.fc = nn.Linear(480, 1)
         
-        #init weights
-#        nn.init.xavier_uniform_(self.conv1.weight)
-#        nn.init.xavier_uniform_(self.conv2.weight)
-#        nn.init.xavier_uniform_(self.conv3.weight)
-#        nn.init.xavier_uniform_(self.conv4.weight)
-#        nn.init.xavier_uniform_(self.conv5.weight)
-#        nn.init.xavier_uniform_(self.conv6.weight)
-#        nn.init.xavier_uniform_(self.conv7.weight)
-#        nn.init.xavier_uniform_(self.fc.weight)
-        
         nn.init.xavier_uniform_(self.conv1.weight)
         nn.init.xavier_uniform_(self.conv2.weight)
         nn.init.xavier_uniform_(self.conv3.weight)
         nn.init.xavier_uniform_(self.conv4.weight)
-#        nn.init.xavier_uniform_(self.conv5.weight)
-#        nn.init.xavier_uniform_(self.conv6.weight)
-#        nn.init.xavier_uniform_(self.conv7.weight)
         nn.init.xavier_uniform_(self.fc.weight)
         
         self.layer_activations = [0, 1, 2, 3];

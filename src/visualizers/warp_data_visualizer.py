@@ -11,6 +11,8 @@ import cv2
 import global_vars as gv
 from matplotlib import pyplot as plt
 from skimage.measure import compare_ssim
+from skimage.measure import compare_mse
+from skimage.measure import compare_nrmse
 
 #saves predicted transforms inferred by network. Always set start_index = 0 if you want to
 #override saved predictions
@@ -106,9 +108,46 @@ def warp_perspective_least_squares(warp_img, rgb_img):
     points2 = None
 
     return result_img, h
+
+def show_blind_image_test(rgb, least_squares_img, M_list, ground_truth_img, index, should_save):
+    f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
+    f.set_size_inches(12,13)
+    
+    hide_plot_legend(ax1)
+    #ax1.set_title("Input")
+    ax1.imshow(rgb)
+    
+    pred_M = np.ones((3,3))
+    pred_M[0,0] = M_list[0]
+    pred_M[0,1] = M_list[1]
+    pred_M[0,2] = M_list[2]
+    pred_M[1,0] = M_list[3]
+    pred_M[1,1] = M_list[4]
+    pred_M[1,2] = M_list[5]
+    pred_M[2,0] = M_list[6]
+    pred_M[2,1] = M_list[7]
+    
+    hide_plot_legend(ax2)
+    #ax2.set_title("Least squares warp")
+    ax2.imshow(least_squares_img)
+    
+    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
+    hide_plot_legend(ax3)
+    #ax3.set_title("Predicted warp")
+    ax3.imshow(result)
+    
+    #ground_truth_img = cv2.resize(ground_truth_img, (gv.WARP_W, gv.WARP_H), interpolation = cv2.INTER_CUBIC)  # scale image up
+    #hide_plot_legend(ax4)
+    #ax4.set_title("Ground truth")
+    #ax4.imshow(ground_truth_img)
+    
+    if(should_save):
+        plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_"+str(index)+ ".png", bbox_inches='tight', pad_inches=0)
+    
+    plt.show()
+    plt.close()
     
 def show_transform_image_test(rgb, least_squares_img, M_list, ground_truth_M, should_save, index):
-
     f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
     f.set_size_inches(12,10)
     
@@ -116,7 +155,7 @@ def show_transform_image_test(rgb, least_squares_img, M_list, ground_truth_M, sh
     #ax1.set_title(title)
     ax1.imshow(rgb)
     
-    pred_M = np.copy(ground_truth_M)
+    pred_M = np.ones((3,3))
     pred_M[0,0] = M_list[0]
     pred_M[0,1] = M_list[1]
     pred_M[0,2] = M_list[2]
@@ -266,27 +305,87 @@ def visualize_results(warp_img, rgb_img, M_list, ground_truth_M, index, p = 0.03
         least_squares_img, h = warp_perspective_least_squares(warp_img, rgb_img)
         show_transform_image_test(rgb = warp_img, least_squares_img = least_squares_img, M_list = M_list, ground_truth_M = ground_truth_M,
                                         should_save = should_save, index = index)
+
+def visualize_blind_results(warp_img, rgb_img, M_list, index, p = 0.03):
+    chance_to_save = np.random.rand()
+    
+    if(chance_to_save <= p):
+        should_save = True
+        least_squares_img, h = warp_perspective_least_squares(warp_img, rgb_img)
+        show_blind_image_test(rgb = warp_img, least_squares_img = least_squares_img, 
+                              M_list = M_list, ground_truth_img = rgb_img,
+                              should_save = should_save, index = index)
         
-def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own):
-    mean_img = cv2.warpPerspective(rgb_img, matrix_mean, (np.shape(rgb_img)[1], np.shape(rgb_img)[0]))
-    h_img = cv2.warpPerspective(rgb_img, matrix_H, (np.shape(rgb_img)[1], np.shape(rgb_img)[0]))
-    print("matrix type:",type(matrix_own), type(matrix_H))
-    own_img = cv2.warpPerspective(rgb_img, matrix_own, (np.shape(rgb_img)[1], np.shape(rgb_img)[0]))
+def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count):
+    mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]))
+    h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]))
+    own_img = cv2.warpPerspective(warp_img, matrix_own, (np.shape(warp_img)[1], np.shape(warp_img)[0]))
+    rgb_img = cv2.copyMakeBorder(rgb_img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT, value=[0,0,0])
     
-    SSIM = [0.0, 0.0, 0.0]
-    SSIM[0] = compare_ssim(mean_img, rgb_img)
-    f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
-    f.set_size_inches(12,10)
+    SSIM = [0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0]
+    SSIM[0] = np.round(compare_ssim(mean_img, rgb_img, multichannel = True),4)
+    SSIM[1] = np.round(compare_ssim(h_img, rgb_img, multichannel = True),4)
+    SSIM[2] = np.round(compare_ssim(own_img, rgb_img, multichannel = True),4)
     
-    ax1.set_title("Input image")
+    MSE[0] = np.round(compare_mse(mean_img, rgb_img),4)
+    MSE[1] = np.round(compare_mse(h_img, rgb_img),4)
+    MSE[2] = np.round(compare_mse(own_img, rgb_img),4)
+    
+    RMSE[0] = np.round(compare_nrmse(rgb_img, mean_img),4)
+    RMSE[1] = np.round(compare_nrmse(rgb_img, h_img),4)
+    RMSE[2] = np.round(compare_nrmse(rgb_img, own_img),4)
+    
+    f, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 1, sharex=True)
+    f.set_size_inches(20,15)
+    
+    #ax1.set_title("Input image")
     ax1.imshow(warp_img)
     
-    ax2.set_title("Mean img: ", SSIM[0])
+    ax2.set_title("SSIM: "+str(SSIM[0])+ " MSE: "+str(MSE[0])+" RMSE: " +str(RMSE[0]))
     ax2.imshow(mean_img)
+    
+    ax3.set_title("SSIM: "+str(SSIM[1])+ " MSE: "+str(MSE[1])+" RMSE: " +str(RMSE[1]))
+    ax3.imshow(h_img)
+    
+    ax4.set_title("SSIM: "+str(SSIM[2])+ " MSE: "+str(MSE[2])+" RMSE: " +str(RMSE[2]))
+    ax4.imshow(own_img)
+    
+    #ax5.set_title("Ground truth")
+    ax5.imshow(rgb_img)
+    
+    hide_plot_legend(ax1)
+    hide_plot_legend(ax2)
+    hide_plot_legend(ax3)
+    hide_plot_legend(ax4)
+    hide_plot_legend(ax5)
+    plt.savefig(gv.IMAGE_PATH_PREDICT + "/ssim_"+str(count)+ ".png", bbox_inches='tight', pad_inches=0)
     plt.show()
     
-    return SSIM
+    return SSIM, MSE, RMSE
+
+#Visualizes a layer in the CNN
+def visualize_layer(layer, resize_scale = 1):
+    a,filter_range,x,y = np.shape(layer.data.numpy())
+    fig = plt.figure(figsize=(y * 0.07 * resize_scale, x * 2 * resize_scale))
+    #fig = plt.figure()
     
+    for i in range(filter_range):
+        ax = fig.add_subplot(filter_range, 3, i+1)
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.set_aspect('equal')
+        
+        activation = layer[0,i].data.numpy()
+        if(i == 0):
+            print("Activation shape :", np.shape(activation))
+        
+        # = cv2.resize(activation, (y * resize_scale, x * resize_scale), interpolation = cv2.INTER_CUBIC)  # scale image up
+        ax.imshow(np.squeeze(activation), cmap='gray')
+        ax.set_title('%s' % str(i+1))
+    
+    plt.subplots_adjust(wspace=0, hspace=0.35)
+    plt.show()
+
 def main():
     all_transforms = []
     predict_transforms = []

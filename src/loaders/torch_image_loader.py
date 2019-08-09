@@ -59,7 +59,26 @@ def assemble_test_data(full_infer = False):
             transform_list.append(transformPath)
         
     return rgb_list, warp_list, transform_list
-    print()
+
+def assemble_unseen_data():
+    rgb_list = []; warp_list = []; transform_list = []
+    
+    images = os.listdir(gv.SAVE_PATH_UNSEEN_DATA_RGB)
+    image_len = len(images)
+    
+    for i in range(image_len): #len(images)
+        rgbImagePath = gv.SAVE_PATH_UNSEEN_DATA_RGB + images[i]
+        rgb_list.append(rgbImagePath)
+    
+    images = os.listdir(gv.SAVE_PATH_UNSEEN_DATA_WARP)
+    for i in range(image_len * 2):
+        if(".png" in images[i]):
+            warpImagePath = gv.SAVE_PATH_UNSEEN_DATA_WARP + images[i]
+            transformPath = gv.SAVE_PATH_UNSEEN_DATA_WARP + images[i].replace(".png", ".txt")
+            warp_list.append(warpImagePath)
+            transform_list.append(transformPath)
+        
+    return rgb_list, warp_list, transform_list
 
 def load_dataset(batch_size = 8, fast_train = True):
     rgb_list, warp_list, transform_list = assemble_train_data(fast_train = fast_train)
@@ -95,7 +114,26 @@ def load_test_dataset(batch_size = 8, full_infer = False):
         test_dataset,
         batch_size=batch_size,
         num_workers=4,
-        shuffle=True
+        shuffle=False
+    )
+    
+    return test_loader
+
+def load_unseen_dataset(batch_size = 8):
+    rgb_list, warp_list, transform_list = assemble_unseen_data()
+    print("Length of test images: ", len(rgb_list), len(warp_list))
+    
+    generic_transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.ToTensor(),
+    ])
+
+    test_dataset = image_dataset.TorchImageDataset(rgb_list, warp_list, transform_list, image_transform_op = generic_transform)
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        num_workers=4,
+        shuffle=False
     )
     
     return test_loader
