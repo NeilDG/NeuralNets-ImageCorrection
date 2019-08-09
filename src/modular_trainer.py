@@ -60,9 +60,9 @@ class ModularTrainer:
     def log_weights(self, current_epoch):
         #log update in weights
         self.writer.add_histogram(self.name + '/weights/fc', self.model.fc.weight.data, global_step = current_epoch)
-        self.writer.add_histogram(self.name + '/weights/conv7', self.model.conv7.weight.data, global_step = current_epoch)
-        self.writer.add_histogram(self.name + '/weights/conv6', self.model.conv6.weight.data, global_step = current_epoch)
-        self.writer.add_histogram(self.name + '/weights/conv5', self.model.conv5.weight.data, global_step = current_epoch)
+#        self.writer.add_histogram(self.name + '/weights/conv7', self.model.conv7.weight.data, global_step = current_epoch)
+#        self.writer.add_histogram(self.name + '/weights/conv6', self.model.conv6.weight.data, global_step = current_epoch)
+#        self.writer.add_histogram(self.name + '/weights/conv5', self.model.conv5.weight.data, global_step = current_epoch)
         self.writer.add_histogram(self.name + '/weights/conv4', self.model.conv4.weight.data, global_step = current_epoch)
         self.writer.add_histogram(self.name + '/weights/conv3', self.model.conv3.weight.data, global_step = current_epoch)
         self.writer.add_histogram(self.name + '/weights/conv2', self.model.conv2.weight.data, global_step = current_epoch)
@@ -74,7 +74,14 @@ class ModularTrainer:
         with torch.no_grad():
             pred = self.model(warp_tensor.to(self.gpu_device))
             loss = self.loss_func(pred, ground_truth_tensor)
-            return pred[0].cpu().numpy(), loss.cpu().data #return 1 sample of prediction
+            return pred[0].cpu().numpy()[0], loss.cpu().data #return 1 sample of prediction
+    
+    def blind_infer(self, warp_tensor):    
+        #output preview
+        self.model.eval()
+        with torch.no_grad():
+            pred = self.model(warp_tensor.to(self.gpu_device))
+            return pred[0].cpu().numpy()[0] #return 1 sample of prediction
     
     def batch_infer(self, warp_tensor, ground_truth_tensor):    
         #output preview
@@ -121,4 +128,10 @@ class ModularTrainer:
     
     def get_name(self):
         return self.name
+    
+    def get_model_layer(self, index):
+        return self.model.get_layer_activation(index = index)
+    
+    def flag_visualize_layer(self, flag):
+        self.model.flag_visualize_layer(flag)
         

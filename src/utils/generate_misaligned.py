@@ -44,10 +44,22 @@ def retrieve_kitti_rgb_list():
     
     return rgb_list
 
-def perform_warp(img, W1 ,W2, W3, W4, padding = 100):
+def retrieve_unseen_list():
+    rgb_list = [];
+    
+    for (dirpath, dirnames, filenames) in os.walk(gv.SAVE_PATH_UNSEEN_DATA):
+       for f in filenames:
+           if f.endswith(".jpg"):
+               rgb_list.append(os.path.join(dirpath, f))
+             
+    
+    return rgb_list
+    
+    return rgb_list
+def perform_warp(img, W1 ,W2, W3, W4, W5):
     #add padding to image to avoid overflow
     x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
-    padded_image = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_CONSTANT,
+    padded_image = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
     value=[0,0,0])
     padded_dim = np.shape(padded_image)
 
@@ -68,6 +80,8 @@ def perform_warp(img, W1 ,W2, W3, W4, padding = 100):
         M[0,2] = M[0,2] + (np.random.random() * W2) - (np.random.random() * W2)
         M[1,0] = M[1,0] + (np.random.random() * W3) - (np.random.random() * W3)
         M[1,2] = M[1,2] + (np.random.random() * W4) - (np.random.random() * W4)
+        M[2,0] = M[2,0] + (np.random.random() * W5) - (np.random.random() * W5)
+        M[2,1] = M[2,1] + (np.random.random() * W5) - (np.random.random() * W5)
         result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
         inverse_M = np.linalg.inv(M)
         
@@ -98,11 +112,12 @@ def check_generate_data():
     print("Images found: ", np.size(rgb_list))
     
     #test read image
-    M0_list = []; M1_list = []; M2_list = []; M3_list = []
-    for i in range(100):
+    M0_list = []; M1_list = []; M2_list = []; M3_list = []; M4_list= []; M5_list = []
+    
+    for i in range(1000):
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5)
-        reverse_img = perform_unwarp(result, inverse_M)    
+        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
+#        reverse_img = perform_unwarp(result, inverse_M)    
 #        plt.title("Original image"); plt.imshow(img); plt.show()
 #        plt.title("Warped image"); plt.imshow(result); plt.show()
 #        plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
@@ -110,20 +125,66 @@ def check_generate_data():
 #        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
         #print("Inverse Matrix: ", inverse_M)
-        M0_list.append(inverse_M[0,1])
-        M1_list.append(inverse_M[0,2])
-        M2_list.append(inverse_M[1,0])
-        M3_list.append(inverse_M[1,2])
+        M0_list.append(inverse_M[0,0])
+        M1_list.append(inverse_M[1,1])
+#        M2_list.append(inverse_M[1,0])
+#        M3_list.append(inverse_M[1,2])
+#        M4_list.append(inverse_M[2,0])
+#        M5_list.append(inverse_M[2,1])
     
-    wdv.visualize_individual_M(M0_list, M1_list, M2_list, M3_list)
+    M_parent_list = [];
+    M_parent_list.append(M0_list)
+    M_parent_list.append(M1_list)
+#    M_parent_list.append(M2_list)
+#    M_parent_list.append(M3_list)
+#    M_parent_list.append(M4_list)
+#    M_parent_list.append(M5_list)
     
+    wdv.visualize_M_list(M_list = M_parent_list)
+
+def generate_unseen_samples(repeat):
+    rgb_list = retrieve_unseen_list();
+    print("Unseen images found: ", rgb_list)
+    
+    count = 0
+    for i in range(np.size(rgb_list)): 
+        img = cv2.imread(rgb_list[i])
+        w,h,a = np.shape(img)
+        #crop image
+        center_x = int(np.round(h / 2) - 1200); center_y =  int(np.round(w / 2) + 1200)
+        bounds_x =  int(np.round(IMAGE_H / 2)); bounds_y =  int(np.round(IMAGE_W / 2))
+        box = [center_x - bounds_x, center_y - bounds_y, center_x + bounds_x, center_y + bounds_y]
+        img = img[box[0]:box[2], box[1]:box[3]]
+        img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
+        print(box, np.shape(img))
+        
+        for j in range(repeat):
+            result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
+            inverse_M = inverse_M
+            
+#            reverse_img = perform_unwarp(result, inverse_M)       
+#            plt.imshow(img)
+#            plt.show()
+#            
+#            plt.imshow(reverse_img)
+#            plt.show()
+#            
+#            difference = img - reverse_img
+#            plt.imshow(difference)
+#            plt.show()
+            
+            cv2.imwrite(gv.SAVE_PATH_UNSEEN_DATA_RGB + "orig_" +str(count)+ ".png", img)
+            cv2.imwrite(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(count)+ ".png", result)
+            np.savetxt(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(count)+ ".txt", inverse_M)
+            count = count + 1
+        
 def generate():
     rgb_list = retrieve_kitti_rgb_list();
     print("Images found: ", np.size(rgb_list))
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5)
+        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
         inverse_M = inverse_M
         
 #        reverse_img = perform_unwarp(result, inverse_M)       
@@ -157,5 +218,6 @@ def generate():
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
-    check_generate_data()
-    generate()
+    #check_generate_data()
+    #generate()
+    generate_unseen_samples(repeat = 15)
