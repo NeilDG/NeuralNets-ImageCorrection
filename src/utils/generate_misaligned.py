@@ -151,12 +151,11 @@ def generate_unseen_samples(repeat):
         img = cv2.imread(rgb_list[i])
         w,h,a = np.shape(img)
         #crop image
-        center_x = int(np.round(h / 2) - 1200); center_y =  int(np.round(w / 2) + 1200)
-        bounds_x =  int(np.round(IMAGE_H / 2)); bounds_y =  int(np.round(IMAGE_W / 2))
-        box = [center_x - bounds_x, center_y - bounds_y, center_x + bounds_x, center_y + bounds_y]
-        img = img[box[0]:box[2], box[1]:box[3]]
+        #center_x = int(np.round(h / 2) - 600); center_y =  int(np.round(w / 2) + 1200)
+        #bounds_x =  int(np.round(IMAGE_H / 2)); bounds_y =  int(np.round(IMAGE_W / 2))
+        #box = [center_x - bounds_x, center_y - bounds_y, center_x + bounds_x, center_y + bounds_y]
+        img = img[0:gv.IMAGE_W, 500::]
         img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
-        print(box, np.shape(img))
         
         for j in range(repeat):
             result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
