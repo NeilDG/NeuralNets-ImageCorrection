@@ -63,24 +63,28 @@ def start_test(gpu_device):
     
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = False)
     #perform inference on batches
-#    overall_index = 0;
-#    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
-#        print("Batch idx: ", batch_idx)
-#        for index in range(len(warp)):
-#            model_Ms = [];
-#            for model in model_list:
-#                warp_candidate = torch.unsqueeze(warp[index,:,:,:],  0).to(gpu_device)
-#                reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
-#                gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
-#        
-#                M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
-#                model_Ms.append(M)
-#            
-#            #chance visualize and save result
-#            warp_img = tensor_utils.convert_to_matplotimg(warp, index)
-#            rgb_img = tensor_utils.convert_to_matplotimg(rgb, index)
-#            warp_visualizer.visualize_results(warp_img = warp_img, rgb_img = rgb_img, M_list = model_Ms, ground_truth_M = transform[index], index = overall_index)
-#            overall_index = overall_index + 1
+    overall_index = 0;
+    
+    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+        print("Batch idx: ", batch_idx)
+        for index in range(len(warp)):
+            model_Ms = [];
+            predict_M_list = []
+            for model in model_list:
+                warp_candidate = torch.unsqueeze(warp[index,:,:,:],  0).to(gpu_device)
+                reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
+                gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
+        
+                M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
+                model_Ms.append(M)
+            predict_M_list.append(model_Ms)
+            
+            #chance visualize and save result
+            warp_img = tensor_utils.convert_to_matplotimg(warp, index)
+            rgb_img = tensor_utils.convert_to_matplotimg(rgb, index)
+            warp_visualizer.visualize_results(warp_img = warp_img, rgb_img = rgb_img, M_list = model_Ms, ground_truth_M = transform[index], index = overall_index)
+            overall_index = overall_index + 1
+            #warp_visualizer.save_predicted_transforms(predict_M_list, start_index = overall_index)
                     
     #visualize each layer's output
 #    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
@@ -100,7 +104,7 @@ def start_test(gpu_device):
 #        break
     
     #measure_performance(gpu_device, model_list, test_dataset)
-    check_on_unseen_data(gpu_device,model_list)
+    #check_on_unseen_data(gpu_device,model_list)
 
 def check_on_unseen_data(gpu_device, model_list):
     unseen_dataset = loader.load_unseen_dataset(BATCH_SIZE)

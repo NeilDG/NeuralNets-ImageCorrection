@@ -96,7 +96,8 @@ def warp_perspective_least_squares(warp_img, rgb_img):
     # Use homography
     height, width, channels = rgb_img.shape
     if(np.shape(h) == (3,3)):
-        result_img = cv2.warpPerspective(warp_img, h, (gv.WARP_W, gv.WARP_H))
+        result_img = cv2.warpPerspective(warp_img, h, (gv.WARP_W, gv.WARP_H),
+                                         borderValue = (255,255,255))
     else:
         print("H is not 3x3!")
         h = np.ones((3,3))
@@ -165,7 +166,8 @@ def show_transform_image_test(rgb, least_squares_img, M_list, ground_truth_M, sh
     pred_M[2,0] = M_list[6]
     pred_M[2,1] = M_list[7]
     
-    result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
+    result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]), 
+                                 borderValue = (1,1,1))
     hide_plot_legend(ax4)
     #ax2.set_title("Ground truth")
     ax4.imshow(result)
@@ -174,7 +176,8 @@ def show_transform_image_test(rgb, least_squares_img, M_list, ground_truth_M, sh
     #ax2.set_title("Least squares warp")
     ax2.imshow(least_squares_img)
     
-    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
+    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]),
+                                 borderValue = (1,1,1))
     hide_plot_legend(ax3)
     #ax3.set_title("Predicted warp")
     ax3.imshow(result)
@@ -216,13 +219,15 @@ def show_transform_image(rgb, M_list, ground_truth_M, should_save, current_epoch
     pred_M[2,0] = M_list[6]
     pred_M[2,1] = M_list[7]
     
-    result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]))
+    result = cv2.warpPerspective(rgb, ground_truth_M.numpy(), (np.shape(rgb)[1], np.shape(rgb)[0]),
+                                 borderValue = (1,1,1))
     
     ax1.set_title("Ground truth")
     ax1.imshow(result)
     
     #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
-    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]))
+    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]),
+                                 borderValue = (1,1,1))
     ax2.set_title("Predicted warp")
     ax2.imshow(result)
     
@@ -256,38 +261,6 @@ def visualize_individual_M(M0, color, label):
     plt.legend()
     plt.title("Distribution of generated M elements")
     #plt.show()
-    
-def visualize_transform_M(M_list, label, color = 'g'):
-    
-    X = list(range(0, np.shape(M_list)[0]))
-    Y = []
-    for i in range(np.shape(M_list)[0]):
-        Y.append(np.linalg.norm(M_list[i]))
-    
-    plt.scatter(X, Y, color = color, label = label)
-    plt.legend()
-
-def visualize_predict_M(baseline_M, predicted_M_list):
-    X = list(range(0, np.shape(predicted_M_list)[0]))
-    Y = []
-    for i in range(np.shape(predicted_M_list)[0]):
-        #appends hard-coded 1.0s to make this a 9-vector for homography correctness
-        modified_list = np.append(predicted_M_list[i], [1.0, 1.0, 1.0], axis = 0) 
-        print("Predict transform size: ", np.shape(modified_list))
-        Y.append(np.linalg.norm(modified_list))
-    
-    plt.scatter(X, Y, color = 'r', label = "predictions")
-    plt.legend()
-    
-    plt.title("Distribution of norm ground-truth T vs predicted T")
-    plt.show()
-    
-    for i in range(1, np.shape(predicted_M_list)[0]):
-        diff = abs(predicted_M_list[i] - predicted_M_list[i - 1])
-        plt.scatter(i - 1, np.linalg.norm(diff), color = 'b')
-    
-    plt.title("Differences of predicted T")
-    plt.show()
 
 def visualize_input_data(warp_list):
     print("Input RGB distribution via norm")
@@ -386,46 +359,76 @@ def visualize_layer(layer, resize_scale = 1):
     plt.subplots_adjust(wspace=0, hspace=0.35)
     plt.show()
 
+def visualize_transform_M(M_list, label, color = 'g'):
+    
+    X = list(range(0, np.shape(M_list)[0]))
+    Y = []
+    for i in range(np.shape(M_list)[0]):
+        Y.append(np.linalg.norm(M_list[i]))
+    
+    plt.scatter(X, Y, color = color, label = label)
+    plt.ylim(1.2, 3)
+    plt.legend()
+
+def visualize_predict_M(predicted_M_list):
+    X = list(range(0, np.shape(predicted_M_list)[0]))
+    Y = []
+    for i in range(np.shape(predicted_M_list)[0]):
+        #appends hard-coded 1.0s to make this a 9-vector for homography correctness
+        #modified_list = np.append(predicted_M_list[i], [1.0, 1.0, 1.0], axis = 0) 
+        print("Predict transform size: ", np.shape(predicted_M_list[i]))
+        Y.append(np.linalg.norm(predicted_M_list[i]))
+    
+    plt.scatter(X, Y, color = 'r', label = "predictions")
+    plt.legend()
+    
+    #plt.title("Distribution of norm ground-truth T vs predicted T")
+    plt.show()
+    
+    for i in range(1, np.shape(predicted_M_list)[0]):
+        diff = abs(predicted_M_list[i] - predicted_M_list[i - 1])
+        plt.scatter(i - 1, np.linalg.norm(diff), color = 'b')
+    
+    plt.title("Differences of predicted T")
+    plt.show()
+    
 def main():
     all_transforms = []
     predict_transforms = []
     warp_list = []
-    baseline_M = None
     predict_list_files = retrieve_predict_warp_list()
     for pfile in predict_list_files:
         predict_transforms.append(np.loadtxt(pfile))
     
     for batch_idx, (rgb, warp, transform) in enumerate(loader.load_dataset(batch_size = 64)):
         for t in transform:
-            baseline_M = t.numpy()
             all_transforms.append(t.numpy())
         
         for warp_img in warp:
             warp_list.append(warp_img.numpy())
        
-        visualize_transform_M(all_transforms, color = 'g', label = "training set")
-        all_transforms.clear()
-        all_transforms = []
+    visualize_transform_M(all_transforms, color = 'g', label = "training set")
+    all_transforms.clear()
+    all_transforms = []
         
-        if(batch_idx % 500 == 0):
-            break
+        #if(batch_idx % 500 == 0):
+            #break
         
     for batch_idx, (rgb, warp, transform) in enumerate(loader.load_test_dataset(batch_size = 64)):
         for t in transform:
-            baseline_M = t.numpy()
             all_transforms.append(t.numpy())
         
         for warp_img in warp:
             warp_list.append(warp_img.numpy())
        
-        visualize_transform_M(all_transforms, color = 'b', label = "test set")
-        all_transforms.clear()
-        all_transforms = []
+    visualize_transform_M(all_transforms, color = 'b', label = "test set")
+    all_transforms.clear()
+    all_transforms = []
         
-        if(batch_idx % 500 == 0):
-            break
+        #if(batch_idx % 500 == 0):
+            #break
     
-    visualize_predict_M(baseline_M, predict_transforms)
+    visualize_predict_M(predict_transforms)
     
     #visualize_input_data(warp_list)
     
