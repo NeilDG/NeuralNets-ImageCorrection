@@ -60,7 +60,7 @@ def perform_warp(img, W1 ,W2, W3, W4, W5):
     #add padding to image to avoid overflow
     x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
     padded_image = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
-    value=[0,0,0])
+    value=[255,255,255])
     padded_dim = np.shape(padded_image)
 
 #    x_disp = rand.randint(-5, 5) * W1
@@ -82,7 +82,7 @@ def perform_warp(img, W1 ,W2, W3, W4, W5):
         M[1,2] = M[1,2] + (np.random.random() * W4) - (np.random.random() * W4)
         M[2,0] = M[2,0] + (np.random.random() * W5) - (np.random.random() * W5)
         M[2,1] = M[2,1] + (np.random.random() * W5) - (np.random.random() * W5)
-        result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
+        result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]), borderValue = (255,255,255))
         inverse_M = np.linalg.inv(M)
         
         #print("New M: ", M)
@@ -97,7 +97,7 @@ def perform_warp(img, W1 ,W2, W3, W4, W5):
 def perform_unwarp(img, inverse_M, padding_deduct = 100):
     #remove padding first before unwarping
     dim = np.shape(img)
-    initial_result = cv2.warpPerspective(img, inverse_M, (dim[1], dim[0]))
+    initial_result = cv2.warpPerspective(img, inverse_M, (dim[1], dim[0]), borderValue = (255,255,255))
     
     x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
     upper_x = x_dim - padding_deduct
@@ -116,29 +116,30 @@ def check_generate_data():
     
     for i in range(1000):
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
-#        reverse_img = perform_unwarp(result, inverse_M)    
+        mult = 0.001;
+        #result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
+        result, M, inverse_M = perform_warp(img, np.random.rand() * mult, np.random.rand() * mult, np.random.rand() * mult, np.random.rand() * mult, 0.0005)
+        reverse_img = perform_unwarp(result, inverse_M)    
 #        plt.title("Original image"); plt.imshow(img); plt.show()
 #        plt.title("Warped image"); plt.imshow(result); plt.show()
 #        plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
 #        difference = img - reverse_img
 #        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
-        #print("Inverse Matrix: ", inverse_M)
         M0_list.append(inverse_M[0,0])
         M1_list.append(inverse_M[1,1])
-#        M2_list.append(inverse_M[1,0])
-#        M3_list.append(inverse_M[1,2])
-#        M4_list.append(inverse_M[2,0])
-#        M5_list.append(inverse_M[2,1])
+        M2_list.append(inverse_M[1,0])
+        M3_list.append(inverse_M[1,2])
+        M4_list.append(inverse_M[2,0])
+        M5_list.append(inverse_M[2,1])
     
     M_parent_list = [];
     M_parent_list.append(M0_list)
     M_parent_list.append(M1_list)
-#    M_parent_list.append(M2_list)
-#    M_parent_list.append(M3_list)
-#    M_parent_list.append(M4_list)
-#    M_parent_list.append(M5_list)
+    M_parent_list.append(M2_list)
+    M_parent_list.append(M3_list)
+    M_parent_list.append(M4_list)
+    M_parent_list.append(M5_list)
     
     wdv.visualize_M_list(M_list = M_parent_list)
 
@@ -151,12 +152,11 @@ def generate_unseen_samples(repeat):
         img = cv2.imread(rgb_list[i])
         w,h,a = np.shape(img)
         #crop image
-        center_x = int(np.round(h / 2) - 1200); center_y =  int(np.round(w / 2) + 1200)
-        bounds_x =  int(np.round(IMAGE_H / 2)); bounds_y =  int(np.round(IMAGE_W / 2))
-        box = [center_x - bounds_x, center_y - bounds_y, center_x + bounds_x, center_y + bounds_y]
-        img = img[box[0]:box[2], box[1]:box[3]]
+        #center_x = int(np.round(h / 2) - 600); center_y =  int(np.round(w / 2) + 1200)
+        #bounds_x =  int(np.round(IMAGE_H / 2)); bounds_y =  int(np.round(IMAGE_W / 2))
+        #box = [center_x - bounds_x, center_y - bounds_y, center_x + bounds_x, center_y + bounds_y]
+        img = img[0:gv.IMAGE_W, 500::]
         img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
-        print(box, np.shape(img))
         
         for j in range(repeat):
             result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
@@ -182,9 +182,11 @@ def generate():
     rgb_list = retrieve_kitti_rgb_list();
     print("Images found: ", np.size(rgb_list))
     
+    TEMP_OFFSET = 0;
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
+        mult = 0.001;
+        result, M, inverse_M = perform_warp(img, np.random.rand() * mult, np.random.rand() * mult, np.random.rand() * mult, np.random.rand() * mult, 0.0005)
         inverse_M = inverse_M
         
 #        reverse_img = perform_unwarp(result, inverse_M)       
@@ -202,11 +204,11 @@ def generate():
         result = cv2.resize(result, (WARP_W, WARP_H))
         
         if(i <= 11195):
-            cv2.imwrite(SAVE_PATH_RGB + "orig_" +str(i)+ ".png", img)
-            cv2.imwrite(SAVE_PATH_WARP + "warp_" +str(i)+ ".png", result)
-            np.savetxt(SAVE_PATH_WARP + "warp_" +str(i)+ ".txt", inverse_M)
+            cv2.imwrite(SAVE_PATH_RGB + "orig_" +str(i + TEMP_OFFSET)+ ".png", img)
+            cv2.imwrite(SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".png", result)
+            np.savetxt(SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)
             if (i % 200 == 0):
-                print("Successfully generated transformed image " ,i, ". Saved as train.")
+                print("Successfully generated transformed image " ,str(i + TEMP_OFFSET), ". Saved as train.")
         else:
             cv2.imwrite(SAVE_PATH_RGB_VAL + "orig_" +str(i)+ ".png", img)
             cv2.imwrite(SAVE_PATH_WARP_VAL + "warp_" +str(i)+ ".png", result)
@@ -219,5 +221,5 @@ def generate():
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #check_generate_data()
-    #generate()
-    generate_unseen_samples(repeat = 15)
+    generate()
+    #generate_unseen_samples(repeat = 15)
