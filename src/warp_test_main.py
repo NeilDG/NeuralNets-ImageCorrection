@@ -33,7 +33,7 @@ def compute_dataset_mean(model_list, test_dataset):
              
     dataset_mean = accumulate_T / count * 1.0
     np.savetxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt", dataset_mean)
-    
+   
 def start_test(gpu_device):
     model_list = []
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
@@ -85,26 +85,28 @@ def start_test(gpu_device):
             warp_visualizer.visualize_results(warp_img = warp_img, rgb_img = rgb_img, M_list = model_Ms, ground_truth_M = transform[index], index = overall_index)
             overall_index = overall_index + 1
             #warp_visualizer.save_predicted_transforms(predict_M_list, start_index = overall_index)
-                    
-    #visualize each layer's output
-#    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
-#        #get first data per batch only
-#        model_Ms = [];
-#        for model in model_list:
-#            warp_candidate = torch.unsqueeze(warp[0,:,:,:], 0).to(gpu_device)
-#            reshaped_t = torch.reshape(transform[0], (1, 9)).type('torch.FloatTensor')
-#            gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
-#    
-#            model.flag_visualize_layer(True)
-#            M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
-#            model_Ms.append(M)
-#        
-#        conv_activation, pool_activation = model_list[0].get_model_layer(3)
-#        warp_visualizer.visualize_layer(conv_activation, resize_scale = 10)
-#        break
-    
+
+    visualize_layers(gpu_device, model_list, test_dataset)
     #measure_performance(gpu_device, model_list, test_dataset)
     #check_on_unseen_data(gpu_device,model_list)
+
+#visualize each layer's output
+def visualize_layers(gpu_device, model_list, test_dataset):
+    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+        #get first data per batch only
+        model_Ms = [];
+        for model in model_list:
+            warp_candidate = torch.unsqueeze(warp[0,:,:,:], 0).to(gpu_device)
+            reshaped_t = torch.reshape(transform[0], (1, 9)).type('torch.FloatTensor')
+            gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
+    
+            model.flag_visualize_layer(True)
+            M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
+            model_Ms.append(M)
+        
+        conv_activation, pool_activation = model_list[0].get_model_layer(1)
+        warp_visualizer.visualize_layer(conv_activation, resize_scale = 1)
+        break
 
 def check_on_unseen_data(gpu_device, model_list):
     unseen_dataset = loader.load_unseen_dataset(BATCH_SIZE)

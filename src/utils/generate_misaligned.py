@@ -182,7 +182,7 @@ def generate():
     rgb_list = retrieve_kitti_rgb_list();
     print("Images found: ", np.size(rgb_list))
     
-    TEMP_OFFSET = 11196;
+    TEMP_OFFSET = 0;
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
         mult = 0.001;
@@ -209,12 +209,12 @@ def generate():
             np.savetxt(SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)
             if (i % 200 == 0):
                 print("Successfully generated transformed image " ,str(i + TEMP_OFFSET), ". Saved as train.")
-#        else:
-#            cv2.imwrite(SAVE_PATH_RGB_VAL + "orig_" +str(i)+ ".png", img)
-#            cv2.imwrite(SAVE_PATH_WARP_VAL + "warp_" +str(i)+ ".png", result)
-#            np.savetxt(SAVE_PATH_WARP_VAL + "warp_" +str(i)+ ".txt", inverse_M)
-#            if (i % 200 == 0):
-#                print("Successfully generated transformed image " ,i, ". Saved as val.")
+        else:
+            cv2.imwrite(SAVE_PATH_RGB_VAL + "orig_" +str(i)+ ".png", img)
+            cv2.imwrite(SAVE_PATH_WARP_VAL + "warp_" +str(i)+ ".png", result)
+            np.savetxt(SAVE_PATH_WARP_VAL + "warp_" +str(i)+ ".txt", inverse_M)
+            if (i % 200 == 0):
+                print("Successfully generated transformed image " ,i, ". Saved as val.")
         
     print("Finished generating dataset!")
 

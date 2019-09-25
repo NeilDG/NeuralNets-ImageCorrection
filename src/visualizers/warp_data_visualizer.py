@@ -110,6 +110,7 @@ def warp_perspective_least_squares(warp_img, rgb_img):
 
     return result_img, h
 
+#performs inference using unseen data and visualize results
 def show_blind_image_test(rgb, least_squares_img, M_list, ground_truth_img, index, should_save):
     f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
     f.set_size_inches(12,13)
@@ -147,7 +148,8 @@ def show_blind_image_test(rgb, least_squares_img, M_list, ground_truth_img, inde
     
     plt.show()
     plt.close()
-    
+ 
+#performs inference using test data and visualize results
 def show_transform_image_test(rgb, least_squares_img, M_list, ground_truth_M, should_save, index):
     f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
     f.set_size_inches(12,10)
@@ -197,8 +199,8 @@ def show_transform_image_test(rgb, least_squares_img, M_list, ground_truth_M, sh
     print("Predicted M6 val: ", M_list[5], "Actual val: ",ground_truth_M[1,2].numpy())
     print("Predicted M7 val: ", M_list[6], "Actual val: ",ground_truth_M[2,0].numpy())
     print("Predicted M8 val: ", M_list[7], "Actual val: ",ground_truth_M[2,1].numpy())
-    
-#TODO: Refactor Ms. Too many parameters
+
+#performs inference using training data and visualize results
 def show_transform_image(rgb, M_list, ground_truth_M, should_save, current_epoch, save_every_epoch):
     plt.title("Input image")
     plt.imshow(rgb)
@@ -270,6 +272,7 @@ def visualize_input_data(warp_list):
         plt.scatter(i, np.linalg.norm(warp_list[i][2,:,:]), color = 'r')
     plt.show()
 
+#visualize test data
 def visualize_results(warp_img, rgb_img, M_list, ground_truth_M, index, p = 0.03):
     chance_to_save = np.random.rand()
     
@@ -278,7 +281,7 @@ def visualize_results(warp_img, rgb_img, M_list, ground_truth_M, index, p = 0.03
         least_squares_img, h = warp_perspective_least_squares(warp_img, rgb_img)
         show_transform_image_test(rgb = warp_img, least_squares_img = least_squares_img, M_list = M_list, ground_truth_M = ground_truth_M,
                                         should_save = should_save, index = index)
-
+#visualize unseen data
 def visualize_blind_results(warp_img, rgb_img, M_list, index, p = 0.03):
     chance_to_save = np.random.rand()
     
