@@ -249,6 +249,7 @@ def show_transform_image(rgb, M_list, ground_truth_M, should_save, current_epoch
 
 def visualize_M_list(M_list):
     color=iter(['r', 'g', 'b', 'y', 'c', 'm', 'y']) 
+    plt.title("Distribution of generated M elements")
     
     for i in range(np.shape(M_list)[0]):
         c = next(color)
@@ -261,7 +262,6 @@ def visualize_individual_M(M0, color, label):
 
     plt.scatter(x, M0, color = color, label = label)
     plt.legend()
-    plt.title("Distribution of generated M elements")
     #plt.show()
 
 def visualize_input_data(warp_list):

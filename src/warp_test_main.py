@@ -36,16 +36,16 @@ def compute_dataset_mean(model_list, test_dataset):
    
 def start_test(gpu_device):
     model_list = []
-    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 1, lr = train_main.LR))
+#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = None, gt_index = 1, lr = train_main.LR))
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/2', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = None, gt_index = 2, lr = train_main.LR))
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/3', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = None, gt_index = 3, lr = train_main.LR))
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = None, gt_index = 4, lr = train_main.LR))
-    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 5, lr = train_main.LR))
+#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = None, gt_index = 5, lr = train_main.LR))
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/6', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = None, gt_index = 6, lr = train_main.LR))
     model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/7', gpu_device = gpu_device, batch_size = BATCH_SIZE,
@@ -81,6 +81,7 @@ def check_on_test_data(gpu_device, model_list, test_dataset):
         
                 M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
                 model_Ms.append(M)
+            
             predict_M_list.append(model_Ms)
             
             #chance visualize and save result
@@ -158,7 +159,12 @@ def measure_performance(gpu_device,model_list, test_dataset):
                 M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
                 model_Ms.append(M)
         
-            model_Ms.append(1.0) #append 1.0 as element M[2,2]
+            #append 1's element on correct places
+            model_Ms.insert(0, 1.0)
+            model_Ms.insert(4, 1.0)
+            model_Ms.append(1.0)
+            print(model_Ms)
+            
             warp_img = tensor_utils.convert_to_matplotimg(warp, i)
             rgb_img = tensor_utils.convert_to_matplotimg(rgb, i)
             homog_img, homography_M = warp_visualizer.warp_perspective_least_squares(warp_img, rgb_img)
