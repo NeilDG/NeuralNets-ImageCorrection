@@ -62,9 +62,13 @@ def start_test(gpu_device):
     print("Loaded checkpt ",CHECKPATH)
     
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = False)
-    #perform inference on batches
+    #check_on_test_data(gpu_device,model_list,test_dataset)
+    #visualize_layers(gpu_device, model_list, test_dataset)
+    measure_performance(gpu_device, model_list, test_dataset)
+    #check_on_unseen_data(gpu_device,model_list)
+
+def check_on_test_data(gpu_device, model_list, test_dataset):
     overall_index = 0;
-    
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
         print("Batch idx: ", batch_idx)
         for index in range(len(warp)):
@@ -85,11 +89,6 @@ def start_test(gpu_device):
             warp_visualizer.visualize_results(warp_img = warp_img, rgb_img = rgb_img, M_list = model_Ms, ground_truth_M = transform[index], index = overall_index)
             overall_index = overall_index + 1
             #warp_visualizer.save_predicted_transforms(predict_M_list, start_index = overall_index)
-
-    visualize_layers(gpu_device, model_list, test_dataset)
-    #measure_performance(gpu_device, model_list, test_dataset)
-    #check_on_unseen_data(gpu_device,model_list)
-
 #visualize each layer's output
 def visualize_layers(gpu_device, model_list, test_dataset):
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):

@@ -26,6 +26,7 @@ SAVE_PATH_WARP_VAL = 'C:/NN_Dataset/warp_rgb_mod_val/'
 IMAGE_W = 1242; IMAGE_H = 375
 WARP_W = 1442; WARP_H = 575
 
+WARP_MULT = 0.001;
 
 def get_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
@@ -146,7 +147,6 @@ def check_generate_data():
 def generate_unseen_samples(repeat):
     rgb_list = retrieve_unseen_list();
     print("Unseen images found: ", rgb_list)
-    
     count = 0
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
@@ -159,7 +159,7 @@ def generate_unseen_samples(repeat):
         img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
         
         for j in range(repeat):
-            result, M, inverse_M = perform_warp(img, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, np.random.rand() * 1.5, 0.0025)
+            result, M, inverse_M = perform_warp(img, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, 0.0005)
             inverse_M = inverse_M
             
 #            reverse_img = perform_unwarp(result, inverse_M)       
@@ -185,8 +185,7 @@ def generate():
     TEMP_OFFSET = 0;
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
-        mult = 0.001;
-        result, M, inverse_M = perform_warp(img, np.random.rand() * mult, np.random.rand() * mult, np.random.rand() * mult, np.random.rand() * mult, 0.0005)
+        result, M, inverse_M = perform_warp(img, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, 0.0005)
         inverse_M = inverse_M
         
 #        reverse_img = perform_unwarp(result, inverse_M)       
@@ -221,5 +220,5 @@ def generate():
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #check_generate_data()
-    generate()
-    #generate_unseen_samples(repeat = 15)
+    #generate()
+    generate_unseen_samples(repeat = 15)
