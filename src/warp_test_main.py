@@ -61,7 +61,7 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = False)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = True)
     #check_on_test_data(gpu_device,model_list,test_dataset)
     #visualize_layers(gpu_device, model_list, test_dataset)
     measure_performance(gpu_device, model_list, test_dataset)
@@ -164,6 +164,7 @@ def measure_performance(gpu_device,model_list, test_dataset):
             model_Ms.insert(4, 1.0)
             model_Ms.append(1.0)
             print(model_Ms)
+            print(reshaped_t.numpy())
             
             warp_img = tensor_utils.convert_to_matplotimg(warp, i)
             rgb_img = tensor_utils.convert_to_matplotimg(rgb, i)
@@ -188,7 +189,8 @@ def measure_performance(gpu_device,model_list, test_dataset):
             #measure SSIM
             matrix_mean = np.reshape(dataset_mean, (3,3))
             matrix_own = np.reshape(model_Ms, (3,3))
-            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count)
+            chance = np.random.rand() * 100
+            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance > 75))
             print("Img ", count, " SSIM: ", SSIM)
             
             accum_ssim[0] = accum_ssim[0] + SSIM[0]
@@ -230,37 +232,38 @@ def measure_performance(gpu_device,model_list, test_dataset):
     average_pixel_RMSE[1] = np.round(np.sum(pixel_rmse[1] / (count * 1.0)), 4)
     average_pixel_RMSE[2] = np.round(np.sum(pixel_rmse[2] / (count * 1.0)), 4)
     
-    print("Average MAE using dataset mean: ", average_MAE[0])
-    print("Average MAE using homography estimation: ", average_MAE[1])
-    print("Average MAE using our method: ", average_MAE[2])
-    print("")
-    
-    print("Average MSE using dataset mean: ", average_MSE[0])
-    print("Average MSE using homography estimation: ", average_MSE[1])
-    print("Average MSE using our method: ", average_MSE[2])
-    print("")
-    
-    print("Average RMSE using dataset mean: ", average_RMSE[0])
-    print("Average RMSE using homography estimation: ", average_RMSE[1])
-    print("Average RMSE using our method: ", average_RMSE[2])
-    print("")
-    
-    print("Average pixel MSE using dataset mean: ", average_pixel_MSE[0])
-    print("Average pixel MSE using homography estimation: ", average_pixel_MSE[1])
-    print("Average pixel MSE using our method: ", average_pixel_MSE[2])
-    print("")
-    
-    print("Average pixel RMSE using dataset mean: ", average_pixel_RMSE[0])
-    print("Average pixel RMSE using homography estimation: ", average_pixel_RMSE[1])
-    print("Average pixel RMSE using our method: ", average_pixel_RMSE[2])
-    print("")
-    
-    print("Average SSIM using dataset mean: ", average_SSIM[0])
-    print("Average SSIM using homography estimation: ", average_SSIM[1])
-    print("Average SSIM using our method: ", average_SSIM[2])
-    
-    failure_rate = np.round((failures / (count * 1.0)),4)
-    print("Homography failure rate: ", failure_rate)
+    with open(gv.IMAGE_PATH_PREDICT + "test_data_result.txt", "w") as f:
+        print("Average MAE using dataset mean: ", average_MAE[0], file = f)
+        print("Average MAE using homography estimation: ", average_MAE[1], file = f)
+        print("Average MAE using our method: ", average_MAE[2], file = f)
+        print("")
+        
+        print("Average MSE using dataset mean: ", average_MSE[0], file = f)
+        print("Average MSE using homography estimation: ", average_MSE[1], file = f)
+        print("Average MSE using our method: ", average_MSE[2], file = f)
+        print("")
+        
+        print("Average RMSE using dataset mean: ", average_RMSE[0], file = f)
+        print("Average RMSE using homography estimation: ", average_RMSE[1], file = f)
+        print("Average RMSE using our method: ", average_RMSE[2], file = f)
+        print("")
+        
+        print("Average pixel MSE using dataset mean: ", average_pixel_MSE[0], file = f)
+        print("Average pixel MSE using homography estimation: ", average_pixel_MSE[1], file = f)
+        print("Average pixel MSE using our method: ", average_pixel_MSE[2], file = f)
+        print("")
+        
+        print("Average pixel RMSE using dataset mean: ", average_pixel_RMSE[0], file = f)
+        print("Average pixel RMSE using homography estimation: ", average_pixel_RMSE[1], file = f)
+        print("Average pixel RMSE using our method: ", average_pixel_RMSE[2], file = f)
+        print("")
+        
+        print("Average SSIM using dataset mean: ", average_SSIM[0], file = f)
+        print("Average SSIM using homography estimation: ", average_SSIM[1], file = f)
+        print("Average SSIM using our method: ", average_SSIM[2], file = f)
+        
+        failure_rate = np.round((failures / (count * 1.0)),4)
+        print("Homography failure rate: ", failure_rate, file = f)
                 
 def main():
     if(torch.cuda.is_available()) :

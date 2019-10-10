@@ -23,8 +23,8 @@ SAVE_PATH_WARP = 'C:/NN_Dataset/warp_rgb_mod/'
 SAVE_PATH_RGB_VAL = 'C:/NN_Dataset/warp_rgb_orig_val/'
 SAVE_PATH_WARP_VAL = 'C:/NN_Dataset/warp_rgb_mod_val/'
 
-IMAGE_W = 1242; IMAGE_H = 375
-WARP_W = 1442; WARP_H = 575
+IMAGE_W = 1242; IMAGE_H = 374
+WARP_W = 1442; WARP_H = 574
 
 WARP_MULT = 0.001;
 
@@ -183,7 +183,7 @@ def generate():
     print("Images found: ", np.size(rgb_list))
     
     NO_WARP_CHANCE = 0.05;
-    TEMP_OFFSET = 11196;
+    TEMP_OFFSET = 0;
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
@@ -205,6 +205,8 @@ def generate():
 #        plt.show()
         
         img = cv2.resize(img, (IMAGE_W, IMAGE_H)) 
+        img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
+                                          value=[255,255,255])
         result = cv2.resize(result, (WARP_W, WARP_H))
         
         if(i <= 11195):
