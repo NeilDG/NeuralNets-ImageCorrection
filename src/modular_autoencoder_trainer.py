@@ -48,6 +48,8 @@ class AutoEncoderTrainer:
         
         self.optimizer.zero_grad()
         pred = self.model(warp_gpu)
+        size = np.shape(pred)
+        gt_gpu.resize_(size[0], size[1], size[2], size[3])
         
         loss = self.loss_func(pred, gt_gpu)
         loss.backward()
@@ -65,6 +67,8 @@ class AutoEncoderTrainer:
         self.model.eval()
         with torch.no_grad():
             pred = self.model(warp_tensor.to(self.gpu_device))
+            size = np.shape(ground_truth_tensor)
+            pred.resize_(size[0], size[1], size[2], size[3])
             loss = self.loss_func(pred, ground_truth_tensor.to(self.gpu_device))
             self.ground_truth_img = ground_truth_tensor[:,:,:].numpy()
             return pred.cpu().numpy()[0], loss.cpu().data 
@@ -74,6 +78,8 @@ class AutoEncoderTrainer:
         self.model.eval()
         with torch.no_grad():
             pred = self.model(warp_tensor.to(self.gpu_device))
+            size = np.shape(ground_truth_tensor)
+            pred.resize_(size[0], size[1], size[2], size[3])
             loss = self.loss_func(pred, ground_truth_tensor.to(self.gpu_device))
             self.ground_truth_img = ground_truth_tensor[0,:,:,:].numpy()
             self.ground_truth_img = np.moveaxis(self.ground_truth_img, -1, 0)

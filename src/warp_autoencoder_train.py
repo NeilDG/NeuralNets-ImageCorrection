@@ -14,8 +14,8 @@ import modular_autoencoder_trainer as ae
 import numpy as np
 
 LR = 0.001
-num_epochs = 65
-BATCH_SIZE = 32
+num_epochs = 100
+BATCH_SIZE = 16
 LAST_STABLE_AE_VERSION = "ae_v4.00"
 AE_VERSION = "ae_v4.00"
 OPTIMIZER_KEY = "optimizer"

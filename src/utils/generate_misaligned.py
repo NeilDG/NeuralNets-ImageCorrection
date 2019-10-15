@@ -183,7 +183,7 @@ def generate():
     print("Images found: ", np.size(rgb_list))
     
     NO_WARP_CHANCE = 0.05;
-    TEMP_OFFSET = 0;
+    TEMP_OFFSET = 11196;
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
@@ -209,7 +209,7 @@ def generate():
                                           value=[255,255,255])
         result = cv2.resize(result, (WARP_W, WARP_H))
         
-        if(i <= 11195):
+        if(i + TEMP_OFFSET <= 11195 + TEMP_OFFSET):
             cv2.imwrite(SAVE_PATH_RGB + "orig_" +str(i + TEMP_OFFSET)+ ".png", img)
             cv2.imwrite(SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".png", result)
             np.savetxt(SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)

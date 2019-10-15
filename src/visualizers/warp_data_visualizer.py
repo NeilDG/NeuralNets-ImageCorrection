@@ -342,10 +342,13 @@ def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, sh
 
 def show_auto_encoder_img(warp_img, pred_img, ground_truth_img, test_title):
     SSIM = [0.0]; MSE = [0.0]; RMSE = [0.0]
+    pred_resize = cv2.resize(pred_img, (gv.WARP_W, gv.WARP_H))
+    ground_truth_resize = cv2.resize(ground_truth_img, (gv.WARP_W, gv.WARP_H))
     print("Input: ",np.shape(pred_img), "Pred: ", np.shape(pred_img)," Ground truth: ",np.shape(ground_truth_img))
+    
     #SSIM[0] = np.round(compare_ssim(pred_img, ground_truth_img, multichannel = True),4)
-    MSE[0] = np.round(compare_mse(pred_img, ground_truth_img),4)
-    RMSE[0] = np.round(compare_nrmse(pred_img, ground_truth_img),4)
+    MSE[0] = np.round(compare_mse(pred_resize, ground_truth_resize),4)
+    RMSE[0] = np.round(compare_nrmse(pred_resize, ground_truth_resize),4)
     
     f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
     f.set_size_inches(20,9)
