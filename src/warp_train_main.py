@@ -2,7 +2,7 @@
 """
 Created on Wed Jul 17 13:16:15 2019
 
-Main starting point for warp image training
+Main starting point for CNN warp training
 @author: delgallegon
 """
 
@@ -13,11 +13,11 @@ from torch.utils.tensorboard import SummaryWriter
 from loaders import torch_image_loader as loader
 import modular_trainer as trainer
 
-LR = 0.0001
-num_epochs = 500
+LR = 0.0005
+num_epochs = 65
 BATCH_SIZE = 32
-#LAST_STABLE_CNN_VERSION = "cnn_v3.18"
-CNN_VERSION = "cnn_v3.19"
+LAST_STABLE_CNN_VERSION = "cnn_v3.20"
+CNN_VERSION = "cnn_v3.20"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -25,16 +25,16 @@ def start_train(gpu_device):
     writer = SummaryWriter('train/train_result')
     
     model_list = []
-    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = LR))
+#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = writer, lr = LR))
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/2', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = writer, lr = LR))
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/3', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = writer, lr = LR))
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = writer, lr = LR))
-    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = LR))
+#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = writer, lr = LR))
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/6', gpu_device = gpu_device, batch_size = BATCH_SIZE,
                                              writer = writer, lr = LR))
     model_list.append(trainer.ModularTrainer(CNN_VERSION + '/7', gpu_device = gpu_device, batch_size = BATCH_SIZE,
@@ -45,7 +45,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(False):
+    if(True):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         for model in model_list:
@@ -53,7 +53,7 @@ def start_train(gpu_device):
  
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
-    
+     
     training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = False)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE)
     for epoch in range(start_epoch, num_epochs):
@@ -62,14 +62,20 @@ def start_train(gpu_device):
         val_ave_loss = 0.0
         for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
             #train. NOTE: Model #1 also predicts gt_index = 4
-            model_list[0].train(gt_index = 0, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[1].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[2].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[3].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[4].train(gt_index = 4, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[5].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[6].train(gt_index = 6, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[7].train(gt_index = 7, current_epoch = epoch, warp = warp, transform = transform)
+#            model_list[0].train(gt_index = 0, current_epoch = epoch, warp = warp, transform = transform)
+#            model_list[1].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform)
+#            model_list[2].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform)
+#            model_list[3].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform)
+#            model_list[4].train(gt_index = 4, current_epoch = epoch, warp = warp, transform = transform)
+#            model_list[5].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform)
+#            model_list[6].train(gt_index = 6, current_epoch = epoch, warp = warp, transform = transform)
+#            model_list[7].train(gt_index = 7, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[0].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[1].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[2].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[3].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[4].train(gt_index = 6, current_epoch = epoch, warp = warp, transform = transform)
+            model_list[5].train(gt_index = 7, current_epoch = epoch, warp = warp, transform = transform)
             
             for model in model_list:
                 accum_loss = accum_loss + model.get_batch_loss()
@@ -81,9 +87,9 @@ def start_train(gpu_device):
                       "\n[",model_list[2].get_name(),"] Loss: ", model_list[2].get_batch_loss(),
                       "\n[",model_list[3].get_name(),"] Loss: ", model_list[3].get_batch_loss(),
                       "\n[",model_list[4].get_name(),"] Loss: ", model_list[4].get_batch_loss(),
-                      "\n[",model_list[5].get_name(),"] Loss: ", model_list[5].get_batch_loss(),
-                      "\n[",model_list[6].get_name(),"] Loss: ", model_list[6].get_batch_loss(),
-                      "\n[",model_list[7].get_name(),"] Loss: ", model_list[7].get_batch_loss())
+                      "\n[",model_list[5].get_name(),"] Loss: ", model_list[5].get_batch_loss())
+#                      "\n[",model_list[6].get_name(),"] Loss: ", model_list[6].get_batch_loss(),
+#                      "\n[",model_list[7].get_name(),"] Loss: ", model_list[7].get_batch_loss())
             
         
         
