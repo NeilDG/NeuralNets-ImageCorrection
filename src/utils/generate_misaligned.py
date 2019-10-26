@@ -110,6 +110,17 @@ def perform_unwarp(img, inverse_M, padding_deduct = 100):
     
     return roi_image
 
+def remove_borders(warp_img):
+    gray = cv2.cvtColor(warp_img,cv2.COLOR_BGR2GRAY)
+    _,thresh = cv2.threshold(gray,1,255,cv2.THRESH_BINARY)
+    
+    contours,hierarchy = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    cnt = contours[0]
+    x,y,w,h = cv2.boundingRect(cnt)
+    
+    crop = warp_img[y:y+h,x:x+w]
+    return crop
+
 def check_generate_data():
     rgb_list = retrieve_kitti_rgb_list();
     print("Images found: ", np.size(rgb_list))
@@ -120,7 +131,10 @@ def check_generate_data():
     for i in range(10):
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M = perform_warp(img, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, WARP_MULT)
-        reverse_img = perform_unwarp(result, inverse_M)    
+        reverse_img = perform_unwarp(result, inverse_M)  
+       
+        result = remove_borders(result);
+            
         plt.title("Original image"); plt.imshow(img); plt.show()
         plt.title("Warped image"); plt.imshow(result); plt.show()
         plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
@@ -226,6 +240,6 @@ def generate():
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
-    #check_generate_data()
-    generate()
+    check_generate_data()
+    #generate()
     #generate_unseen_samples(repeat = 15)
