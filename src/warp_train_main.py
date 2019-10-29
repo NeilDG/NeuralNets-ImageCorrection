@@ -13,11 +13,10 @@ from torch.utils.tensorboard import SummaryWriter
 from loaders import torch_image_loader as loader
 import modular_trainer as trainer
 
-LR = 0.0005
+LR = 0.001
 num_epochs = 65
 BATCH_SIZE = 32
-LAST_STABLE_CNN_VERSION = "cnn_v3.20"
-CNN_VERSION = "cnn_v3.20"
+CNN_VERSION = "cnn_v3.22"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -45,7 +44,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(True):
+    if(False):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         for model in model_list:

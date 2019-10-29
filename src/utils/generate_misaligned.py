@@ -61,7 +61,7 @@ def perform_warp(img, W1 ,W2, W3, W4, W5):
     #add padding to image to avoid overflow
     x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
     padded_image = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
-    value=[255,255,255])
+    value=[0,0,0])
     padded_dim = np.shape(padded_image)
 
 #    x_disp = rand.randint(-5, 5) * W1
@@ -83,7 +83,7 @@ def perform_warp(img, W1 ,W2, W3, W4, W5):
         M[1,2] = M[1,2] + (np.random.random() * W4) - (np.random.random() * W4)
         M[2,0] = M[2,0] + (np.random.random() * W5) - (np.random.random() * W5)
         M[2,1] = M[2,1] + (np.random.random() * W5) - (np.random.random() * W5)
-        result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]), borderValue = (255,255,255))
+        result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]), borderValue = (0,0,0))
         inverse_M = np.linalg.inv(M)
         
         #print("New M: ", M)
@@ -110,15 +110,52 @@ def perform_unwarp(img, inverse_M, padding_deduct = 100):
     
     return roi_image
 
-def remove_borders(warp_img):
+"""
+Polishes the image by further removing the border via non-zero checking
+"""
+def polish_border(warp_img, zero_threshold = 100, cut = 10):
     gray = cv2.cvtColor(warp_img,cv2.COLOR_BGR2GRAY)
     _,thresh = cv2.threshold(gray,1,255,cv2.THRESH_BINARY)
     
-    contours,hierarchy = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+    h,w = np.shape(thresh)
+    num_zeros = (h * w) - cv2.countNonZero(thresh)
+    
+    box = [0,h,0,w]
+    crop = warp_img
+    
+    while(num_zeros > zero_threshold):
+       box[0] = box[0] + cut; box[1] = box[1] - cut
+       box[2] = box[2] + cut; box[3] = box[3] - cut
+       old = crop
+       crop = warp_img[box[0]: box[1], box[2]: box[3]]
+       
+       gray = cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
+       _,thresh = cv2.threshold(gray,1,255,cv2.THRESH_BINARY)
+       
+       if(len(np.shape(thresh)) != 0):
+           h,w = np.shape(thresh)
+           num_zeros = (h * w) - cv2.countNonZero(thresh)
+       else:
+           num_zeros = 0
+           crop = old
+           #print("Can no longer trim!")
+       
+    return crop
+    
+def remove_border_and_resize(warp_img, threshold):
+    
+    gray = cv2.cvtColor(warp_img,cv2.COLOR_BGR2GRAY)
+    _,thresh = cv2.threshold(gray,threshold,255,cv2.THRESH_BINARY)
+    #plt.imshow(cv2.cvtColor(thresh,cv2.COLOR_GRAY2RGB)); plt.show()
+    
+    _,contours,hierarchy = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     cnt = contours[0]
     x,y,w,h = cv2.boundingRect(cnt)
     
     crop = warp_img[y:y+h,x:x+w]
+
+    crop = polish_border(crop)
+    crop = cv2.resize(crop, (gv.WARP_W, gv.WARP_H)) 
     return crop
 
 def check_generate_data():
@@ -128,13 +165,13 @@ def check_generate_data():
     #test read image
     M0_list = []; M1_list = []; M2_list = []; M3_list = []; M4_list= []; M5_list = []
     
-    for i in range(10):
+    for i in range(20):
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, WARP_MULT)
+        result, M, inverse_M = perform_warp(img, np.random.rand() * 0.005, np.random.rand() * 0.005, 
+                                            np.random.rand() * 0.005, np.random.rand() * 0.005, 
+                                            WARP_MULT)
+        result = remove_border_and_resize(result, 1)
         reverse_img = perform_unwarp(result, inverse_M)  
-       
-        result = remove_borders(result);
-            
         plt.title("Original image"); plt.imshow(img); plt.show()
         plt.title("Warped image"); plt.imshow(result); plt.show()
         plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
@@ -197,16 +234,19 @@ def generate():
     print("Images found: ", np.size(rgb_list))
     
     NO_WARP_CHANCE = 0.05;
-    TEMP_OFFSET = 11196;
+    TEMP_OFFSET = 11196; #11196
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
         dice_roll = np.random.rand();
         if(dice_roll < NO_WARP_CHANCE):
             result, M, inverse_M = perform_warp(img,0, 0, 0, 0, 0)
+            result = remove_border_and_resize(result, 1)
         else:
-            result, M, inverse_M = perform_warp(img, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, WARP_MULT)
-            
+            result, M, inverse_M = perform_warp(img, np.random.rand() * 0.005, np.random.rand() * 0.005, 
+                                            np.random.rand() * 0.005, np.random.rand() * 0.005, 
+                                            WARP_MULT)
+            result = remove_border_and_resize(result, 1)
 #        reverse_img = perform_unwarp(result, inverse_M)       
 #        plt.imshow(img)
 #        plt.show()
@@ -240,6 +280,6 @@ def generate():
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
-    check_generate_data()
-    #generate()
+    #check_generate_data()
+    generate()
     #generate_unseen_samples(repeat = 15)
