@@ -16,8 +16,7 @@ import modular_trainer as trainer
 LR = 0.001
 num_epochs = 65
 BATCH_SIZE = 32
-LAST_STABLE_CNN_VERSION = "cnn_v3.21"
-CNN_VERSION = "cnn_v3.21"
+CNN_VERSION = "cnn_v3.22"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
