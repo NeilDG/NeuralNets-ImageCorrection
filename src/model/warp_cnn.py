@@ -37,19 +37,22 @@ class WarpCNN(nn.Module):
         
         self.conv5 = nn.Conv2d(in_channels = 48, out_channels = 48, kernel_size = 2, stride = 1, padding = 1)
         self.pool5 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-#        
+        
         self.conv6 = nn.Conv2d(in_channels = 48, out_channels = 48, kernel_size = 2, stride = 2, padding = 1)
         self.pool6 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-#        
-#        self.conv7 = nn.Conv2d(in_channels = 48, out_channels = 32, kernel_size = 2, stride = 2, padding = 1)
-#        self.pool7 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        self.fc = nn.Linear(144, 1)
+        self.conv7 = nn.Conv2d(in_channels = 48, out_channels = 32, kernel_size = 2, stride = 1, padding = 1)
+        self.pool7 = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
+        
+        self.fc = nn.Linear(96, 1)
         
         nn.init.xavier_uniform_(self.conv1.weight)
         nn.init.xavier_uniform_(self.conv2.weight)
         nn.init.xavier_uniform_(self.conv3.weight)
         nn.init.xavier_uniform_(self.conv4.weight)
+        nn.init.xavier_uniform_(self.conv5.weight)
+        nn.init.xavier_uniform_(self.conv6.weight)
+        nn.init.xavier_uniform_(self.conv7.weight)
         nn.init.xavier_uniform_(self.fc.weight)
         
         self.layer_activations = [0, 1, 2, 3];
@@ -104,13 +107,12 @@ class WarpCNN(nn.Module):
         
         x = F.leaky_relu(self.conv5(x))
         x = self.pool5(x)
-#        
+        
         x = F.leaky_relu(self.conv6(x))
         x = self.pool6(x)
-#        
-#        x = F.leaky_relu(self.conv7(x))
-#        
-#        x = self.pool7(x)
+        
+        x = F.leaky_relu(self.conv7(x))
+        x = self.pool7(x)
         
         x = x.view(x.size()[0], -1) #flatten layer
         
