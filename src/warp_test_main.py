@@ -22,7 +22,7 @@ import global_vars as gv
 BATCH_SIZE = 32
 OPTIMIZER_KEY = "optimizer"
   
-def compute_dataset_mean(model_list, test_dataset):
+def compute_dataset_mean(test_dataset):
     accumulate_T = np.zeros(9)
     count = 0     
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
@@ -61,7 +61,8 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = True)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = False)
+    #compute_dataset_mean(test_dataset)
     #check_on_test_data(gpu_device,model_list,test_dataset)
     #visualize_layers(gpu_device, model_list, test_dataset)
     measure_performance(gpu_device, model_list, test_dataset)
@@ -190,7 +191,7 @@ def measure_performance(gpu_device,model_list, test_dataset):
             matrix_mean = np.reshape(dataset_mean, (3,3))
             matrix_own = np.reshape(model_Ms, (3,3))
             chance = np.random.rand() * 100
-            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance > 75))
+            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (0))
             print("Img ", count, " SSIM: ", SSIM)
             
             accum_ssim[0] = accum_ssim[0] + SSIM[0]

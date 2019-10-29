@@ -296,8 +296,9 @@ def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, sh
     mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
     h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
     own_img = cv2.warpPerspective(warp_img, matrix_own, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-    rgb_img = cv2.copyMakeBorder(rgb_img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT, value=[1,1,1])
+    rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
     
+    print("Shapes: ", np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
     SSIM = [0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0]
     SSIM[0] = np.round(compare_ssim(mean_img, rgb_img, multichannel = True),4)
     SSIM[1] = np.round(compare_ssim(h_img, rgb_img, multichannel = True),4)
