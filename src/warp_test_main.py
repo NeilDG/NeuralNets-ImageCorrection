@@ -54,7 +54,7 @@ def start_test(gpu_device):
                                              writer = None, gt_index = 8, lr = train_main.LR))
     
     #checkpoint loading here
-    CHECKPATH = 'tmp/' + train_main.LAST_STABLE_CNN_VERSION +'.pt'
+    CHECKPATH = 'tmp/' + train_main.CNN_VERSION +'.pt'
     checkpoint = torch.load(CHECKPATH)
     for model in model_list:
         model.load_saved_states(checkpoint[model.get_name()], checkpoint[model.get_name() + OPTIMIZER_KEY])

@@ -16,7 +16,7 @@ import modular_trainer as trainer
 LR = 0.001
 num_epochs = 65
 BATCH_SIZE = 32
-CNN_VERSION = "cnn_v3.22"
+CNN_VERSION = "cnn_v3.23"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -44,7 +44,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(False):
+    if(True):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         for model in model_list:
@@ -109,6 +109,7 @@ def start_train(gpu_device):
         for model in model_list:
                 M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
                 M_list.append(M)  
+        print("Training inference")
         visualizer.show_transform_image(warp_img, M_list = M_list,
                                         ground_truth_M = ground_truth_M,
                                         should_save = False, current_epoch = epoch, save_every_epoch = 5)
@@ -136,6 +137,7 @@ def start_train(gpu_device):
         for model in model_list:
                 M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
                 M_list.append(M)
+        print("Validation inference")
         visualizer.show_transform_image(warp_img, M_list = M_list,
                                         ground_truth_M = ground_truth_M,
                                         should_save = False, current_epoch = epoch, save_every_epoch = 3)

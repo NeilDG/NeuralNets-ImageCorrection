@@ -20,34 +20,31 @@ class WarpCNN(nn.Module):
         self.conv1 = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=3, stride=2, padding=1)
         self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
         
-        self.conv1_dropout = nn.Dropout2d(p = 0.5)
+        #self.conv1_dropout = nn.Dropout2d(p = 0.5)
         
         self.conv2 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)
         self.pool2 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
         
-        self.conv2_dropout = nn.Dropout2d(p = 0.5)
+        #self.conv2_dropout = nn.Dropout2d(p = 0.5)
         
-        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 2, padding = 1)
+        self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)
         self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1, padding = 1)
+        self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)
         self.pool4 = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
         
-        self.conv4_dropout = nn.Dropout2d(p = 0.5)
+        #self.conv4_dropout = nn.Dropout2d(p = 0.5)
         
-        self.conv5 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1, padding = 1)
+        self.conv5 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
         self.pool5 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        self.conv6 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1, padding = 1)
+        self.conv6 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
         self.pool6 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        self.conv7 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 1, padding = 1)
-        self.pool7 = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
+        self.conv7 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
+        self.pool7 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         
-        self.conv8 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 2, stride = 2, padding = 1)
-        self.pool8 = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        
-        self.fc = nn.Linear(192, 1)
+        self.fc = nn.Linear(64, 1)
         
         nn.init.xavier_uniform_(self.conv1.weight)
         nn.init.xavier_uniform_(self.conv2.weight)
@@ -70,7 +67,7 @@ class WarpCNN(nn.Module):
     def forward(self, x):
         #print("Forward pass")
         
-        x = F.leaky_relu(self.conv1(x))
+        x = F.relu(self.conv1(x))
         if(self.flag):
             self.layer_activations[0] = x.cpu().clone().detach()
         
@@ -80,7 +77,7 @@ class WarpCNN(nn.Module):
 
         #x = self.conv1_dropout(x)
         
-        x = F.leaky_relu(self.conv2(x))
+        x = F.relu(self.conv2(x))
         if(self.flag):
             self.layer_activations[1] = x.cpu().clone().detach()
         
@@ -90,7 +87,7 @@ class WarpCNN(nn.Module):
         
         #x = self.conv2_dropout(x)
         
-        x = F.leaky_relu(self.conv3(x))
+        x = F.relu(self.conv3(x))
         if(self.flag):
             self.layer_activations[2] = x.cpu().clone().detach()
         
@@ -98,7 +95,7 @@ class WarpCNN(nn.Module):
         if(self.flag):
             self.pool_activations[2] = x.cpu().clone().detach()
         
-        x = F.leaky_relu(self.conv4(x))
+        x = F.relu(self.conv4(x))
         if(self.flag):
            self.layer_activations[3] = x.cpu().clone().detach()
         
@@ -106,23 +103,20 @@ class WarpCNN(nn.Module):
         if(self.flag):
             self.pool_activations[3] = x.cpu().clone().detach()
         
-        x = self.conv4_dropout(x)
+        #x = self.conv4_dropout(x)
         
-        x = F.leaky_relu(self.conv5(x))
+        x = F.relu(self.conv5(x))
         x = self.pool5(x)
         
-        x = F.leaky_relu(self.conv6(x))
+        x = F.relu(self.conv6(x))
         x = self.pool6(x)
         
-        x = F.leaky_relu(self.conv7(x))
+        x = F.relu(self.conv7(x))
         x = self.pool7(x)
-        
-        x = F.leaky_relu(self.conv8(x))
-        x = self.pool8(x)
         
         x = x.view(x.size()[0], -1) #flatten layer
         
-        x = self.fc(x)
+        x = F.tanh(self.fc(x))
         
         return x
     
