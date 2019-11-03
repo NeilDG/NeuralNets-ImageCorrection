@@ -53,7 +53,7 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = True)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = False)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE)
     for epoch in range(start_epoch, num_epochs):
         accum_loss = 0.0
