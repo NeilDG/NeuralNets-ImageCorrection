@@ -60,9 +60,9 @@ class ModularTrainer:
     def log_weights(self, current_epoch):
         #log update in weights
         self.writer.add_histogram(self.name + '/weights/fc', self.model.fc.weight.data, global_step = current_epoch)
-        self.writer.add_histogram(self.name + '/weights/conv7', self.model.conv7.weight.data, global_step = current_epoch)
-        self.writer.add_histogram(self.name + '/weights/conv6', self.model.conv6.weight.data, global_step = current_epoch)
-        self.writer.add_histogram(self.name + '/weights/conv5', self.model.conv5.weight.data, global_step = current_epoch)
+        #self.writer.add_histogram(self.name + '/weights/conv7', self.model.conv7.weight.data, global_step = current_epoch)
+        #self.writer.add_histogram(self.name + '/weights/conv6', self.model.conv6.weight.data, global_step = current_epoch)
+        #self.writer.add_histogram(self.name + '/weights/conv5', self.model.conv5.weight.data, global_step = current_epoch)
         self.writer.add_histogram(self.name + '/weights/conv4', self.model.conv4.weight.data, global_step = current_epoch)
         self.writer.add_histogram(self.name + '/weights/conv3', self.model.conv3.weight.data, global_step = current_epoch)
         self.writer.add_histogram(self.name + '/weights/conv2', self.model.conv2.weight.data, global_step = current_epoch)

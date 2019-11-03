@@ -16,15 +16,8 @@ from visualizers import warp_data_visualizer as wdv
 from os.path import isfile, join
 
 #custom data dir location
-IMAGE_RGB_DIR = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_rgb/"
-SAVE_PATH_RGB = 'C:/NN_Dataset/warp_rgb_orig/'
-SAVE_PATH_WARP = 'C:/NN_Dataset/warp_rgb_mod/'
-
-SAVE_PATH_RGB_VAL = 'C:/NN_Dataset/warp_rgb_orig_val/'
-SAVE_PATH_WARP_VAL = 'C:/NN_Dataset/warp_rgb_mod_val/'
-
-IMAGE_W = 1242; IMAGE_H = 374
-WARP_W = 1442; WARP_H = 574
+#IMAGE_RGB_DIR = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_rgb/" #PC dir
+IMAGE_RGB_DIR = "D:/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_rgb/" #LAPTOP dir
 
 WARP_MULT = 0.001;
 
@@ -234,7 +227,7 @@ def generate():
     print("Images found: ", np.size(rgb_list))
     
     NO_WARP_CHANCE = 0.05;
-    TEMP_OFFSET = 11196; #11196
+    TEMP_OFFSET = 11001; #11196
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
@@ -258,21 +251,21 @@ def generate():
 #        plt.imshow(difference)
 #        plt.show()
         
-        img = cv2.resize(img, (IMAGE_W, IMAGE_H)) 
+        img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
         img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
                                           value=[255,255,255])
-        result = cv2.resize(result, (WARP_W, WARP_H))
+        result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
         
         if(i + TEMP_OFFSET <= 11195 + TEMP_OFFSET):
-            cv2.imwrite(SAVE_PATH_RGB + "orig_" +str(i + TEMP_OFFSET)+ ".png", img)
-            cv2.imwrite(SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".png", result)
-            np.savetxt(SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)
+            cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(i + TEMP_OFFSET)+ ".png", img)
+            cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".png", result)
+            np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)
             if (i % 200 == 0):
                 print("Successfully generated transformed image " ,str(i + TEMP_OFFSET), ". Saved as train.")
         else:
-            cv2.imwrite(SAVE_PATH_RGB_VAL + "orig_" +str(i + TEMP_OFFSET)+ ".png", img)
-            cv2.imwrite(SAVE_PATH_WARP_VAL + "warp_" +str(i + TEMP_OFFSET)+ ".png", result)
-            np.savetxt(SAVE_PATH_WARP_VAL + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)
+            cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(i + TEMP_OFFSET)+ ".png", img)
+            cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + TEMP_OFFSET)+ ".png", result)
+            np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)
             if (i % 200 == 0):
                 print("Successfully generated transformed image " ,str(i + TEMP_OFFSET), ". Saved as val.")
         

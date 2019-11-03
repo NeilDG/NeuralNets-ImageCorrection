@@ -2,6 +2,9 @@
 - Open terminal in tensorflow environment via CONDA
 - Execute tensorboard --logdir="D:\Users\delgallegon\Documents\GithubProjects\NeuralNets-ImageDepthExperiment\src\train\train_result"
 
+For laptop:
+tensorboard --logdir="D:\Documents\GithubProjects\NeuralNets-ImageDepthExperiment\src\train\train_result"
+
 PS C:\Users\NeilDG\AppData\Local\conda\conda\envs\tensorflow_env\Scripts> 
 .\tensorboard --logdir="C:\Users\NeilDG\Documents\GithubProjects\NeuralNets-ImageDepthExperiment\src\train\train_result"
 
