@@ -11,12 +11,13 @@ from visualizers import warp_data_visualizer as visualizer
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from loaders import torch_image_loader as loader
+from model import warp_cnn_joiner
 import modular_trainer as trainer
 
 LR = 0.001
 num_epochs = 65
-BATCH_SIZE = 16
-CNN_VERSION = "cnn_v3.24"
+BATCH_SIZE = 8
+CNN_VERSION = "cnn_v3.25"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -53,31 +54,29 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = False)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = True)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE)
+    
+    joinerCNN = warp_cnn_joiner.JoinerCNN()
+    joinerCNN.to(gpu_device)
+    
     for epoch in range(start_epoch, num_epochs):
         accum_loss = 0.0
         train_ave_loss = 0.0
         val_ave_loss = 0.0
         for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
-            #train. NOTE: Model #1 also predicts gt_index = 4
-#            model_list[0].train(gt_index = 0, current_epoch = epoch, warp = warp, transform = transform)
-#            model_list[1].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform)
-#            model_list[2].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform)
-#            model_list[3].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform)
-#            model_list[4].train(gt_index = 4, current_epoch = epoch, warp = warp, transform = transform)
-#            model_list[5].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform)
-#            model_list[6].train(gt_index = 6, current_epoch = epoch, warp = warp, transform = transform)
-#            model_list[7].train(gt_index = 7, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[0].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[1].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[2].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[3].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[4].train(gt_index = 6, current_epoch = epoch, warp = warp, transform = transform)
-            model_list[5].train(gt_index = 7, current_epoch = epoch, warp = warp, transform = transform)
+            maps = []
+            maps.append(model_list[0].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform))
+            maps.append(model_list[1].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform))
+            maps.append(model_list[2].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform))
+            maps.append(model_list[3].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform))
+            maps.append(model_list[4].train(gt_index = 6, current_epoch = epoch, warp = warp, transform = transform))
+            maps.append(model_list[5].train(gt_index = 7, current_epoch = epoch, warp = warp, transform = transform))
             
-            for model in model_list:
-                accum_loss = accum_loss + model.get_batch_loss()
+            pred = joinerCNN(maps)
+            for i in range(len(model_list)):
+                model_list[i].perform_backprop(pred, model_list[i].gt_index, transform, (i < len(model_list) - 1))
+                accum_loss = accum_loss + model_list[i].get_batch_loss()
             
             if(batch_idx % 25 == 0):
                 print("Batch id: ", batch_idx, 
@@ -87,10 +86,6 @@ def start_train(gpu_device):
                       "\n[",model_list[3].get_name(),"] Loss: ", model_list[3].get_batch_loss(),
                       "\n[",model_list[4].get_name(),"] Loss: ", model_list[4].get_batch_loss(),
                       "\n[",model_list[5].get_name(),"] Loss: ", model_list[5].get_batch_loss())
-#                      "\n[",model_list[6].get_name(),"] Loss: ", model_list[6].get_batch_loss(),
-#                      "\n[",model_list[7].get_name(),"] Loss: ", model_list[7].get_batch_loss())
-            
-        
         
         #log weights in tensorboard
         for model in model_list:

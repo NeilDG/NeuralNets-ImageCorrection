@@ -43,18 +43,24 @@ class ModularTrainer:
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
         revised_t = torch.reshape(reshaped_t[:,gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(self.gpu_device)
         
-        self.optimizer.zero_grad()
         pred = self.model(warp_gpu)
-        
-        loss = self.loss_func(pred, revised_t)
-        loss.backward()
-        self.optimizer.step()
         
         #print("[", self.name, "] Training loss: ", loss)
         self.last_warp_img = warp_img
         self.last_warp_tensor = torch.unsqueeze(warp[0,:,:,:], 0)
         self.last_transform = transform[0]
         self.last_transform_tensor = torch.unsqueeze(revised_t[0], 0)
+        
+        return pred
+    
+    def perform_backprop(self, pred, gt_index, transform, retain_graph = False):
+        reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
+        revised_t = torch.reshape(reshaped_t[:,gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(self.gpu_device)
+        
+        self.optimizer.zero_grad()
+        loss = self.loss_func(pred, revised_t)
+        loss.backward(retain_graph = retain_graph)
+        self.optimizer.step()
         self.batch_loss = loss.cpu().data
     
     def log_weights(self, current_epoch):
