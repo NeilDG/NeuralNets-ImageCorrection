@@ -15,7 +15,7 @@ import modular_trainer as trainer
 
 LR = 0.001
 num_epochs = 65
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 CNN_VERSION = "cnn_v3.24"
 OPTIMIZER_KEY = "optimizer"
 
