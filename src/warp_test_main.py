@@ -191,7 +191,7 @@ def measure_performance(gpu_device,model_list, test_dataset):
             matrix_mean = np.reshape(dataset_mean, (3,3))
             matrix_own = np.reshape(model_Ms, (3,3))
             chance = np.random.rand() * 100
-            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (0))
+            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 10))
             print("Img ", count, " SSIM: ", SSIM)
             
             accum_ssim[0] = accum_ssim[0] + SSIM[0]
