@@ -13,6 +13,8 @@ from torch.utils.tensorboard import SummaryWriter
 from loaders import torch_image_loader as loader
 from model import warp_cnn_joiner
 import modular_trainer as trainer
+import intermediate_trainer
+import numpy as np
 
 LR = 0.001
 num_epochs = 65
@@ -24,23 +26,21 @@ def start_train(gpu_device):
     #initialize tensorboard writer
     writer = SummaryWriter('train/train_result')
     
+    intermediate_list = []
+    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/2', gpu_device = gpu_device, writer = writer))
+    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/3', gpu_device = gpu_device, writer = writer))
+    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/4', gpu_device = gpu_device, writer = writer))
+    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/6', gpu_device = gpu_device, writer = writer))
+    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/7', gpu_device = gpu_device, writer = writer))
+    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/8', gpu_device = gpu_device, writer = writer))
+    
     model_list = []
-#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = writer, lr = LR))
-    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/2', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = LR))
-    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/3', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = LR))
-    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = LR))
-#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = writer, lr = LR))
-    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/6', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = LR))
-    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/7', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = LR))
-    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/8', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = writer, lr = LR))
+    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/2', gpu_device = gpu_device, writer = writer, lr = LR))
+    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/3', gpu_device = gpu_device, writer = writer, lr = LR))
+    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/4', gpu_device = gpu_device, writer = writer, lr = LR))
+    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/6', gpu_device = gpu_device, writer = writer, lr = LR))
+    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/7', gpu_device = gpu_device, writer = writer, lr = LR))
+    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/8', gpu_device = gpu_device, writer = writer, lr = LR))
     
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
@@ -48,35 +48,32 @@ def start_train(gpu_device):
     if(False):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
-        for model in model_list:
+        for intermediate, model in zip(intermediate_list,model_list):
+            intermediate.load_saved_states(checkpoint[model.get_name()])
             model.load_saved_states(checkpoint[model.get_name()], checkpoint[model.get_name() + OPTIMIZER_KEY])
  
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = True)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = False)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE)
-    
-    joinerCNN = warp_cnn_joiner.JoinerCNN()
-    joinerCNN.to(gpu_device)
     
     for epoch in range(start_epoch, num_epochs):
         accum_loss = 0.0
         train_ave_loss = 0.0
         val_ave_loss = 0.0
         for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
-            maps = []
-            maps.append(model_list[0].train(gt_index = 1, current_epoch = epoch, warp = warp, transform = transform))
-            maps.append(model_list[1].train(gt_index = 2, current_epoch = epoch, warp = warp, transform = transform))
-            maps.append(model_list[2].train(gt_index = 3, current_epoch = epoch, warp = warp, transform = transform))
-            maps.append(model_list[3].train(gt_index = 5, current_epoch = epoch, warp = warp, transform = transform))
-            maps.append(model_list[4].train(gt_index = 6, current_epoch = epoch, warp = warp, transform = transform))
-            maps.append(model_list[5].train(gt_index = 7, current_epoch = epoch, warp = warp, transform = transform))
-            
-            pred = joinerCNN(maps)
-            for i in range(len(model_list)):
-                model_list[i].perform_backprop(pred, model_list[i].gt_index, transform, (i < len(model_list) - 1))
-                accum_loss = accum_loss + model_list[i].get_batch_loss()
+            for intermediate, model in zip(intermediate_list,model_list):
+                maps = []
+                maps.append(intermediate_list[0].produce_intermediate(gt_index = 1,warp = warp, transform = transform))
+                maps.append(intermediate_list[1].produce_intermediate(gt_index = 2, warp = warp, transform = transform))
+                maps.append(intermediate_list[2].produce_intermediate(gt_index = 3, warp = warp, transform = transform))
+                maps.append(intermediate_list[3].produce_intermediate(gt_index = 5, warp = warp, transform = transform))
+                maps.append(intermediate_list[4].produce_intermediate(gt_index = 6, warp = warp, transform = transform))
+                maps.append(intermediate_list[5].produce_intermediate(gt_index = 7, warp = warp, transform = transform))
+                model.train(gt_index = intermediate.get_gt_index(), 
+                           intermediate_tensor = maps, transform = transform)
+                accum_loss = accum_loss + model.get_batch_loss()
             
             if(batch_idx % 25 == 0):
                 print("Batch id: ", batch_idx, 
@@ -88,22 +85,30 @@ def start_train(gpu_device):
                       "\n[",model_list[5].get_name(),"] Loss: ", model_list[5].get_batch_loss())
         
         #log weights in tensorboard
-        for model in model_list:
-            model.log_weights(current_epoch = epoch)
+        for intermediate, model in zip(intermediate_list,model_list):
+            intermediate.log_weights(epoch)
+            model.log_weights(epoch)
         
         train_ave_loss = accum_loss / (len(model_list) * (batch_idx + 1))
         accum_loss = 0.0
         
         #perform inference on training
-        warp_img = model_list[-1].get_last_warp_img()
-        warp_tensor = model_list[-1].get_last_warp_tensor()
-        ground_truth_M = model_list[-1].get_last_transform()
-        ground_truth_tensor = model_list[-1].get_last_transform_tensor()
+        warp_img = intermediate_list[-1].get_last_warp_img()
+        warp_tensor = intermediate_list[-1].get_last_warp_tensor()
+        ground_truth_M = intermediate_list[-1].get_last_transform()
+        ground_truth_tensor = intermediate_list[-1].get_last_transform_tensor()
         
         M_list = []
         for model in model_list:
-                M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
-                M_list.append(M)  
+            maps = []
+            maps.append(intermediate_list[0].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[1].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[2].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[3].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[4].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[5].single_infer(warp_tensor, transform))
+            M, loss = model.single_infer(maps, ground_truth_tensor)
+            M_list.append(M)  
         print("Training inference")
         visualizer.show_transform_image(warp_img, M_list = M_list,
                                         ground_truth_M = ground_truth_M,
@@ -117,21 +122,35 @@ def start_train(gpu_device):
         for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
             model_Ms = []
             for model in model_list:
-                M, loss = model.batch_infer(warp_tensor = warp, ground_truth_tensor = transform)
+                maps = []
+                maps.append(intermediate_list[0].batch_infer(warp_tensor, transform))
+                maps.append(intermediate_list[1].batch_infer(warp_tensor, transform))
+                maps.append(intermediate_list[2].batch_infer(warp_tensor, transform))
+                maps.append(intermediate_list[3].batch_infer(warp_tensor, transform))
+                maps.append(intermediate_list[4].batch_infer(warp_tensor, transform))
+                maps.append(intermediate_list[5].batch_infer(warp_tensor, transform))
+                M, loss = model.batch_infer(maps, transform)
                 accum_loss = accum_loss + loss
                 model_Ms.append(M)
             predict_M_list.append(model_Ms)
         
         M_list = []
         #perform inference on validation
-        warp_img = model_list[-1].get_last_warp_img()
-        warp_tensor = model_list[-1].get_last_warp_tensor()
-        ground_truth_M = model_list[-1].get_last_transform()
-        ground_truth_tensor = model_list[-1].get_last_transform_tensor()
+        warp_img = intermediate_list[-1].get_last_warp_img()
+        warp_tensor = intermediate_list[-1].get_last_warp_tensor()
+        ground_truth_M = intermediate_list[-1].get_last_transform()
+        ground_truth_tensor = intermediate_list[-1].get_last_transform_tensor()
         
         for model in model_list:
-                M, loss = model.single_infer(warp_tensor = warp_tensor, ground_truth_tensor = ground_truth_tensor)
-                M_list.append(M)
+            maps = []
+            maps.append(intermediate_list[0].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[1].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[2].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[3].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[4].single_infer(warp_tensor, transform))
+            maps.append(intermediate_list[5].single_infer(warp_tensor, transform))
+            M, loss = model.single_infer(maps, ground_truth_tensor)
+            M_list.append(M)
         print("Validation inference")
         visualizer.show_transform_image(warp_img, M_list = M_list,
                                         ground_truth_M = ground_truth_M,
@@ -148,7 +167,10 @@ def start_train(gpu_device):
         if(epoch % 1 == 0 and epoch != 0): #only save a batch every X epochs
                 visualizer.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
                 save_dict = {'epoch': epoch}
-                for model in model_list:
+                for intermediate, model in zip(intermediate_list,model_list):
+                    model_state_dict = intermediate.get_state_dicts()
+                    save_dict[model.get_name()] = model_state_dict
+                    
                     model_state_dict, optimizer_state_dict = model.get_state_dicts()
                     save_dict[model.get_name()] = model_state_dict
                     save_dict[model.get_name() + OPTIMIZER_KEY] = optimizer_state_dict
