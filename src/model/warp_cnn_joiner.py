@@ -17,7 +17,7 @@ class JoinerCNN(nn.Module):
     def __init__(self):
         super(JoinerCNN, self).__init__()
     
-        self.concat1 = nn.Linear(1536, 1)
+        self.concat1 = nn.Linear(384, 1)
     #maps must be of array size 6    
     def forward(self, maps):
         x = maps[0]
