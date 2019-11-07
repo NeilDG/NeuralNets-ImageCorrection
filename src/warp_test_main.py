@@ -62,7 +62,7 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = False)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 1000)
     #compute_dataset_mean(test_dataset)
     #visualize_layers(gpu_device, model_list, test_dataset)
     measure_performance(gpu_device, ct, test_dataset)
@@ -163,7 +163,7 @@ def measure_performance(gpu_device, trainer, test_dataset):
             matrix_mean = np.reshape(dataset_mean, (3,3))
             matrix_own = np.reshape(M, (3,3))
             chance = np.random.rand() * 100
-            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 10))
+            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
             print("Img ", count, " SSIM: ", SSIM)
             
             accum_ssim[0] = accum_ssim[0] + SSIM[0]
@@ -178,8 +178,6 @@ def measure_performance(gpu_device, trainer, test_dataset):
             pixel_rmse[1] = pixel_rmse[1] + RMSE[1]
             pixel_rmse[2] = pixel_rmse[2] + RMSE[2]
             count = count + 1
-           
-        #print("Batch id: ", batch_idx, "Count: ", count)
     
     average_MAE[0] = np.round(np.sum(accum_mae[0] / (count * 1.0)), 4)
     average_MAE[1] = np.round(np.sum(accum_mae[1] / (count * 1.0)), 4)

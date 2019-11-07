@@ -13,7 +13,6 @@ from torch.utils.tensorboard import SummaryWriter
 from loaders import torch_image_loader as loader
 from model import warp_cnn_joiner
 import modular_trainer as trainer
-import intermediate_trainer
 import concat_trainer
 import numpy as np
 
@@ -48,7 +47,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(True):
+    if(False):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         ct.load_saved_states(checkpoint[ct.get_name()], checkpoint[ct.get_name() + OPTIMIZER_KEY])
@@ -56,7 +55,7 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = True)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = False)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE)
     
     for epoch in range(start_epoch, num_epochs):
