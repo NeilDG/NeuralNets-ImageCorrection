@@ -36,15 +36,15 @@ def assemble_train_data(fast_train = True):
         
     return rgb_list, warp_list, transform_list
 
-def assemble_test_data(full_infer = False):
+#if -1, then load all images
+def assemble_test_data(num_image_to_load = -1):
     rgb_list = []; warp_list = []; transform_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB_VAL)
-    temp_cap = 500 #only load N images for faster training
-    image_len = temp_cap
+    image_len = len(images)
     
-    if(full_infer):
-        image_len = len(images)
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load
     
     for i in range(image_len): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB_VAL + images[i]
@@ -100,8 +100,8 @@ def load_dataset(batch_size = 8, fast_train = True):
     
     return train_loader
 
-def load_test_dataset(batch_size = 8, full_infer = False):
-    rgb_list, warp_list, transform_list = assemble_test_data(full_infer = full_infer)
+def load_test_dataset(batch_size = 8, num_image_to_load = -1):
+    rgb_list, warp_list, transform_list = assemble_test_data(num_image_to_load = num_image_to_load)
     print("Length of test images: ", len(rgb_list), len(warp_list), len(transform_list))
     
     generic_transform = transforms.Compose([

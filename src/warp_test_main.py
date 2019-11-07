@@ -13,7 +13,7 @@ from visualizers import warp_data_visualizer as warp_visualizer
 import torch
 import numpy as np
 from loaders import torch_image_loader as loader
-import modular_trainer as trainer
+import concat_trainer
 import warp_train_main as train_main
 from utils import tensor_utils
 import global_vars as gv
@@ -36,61 +36,37 @@ def compute_dataset_mean(test_dataset):
    
 def start_test(gpu_device):
     model_list = []
-#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = None, gt_index = 1, lr = train_main.LR))
-    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/2', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 2, lr = train_main.LR))
-    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/3', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 3, lr = train_main.LR))
-    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 4, lr = train_main.LR))
-#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = None, gt_index = 5, lr = train_main.LR))
-    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/6', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 6, lr = train_main.LR))
-    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/7', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 7, lr = train_main.LR))
-    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/8', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-                                             writer = None, gt_index = 8, lr = train_main.LR))
+##    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+##                                             writer = None, gt_index = 1, lr = train_main.LR))
+#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/2', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = None, gt_index = 2, lr = train_main.LR))
+#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/3', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = None, gt_index = 3, lr = train_main.LR))
+#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = None, gt_index = 4, lr = train_main.LR))
+##    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+##                                             writer = None, gt_index = 5, lr = train_main.LR))
+#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/6', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = None, gt_index = 6, lr = train_main.LR))
+#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/7', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = None, gt_index = 7, lr = train_main.LR))
+#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/8', gpu_device = gpu_device, batch_size = BATCH_SIZE,
+#                                             writer = None, gt_index = 8, lr = train_main.LR))
+    
+    ct = concat_trainer.ConcatTrainer(train_main.CNN_VERSION, gpu_device = gpu_device, writer = None, lr = train_main.LR)
     
     #checkpoint loading here
     CHECKPATH = 'tmp/' + train_main.CNN_VERSION +'.pt'
     checkpoint = torch.load(CHECKPATH)
-    for model in model_list:
-        model.load_saved_states(checkpoint[model.get_name()], checkpoint[model.get_name() + OPTIMIZER_KEY])
+    ct.load_saved_states(checkpoint[ct.get_name()], checkpoint[ct.get_name() + OPTIMIZER_KEY])
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, full_infer = False)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 1000)
     #compute_dataset_mean(test_dataset)
-    #check_on_test_data(gpu_device,model_list,test_dataset)
     #visualize_layers(gpu_device, model_list, test_dataset)
-    measure_performance(gpu_device, model_list, test_dataset)
-    #check_on_unseen_data(gpu_device,model_list)
-
-def check_on_test_data(gpu_device, model_list, test_dataset):
-    overall_index = 0;
-    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
-        print("Batch idx: ", batch_idx)
-        for index in range(len(warp)):
-            model_Ms = [];
-            predict_M_list = []
-            for model in model_list:
-                warp_candidate = torch.unsqueeze(warp[index,:,:,:],  0).to(gpu_device)
-                reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
-                gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
-        
-                M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
-                model_Ms.append(M)
-            
-            predict_M_list.append(model_Ms)
-            
-            #chance visualize and save result
-            warp_img = tensor_utils.convert_to_matplotimg(warp, index)
-            rgb_img = tensor_utils.convert_to_matplotimg(rgb, index)
-            warp_visualizer.visualize_results(warp_img = warp_img, rgb_img = rgb_img, M_list = model_Ms, ground_truth_M = transform[index], index = overall_index)
-            overall_index = overall_index + 1
-            #warp_visualizer.save_predicted_transforms(predict_M_list, start_index = overall_index)
+    measure_performance(gpu_device, ct, test_dataset)
+    
 #visualize each layer's output
 def visualize_layers(gpu_device, model_list, test_dataset):
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
@@ -130,7 +106,7 @@ def check_on_unseen_data(gpu_device, model_list):
                                                     p = 1.0)
             overall_index = overall_index + 1
     
-def measure_performance(gpu_device,model_list, test_dataset):
+def measure_performance(gpu_device, trainer, test_dataset):
     dataset_mean = np.loadtxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt")
     print("Dataset mean is: ", dataset_mean)
     
@@ -152,20 +128,16 @@ def measure_performance(gpu_device,model_list, test_dataset):
     
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
         for i in range(np.shape(warp)[0]):
-            model_Ms = [];
-            warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0).to(gpu_device)
+            warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0)
             reshaped_t = torch.reshape(transform[i], (1, 9)).type('torch.FloatTensor')
-            for model in model_list:
-                gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
-                M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
-                model_Ms.append(M)
-        
+            M, loss = trainer.infer(warp_candidate, reshaped_t)
+            
             #append 1's element on correct places
-            model_Ms.insert(0, 1.0)
-            model_Ms.insert(4, 1.0)
-            model_Ms.append(1.0)
-            print(model_Ms)
-            print(reshaped_t.numpy())
+            M = np.insert(M, 0, 1.0)
+            M = np.insert(M, 4, 1.0)
+            M = np.append(M, 1.0)
+            print("Predicted M: ", M)
+            print("Actual M: ", reshaped_t.numpy())
             
             warp_img = tensor_utils.convert_to_matplotimg(warp, i)
             rgb_img = tensor_utils.convert_to_matplotimg(rgb, i)
@@ -181,17 +153,17 @@ def measure_performance(gpu_device,model_list, test_dataset):
              
             accum_mae[0] = accum_mae[0] + np.absolute(dataset_mean - reshaped_t.numpy())
             accum_mae[1] = accum_mae[1] + np.absolute(h_intensity)
-            accum_mae[2] = accum_mae[2] + np.absolute(model_Ms - reshaped_t.numpy())
+            accum_mae[2] = accum_mae[2] + np.absolute(M - reshaped_t.numpy())
             
             accum_mse[0] = accum_mse[0] + np.power(np.absolute(dataset_mean - reshaped_t.numpy()),2)
             accum_mse[1] = accum_mse[1] + np.power(h_intensity,2)
-            accum_mse[2] = accum_mse[2] + np.power(np.absolute(model_Ms - reshaped_t.numpy()),2)
+            accum_mse[2] = accum_mse[2] + np.power(np.absolute(M - reshaped_t.numpy()),2)
             
             #measure SSIM
             matrix_mean = np.reshape(dataset_mean, (3,3))
-            matrix_own = np.reshape(model_Ms, (3,3))
+            matrix_own = np.reshape(M, (3,3))
             chance = np.random.rand() * 100
-            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (0))
+            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
             print("Img ", count, " SSIM: ", SSIM)
             
             accum_ssim[0] = accum_ssim[0] + SSIM[0]
@@ -206,8 +178,6 @@ def measure_performance(gpu_device,model_list, test_dataset):
             pixel_rmse[1] = pixel_rmse[1] + RMSE[1]
             pixel_rmse[2] = pixel_rmse[2] + RMSE[2]
             count = count + 1
-           
-        #print("Batch id: ", batch_idx, "Count: ", count)
     
     average_MAE[0] = np.round(np.sum(accum_mae[0] / (count * 1.0)), 4)
     average_MAE[1] = np.round(np.sum(accum_mae[1] / (count * 1.0)), 4)

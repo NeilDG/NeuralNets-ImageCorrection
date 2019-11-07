@@ -17,8 +17,8 @@ class WarpCNN(nn.Module):
         super(WarpCNN, self).__init__()
         
         self.layer_activations = []; self.pool_activations = []
-        self.conv1 = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=7, stride=2, padding=1)
-        self.pool1 = nn.MaxPool2d(kernel_size=7, stride=2, padding=0)
+        self.conv1 = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=5, stride=2, padding=1)
+        self.pool1 = nn.MaxPool2d(kernel_size=5, stride=2, padding=0)
         
         #self.conv1_dropout = nn.Dropout2d(p = 0.5)
         
@@ -44,7 +44,7 @@ class WarpCNN(nn.Module):
 #        self.conv7 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
 #        self.pool7 = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
         
-        self.fc = nn.Linear(256, 1)
+        self.fc = nn.Linear(256, 64)
         
         nn.init.xavier_uniform_(self.conv1.weight)
         nn.init.xavier_uniform_(self.conv2.weight)
@@ -56,10 +56,6 @@ class WarpCNN(nn.Module):
         self.pool_activations = [0, 1, 2, 3];
         
         self.flag = False
-    
-    def outputSize(self, in_size, kernel_size, stride, padding):
-        output = int((in_size - kernel_size + 2*(padding)) / stride) + 1
-        return(output)
     
     def forward(self, x):
         #print("Forward pass")
@@ -102,7 +98,8 @@ class WarpCNN(nn.Module):
         
         x = x.view(x.size()[0], -1) #flatten layer
         
-        x = F.tanh(self.fc(x))
+        x = self.fc(x)
+        #x = F.tanh(self.fc(x))
         
         return x
     
