@@ -15,10 +15,6 @@ import global_vars as gv
 from visualizers import warp_data_visualizer as wdv
 from os.path import isfile, join
 
-#custom data dir location
-#IMAGE_RGB_DIR = "D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_rgb/" #PC dir
-IMAGE_RGB_DIR = "D:/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/train_rgb/" #LAPTOP dir
-
 WARP_MULT = 0.001;
 
 def get_subdirectories(a_dir):
@@ -28,7 +24,7 @@ def get_subdirectories(a_dir):
 def retrieve_kitti_rgb_list():
     rgb_list = [];
     
-    for (dirpath, dirnames, filenames) in os.walk(IMAGE_RGB_DIR):
+    for (dirpath, dirnames, filenames) in os.walk(gv.IMAGE_RGB_DIR):
         for d in dirnames:
             if d.endswith("image_02"):
                 for (dirpath, dirnames, filenames) in os.walk(dirpath + "/" + d):
@@ -222,12 +218,11 @@ def generate_unseen_samples(repeat):
             np.savetxt(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(count)+ ".txt", inverse_M)
             count = count + 1
         
-def generate():
+def generate(index_start = 0):
     rgb_list = retrieve_kitti_rgb_list();
     print("Images found: ", np.size(rgb_list))
     
     NO_WARP_CHANCE = 0.05;
-    TEMP_OFFSET = 11001; #11196
     
     for i in range(np.size(rgb_list)): 
         img = cv2.imread(rgb_list[i])
@@ -240,7 +235,7 @@ def generate():
                                             np.random.rand() * 0.005, np.random.rand() * 0.005, 
                                             WARP_MULT)
             result = remove_border_and_resize(result, 1)
-#        reverse_img = perform_unwarp(result, inverse_M)       
+        reverse_img = perform_unwarp(result, inverse_M)       
 #        plt.imshow(img)
 #        plt.show()
 #        
@@ -256,23 +251,26 @@ def generate():
                                           value=[255,255,255])
         result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
         
-        if(i + TEMP_OFFSET <= 11195 + TEMP_OFFSET):
-            cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(i + TEMP_OFFSET)+ ".png", img)
-            cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".png", result)
-            np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)
+        if(i + index_start <= 11195 + index_start):
+            cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(i + index_start)+ ".png", img)
+            cv2.imwrite(gv.SAVE_PATH_RGB_CROPPED + "crop_" +str(i + index_start)+ ".png", reverse_img)
+            cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".png", result)
+            np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".txt", inverse_M)
             if (i % 200 == 0):
-                print("Successfully generated transformed image " ,str(i + TEMP_OFFSET), ". Saved as train.")
+                print("Successfully generated transformed image " ,str(i + index_start), ". Saved as train.")
         else:
-            cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(i + TEMP_OFFSET)+ ".png", img)
-            cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + TEMP_OFFSET)+ ".png", result)
-            np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + TEMP_OFFSET)+ ".txt", inverse_M)
+            cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(i + index_start)+ ".png", img)
+            cv2.imwrite(gv.SAVE_PATH_RGB_CROPPED_VAL + "crop_" +str(i + index_start)+ ".png", reverse_img)
+            cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".png", result)
+            np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".txt", inverse_M)
             if (i % 200 == 0):
-                print("Successfully generated transformed image " ,str(i + TEMP_OFFSET), ". Saved as val.")
+                print("Successfully generated transformed image " ,str(i + index_start), ". Saved as val.")
         
     print("Finished generating dataset!")
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #check_generate_data()
-    generate()
+    generate(index_start = 0)
+    generate(index_start = 11196)
     #generate_unseen_samples(repeat = 15)

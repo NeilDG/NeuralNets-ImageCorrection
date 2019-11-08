@@ -14,6 +14,7 @@ from torch import optim
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from matplotlib import pyplot as plt
+import torch.nn as nn
 
 class ConcatTrainer:
     
@@ -55,9 +56,11 @@ class ConcatTrainer:
     
     def log_weights(self, current_epoch):
         #log update in weights
-        weights = list(self.model.parameters())
-        print("Weight shape: ", np.shape(weights))
-        #self.writer.add_histogram(self.name + '/weights/concat_block1', self.model.concat_block1.weight.data, global_step = current_epoch)
+        for module_name,module in self.model.named_modules():
+            for name, param in module.named_parameters():
+                if(module_name != ""):
+                    #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
+                    self.writer.add_histogram(module_name + '/weights/' +name, param.data, global_step = current_epoch)
 
     def infer(self, warp, transform):    
         #output preview
