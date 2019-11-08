@@ -62,7 +62,7 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 1000)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 500)
     #compute_dataset_mean(test_dataset)
     #visualize_layers(gpu_device, model_list, test_dataset)
     measure_performance(gpu_device, ct, test_dataset)

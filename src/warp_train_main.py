@@ -25,23 +25,6 @@ OPTIMIZER_KEY = "optimizer"
 def start_train(gpu_device):
     #initialize tensorboard writer
     writer = SummaryWriter('train/train_result')
-    
-#    intermediate_list = []
-#    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/2', gpu_device = gpu_device, writer = writer))
-#    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/3', gpu_device = gpu_device, writer = writer))
-#    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/4', gpu_device = gpu_device, writer = writer))
-#    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/6', gpu_device = gpu_device, writer = writer))
-#    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/7', gpu_device = gpu_device, writer = writer))
-#    intermediate_list.append(intermediate_trainer.IntermediateTrainer(CNN_VERSION + 'im/8', gpu_device = gpu_device, writer = writer))
-#    
-#    model_list = []
-#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/2', gpu_device = gpu_device, writer = writer, lr = LR))
-#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/3', gpu_device = gpu_device, writer = writer, lr = LR))
-#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/4', gpu_device = gpu_device, writer = writer, lr = LR))
-#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/6', gpu_device = gpu_device, writer = writer, lr = LR))
-#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/7', gpu_device = gpu_device, writer = writer, lr = LR))
-#    model_list.append(trainer.ModularTrainer(CNN_VERSION + '/8', gpu_device = gpu_device, writer = writer, lr = LR))
-    
     ct = concat_trainer.ConcatTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR)
     
     #checkpoint loading here
@@ -56,7 +39,7 @@ def start_train(gpu_device):
         print("===================================================")
      
     training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = False)
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 500)
     
     for epoch in range(start_epoch, num_epochs):
         accum_loss = 0.0
@@ -120,72 +103,7 @@ def start_train(gpu_device):
                 save_dict[ct.get_name() + OPTIMIZER_KEY] = optimizer_state_dict
                 
                 torch.save(save_dict, CHECKPATH)
-                print("Saved model state:", len(save_dict))
-#        
-#        accum_loss = 0.0
-#        predict_M_list = []
-#        
-#        #perform validation test
-#        for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
-#            model_Ms = []
-#            for model in model_list:
-#                maps = []
-#                maps.append(intermediate_list[0].batch_infer(warp_tensor, transform))
-#                maps.append(intermediate_list[1].batch_infer(warp_tensor, transform))
-#                maps.append(intermediate_list[2].batch_infer(warp_tensor, transform))
-#                maps.append(intermediate_list[3].batch_infer(warp_tensor, transform))
-#                maps.append(intermediate_list[4].batch_infer(warp_tensor, transform))
-#                maps.append(intermediate_list[5].batch_infer(warp_tensor, transform))
-#                M, loss = model.batch_infer(maps, transform)
-#                accum_loss = accum_loss + loss
-#                model_Ms.append(M)
-#            predict_M_list.append(model_Ms)
-#        
-#        M_list = []
-#        #perform inference on validation
-#        warp_img = intermediate_list[-1].get_last_warp_img()
-#        warp_tensor = intermediate_list[-1].get_last_warp_tensor()
-#        ground_truth_M = intermediate_list[-1].get_last_transform()
-#        ground_truth_tensor = intermediate_list[-1].get_last_transform_tensor()
-#        
-#        for model in model_list:
-#            maps = []
-#            maps.append(intermediate_list[0].single_infer(warp_tensor, transform))
-#            maps.append(intermediate_list[1].single_infer(warp_tensor, transform))
-#            maps.append(intermediate_list[2].single_infer(warp_tensor, transform))
-#            maps.append(intermediate_list[3].single_infer(warp_tensor, transform))
-#            maps.append(intermediate_list[4].single_infer(warp_tensor, transform))
-#            maps.append(intermediate_list[5].single_infer(warp_tensor, transform))
-#            M, loss = model.single_infer(maps, ground_truth_tensor)
-#            M_list.append(M)
-#        print("Validation inference")
-#        visualizer.show_transform_image(warp_img, M_list = M_list,
-#                                        ground_truth_M = ground_truth_M,
-#                                        should_save = False, current_epoch = epoch, save_every_epoch = 3)
-#        
-#        val_ave_loss = accum_loss / (len(model_list) * (batch_idx + 1))
-#        print("Total training loss on epoch ", epoch, ": ", train_ave_loss)
-#        print("Total validation loss on epoch ", epoch, ": ", val_ave_loss) 
-#        
-#        writer.add_scalars(CNN_VERSION +'/MSE_loss', {'training_loss' :train_ave_loss, 'validation_loss' : val_ave_loss},
-#                           global_step = epoch) #plot validation loss
-#        writer.close()
-#        
-#        if(epoch % 1 == 0 and epoch != 0): #only save a batch every X epochs
-#                visualizer.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
-#                save_dict = {'epoch': epoch}
-#                for intermediate, model in zip(intermediate_list,model_list):
-#                    model_state_dict = intermediate.get_state_dicts()
-#                    save_dict[model.get_name()] = model_state_dict
-#                    
-#                    model_state_dict, optimizer_state_dict = model.get_state_dicts()
-#                    save_dict[model.get_name()] = model_state_dict
-#                    save_dict[model.get_name() + OPTIMIZER_KEY] = optimizer_state_dict
-#                
-#                torch.save(save_dict, CHECKPATH)
-#                print("Saved model state:", len(save_dict))
-
-    
+                print("Saved model state:", len(save_dict))   
 def main():
     if(torch.cuda.is_available()) :
         print("NVIDIA CUDA is ready! ^_^")

@@ -15,7 +15,7 @@ from torchvision import transforms
 def assemble_train_data(fast_train = True):
     rgb_list = []; warp_list = []; transform_list = []
     
-    images = os.listdir(gv.SAVE_PATH_RGB)
+    images = os.listdir(gv.SAVE_PATH_RGB_CROPPED)
     temp_cap = 500 #only load N images for faster training
     image_len = temp_cap
     
@@ -23,7 +23,7 @@ def assemble_train_data(fast_train = True):
         image_len = len(images)
         
     for i in range(image_len): #len(images)
-        rgbImagePath = gv.SAVE_PATH_RGB + images[i]
+        rgbImagePath = gv.SAVE_PATH_RGB_CROPPED + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP)
@@ -40,14 +40,14 @@ def assemble_train_data(fast_train = True):
 def assemble_test_data(num_image_to_load = -1):
     rgb_list = []; warp_list = []; transform_list = []
     
-    images = os.listdir(gv.SAVE_PATH_RGB_VAL)
+    images = os.listdir(gv.SAVE_PATH_RGB_CROPPED_VAL)
     image_len = len(images)
     
     if(num_image_to_load > 0):
         image_len = num_image_to_load
     
     for i in range(image_len): #len(images)
-        rgbImagePath = gv.SAVE_PATH_RGB_VAL + images[i]
+        rgbImagePath = gv.SAVE_PATH_RGB_CROPPED_VAL + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP_VAL)
