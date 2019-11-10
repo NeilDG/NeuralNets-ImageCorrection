@@ -124,7 +124,7 @@ def measure_performance(gpu_device, trainer, test_dataset):
     pixel_mse = [0.0, 0.0, 0.0]
     pixel_rmse = [0.0, 0.0, 0.0]
     average_pixel_MSE = [0.0, 0.0, 0.0]
-    average_pixel_RMSE = [0.0, 0.0, 0.0]
+    average_pixel_RMSE = [0.0, 0.0, 0.0] 
     
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
         for i in range(np.shape(warp)[0]):
