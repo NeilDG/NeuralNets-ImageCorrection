@@ -80,10 +80,14 @@ class ConcatCNN(nn.Module):
         self.fc2_block5 = nn.Linear(128, 64)
         self.fc2_block6 = nn.Linear(128, 64)
         
-        concat1 = nn.Linear(384, 6)
-        tanh = nn.Tanh()
+        concat1 = nn.Linear(384, 192)
+        activation1 = nn.Tanh()
         
-        self.concat_block = nn.Sequential(concat1, tanh)
+        self.concat1_block = nn.Sequential(concat1, activation1)
+        
+        concat2 = nn.Linear(192, 6)
+        
+        self.concat2_block = nn.Sequential(concat2)
         
         nn.init.xavier_uniform_(concat1.weight)
         nn.init.xavier_uniform_(self.fc1_block1.weight)
@@ -156,9 +160,17 @@ class ConcatCNN(nn.Module):
         x6 = self.fc1_block6(x6)
         x6 = self.fc2_block6(x6)
         
+#        print("X1: ", np.linalg.norm(x1.cpu().clone().detach()))
+#        print("X2: ", np.linalg.norm(x2.cpu().clone().detach()))
+#        print("X3: ", np.linalg.norm(x3.cpu().clone().detach()))
+#        print("X4: ", np.linalg.norm(x4.cpu().clone().detach()))
+#        print("X5: ", np.linalg.norm(x5.cpu().clone().detach()))
+#        print("X6: ", np.linalg.norm(x6.cpu().clone().detach()))
+#        print()
         y = torch.cat((x1,x2,x3,x4,x5,x6),1)
         
-        output = self.concat_block(y)
+        y = self.concat1_block(y)
+        output = y = self.concat2_block(y)
         
         return output
     

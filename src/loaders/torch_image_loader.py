@@ -12,16 +12,15 @@ import global_vars as gv
 import os
 from torchvision import transforms
 
-def assemble_train_data(fast_train = True):
+def assemble_train_data(num_image_to_load = -1):
     rgb_list = []; warp_list = []; transform_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB_CROPPED)
-    temp_cap = 500 #only load N images for faster training
-    image_len = temp_cap
+    image_len = len(images)
     
-    if(fast_train == False):
-        image_len = len(images)
-        
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load
+    
     for i in range(image_len): #len(images)
         rgbImagePath = gv.SAVE_PATH_RGB_CROPPED + images[i]
         rgb_list.append(rgbImagePath)
@@ -80,8 +79,8 @@ def assemble_unseen_data():
         
     return rgb_list, warp_list, transform_list
 
-def load_dataset(batch_size = 8, fast_train = True):
-    rgb_list, warp_list, transform_list = assemble_train_data(fast_train = fast_train)
+def load_dataset(batch_size = 8, num_image_to_load = -1):
+    rgb_list, warp_list, transform_list = assemble_train_data(num_image_to_load = num_image_to_load)
     print("Length of train images: ", len(rgb_list), len(warp_list), len(transform_list))
     
     generic_transform = transforms.Compose([
