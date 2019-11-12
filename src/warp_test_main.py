@@ -62,8 +62,8 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 500)
-    #compute_dataset_mean(test_dataset)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 1000)
+    compute_dataset_mean(test_dataset)
     #visualize_layers(gpu_device, model_list, test_dataset)
     measure_performance(gpu_device, ct, test_dataset)
     
@@ -124,7 +124,7 @@ def measure_performance(gpu_device, trainer, test_dataset):
     pixel_mse = [0.0, 0.0, 0.0]
     pixel_rmse = [0.0, 0.0, 0.0]
     average_pixel_MSE = [0.0, 0.0, 0.0]
-    average_pixel_RMSE = [0.0, 0.0, 0.0]
+    average_pixel_RMSE = [0.0, 0.0, 0.0] 
     
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
         for i in range(np.shape(warp)[0]):

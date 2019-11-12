@@ -18,7 +18,7 @@ import numpy as np
 
 LR = 0.001
 num_epochs = 65
-BATCH_SIZE = 8
+BATCH_SIZE = 4
 CNN_VERSION = "cnn_v3.25"
 OPTIMIZER_KEY = "optimizer"
 
@@ -38,7 +38,7 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, fast_train = False)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 500)
     
     for epoch in range(start_epoch, num_epochs):

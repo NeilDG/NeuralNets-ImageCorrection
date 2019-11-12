@@ -67,48 +67,53 @@ def warp_perspective_least_squares(warp_img, rgb_img):
     keypoints1, descriptors1 = orb.detectAndCompute(im1Gray, None)
     keypoints2, descriptors2 = orb.detectAndCompute(im2Gray, None)
   
-    # Match features.
-    matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING)
-    matches = matcher.match(descriptors1, descriptors2, None)
+    try:
+        # Match features.
+        matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING)
+        matches = matcher.match(descriptors1, descriptors2, None)
+      
+        # Sort matches by score
+        matches.sort(key=lambda x: x.distance, reverse=False)
+        
+        #remove not so good matches
+        good_match_threshold = 0.20
+        numGoodMatches = int(len(matches) * good_match_threshold)
+        matches = matches[:numGoodMatches]
   
-    # Sort matches by score
-    matches.sort(key=lambda x: x.distance, reverse=False)
+        # Draw top matches
+        im_matches = cv2.drawMatches(warp_img, keypoints1, rgb_img, keypoints2, matches, None)
+      
+        # Extract location of good matches
+        points1 = np.zeros((len(im_matches), 2), dtype=np.float32)
+        points2 = np.zeros((len(im_matches), 2), dtype=np.float32)
+     
+        for i, match in enumerate(matches):
+            points1[i, :] = keypoints1[match.queryIdx].pt
+            points2[i, :] = keypoints2[match.trainIdx].pt
+       
+        # Find homography
+        h, mask = cv2.findHomography(points1, points2, cv2.RANSAC)
+        #print("Resulting H:" , h, np.shape(h), "Key points shape: ", np.shape(keypoints1), np.shape(keypoints2))
+        # Use homography
+        height, width, channels = rgb_img.shape
+        if(np.shape(h) == (3,3)):
+            result_img = cv2.warpPerspective(warp_img, h, (gv.WARP_W, gv.WARP_H),
+                                             borderValue = (255,255,255))
+        else:
+            print("H is not 3x3!")
+            h = np.ones((3,3))
+            result_img = warp_img
+        im1Gray = None
+        im2Gray = None
+        im_matches = None
+        points1 = None
+        points2 = None
     
-    #remove not so good matches
-    good_match_threshold = 0.20
-    numGoodMatches = int(len(matches) * good_match_threshold)
-    matches = matches[:numGoodMatches]
-  
-    # Draw top matches
-    im_matches = cv2.drawMatches(warp_img, keypoints1, rgb_img, keypoints2, matches, None)
-  
-    # Extract location of good matches
-    points1 = np.zeros((len(im_matches), 2), dtype=np.float32)
-    points2 = np.zeros((len(im_matches), 2), dtype=np.float32)
- 
-    for i, match in enumerate(matches):
-        points1[i, :] = keypoints1[match.queryIdx].pt
-        points2[i, :] = keypoints2[match.trainIdx].pt
-   
-    # Find homography
-    h, mask = cv2.findHomography(points1, points2, cv2.RANSAC)
-    #print("Resulting H:" , h, np.shape(h), "Key points shape: ", np.shape(keypoints1), np.shape(keypoints2))
-    # Use homography
-    height, width, channels = rgb_img.shape
-    if(np.shape(h) == (3,3)):
-        result_img = cv2.warpPerspective(warp_img, h, (gv.WARP_W, gv.WARP_H),
-                                         borderValue = (255,255,255))
-    else:
-        print("H is not 3x3!")
-        h = np.ones((3,3))
-        result_img = warp_img
-    im1Gray = None
-    im2Gray = None
-    im_matches = None
-    points1 = None
-    points2 = None
-
-    return result_img, h
+        return result_img, h
+    except:
+        print("An error in homography estimation occured.")
+        h = np.ones((1,1),dtype = np.float32)
+        return warp_img, h
 
 #performs inference using unseen data and visualize results
 def show_blind_image_test(rgb, least_squares_img, M_list, ground_truth_img, index, should_save):
@@ -293,52 +298,54 @@ def visualize_blind_results(warp_img, rgb_img, M_list, index, p = 0.03):
                               should_save = should_save, index = index)
         
 def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
-    mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-    h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-    own_img = cv2.warpPerspective(warp_img, matrix_own, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-    rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
-    
-    print("Shapes: ", np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
-    SSIM = [0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0]
-    SSIM[0] = np.round(compare_ssim(mean_img, rgb_img, multichannel = True),4)
-    SSIM[1] = np.round(compare_ssim(h_img, rgb_img, multichannel = True),4)
-    SSIM[2] = np.round(compare_ssim(own_img, rgb_img, multichannel = True),4)
-    
-    MSE[0] = np.round(compare_mse(mean_img, rgb_img),4)
-    MSE[1] = np.round(compare_mse(h_img, rgb_img),4)
-    MSE[2] = np.round(compare_mse(own_img, rgb_img),4)
-    
-    RMSE[0] = np.round(compare_nrmse(rgb_img, mean_img),4)
-    RMSE[1] = np.round(compare_nrmse(rgb_img, h_img),4)
-    RMSE[2] = np.round(compare_nrmse(rgb_img, own_img),4)
-    
-    if(should_visualize):
-        f, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 1, sharex=True)
-        f.set_size_inches(20,15)
+    try:
+        mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        own_img = cv2.warpPerspective(warp_img, matrix_own, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
         
-        #ax1.set_title("Input image")
-        ax1.imshow(warp_img)
+        print("Shapes: ", np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
+        SSIM = [0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0]
+        SSIM[0] = np.round(compare_ssim(mean_img, rgb_img, multichannel = True),4)
+        SSIM[1] = np.round(compare_ssim(h_img, rgb_img, multichannel = True),4)
+        SSIM[2] = np.round(compare_ssim(own_img, rgb_img, multichannel = True),4)
         
-        ax2.set_title("SSIM: "+str(SSIM[0])+ " MSE: "+str(MSE[0])+" RMSE: " +str(RMSE[0]))
-        ax2.imshow(mean_img)
+        MSE[0] = np.round(compare_mse(mean_img, rgb_img),4)
+        MSE[1] = np.round(compare_mse(h_img, rgb_img),4)
+        MSE[2] = np.round(compare_mse(own_img, rgb_img),4)
         
-        ax3.set_title("SSIM: "+str(SSIM[1])+ " MSE: "+str(MSE[1])+" RMSE: " +str(RMSE[1]))
-        ax3.imshow(h_img)
+        RMSE[0] = np.round(compare_nrmse(rgb_img, mean_img),4)
+        RMSE[1] = np.round(compare_nrmse(rgb_img, h_img),4)
+        RMSE[2] = np.round(compare_nrmse(rgb_img, own_img),4)
         
-        ax4.set_title("SSIM: "+str(SSIM[2])+ " MSE: "+str(MSE[2])+" RMSE: " +str(RMSE[2]))
-        ax4.imshow(own_img)
-        
-        #ax5.set_title("Ground truth")
-        ax5.imshow(rgb_img)
-        
-        hide_plot_legend(ax1)
-        hide_plot_legend(ax2)
-        hide_plot_legend(ax3)
-        hide_plot_legend(ax4)
-        hide_plot_legend(ax5)
-        plt.savefig(gv.IMAGE_PATH_PREDICT + "/ssim_"+str(count)+ ".png", bbox_inches='tight', pad_inches=0)
-        plt.show()
-    
+        if(should_visualize):
+            f, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 1, sharex=True)
+            f.set_size_inches(20,15)
+            
+            #ax1.set_title("Input image")
+            ax1.imshow(warp_img)
+            
+            ax2.set_title("SSIM: "+str(SSIM[0])+ " MSE: "+str(MSE[0])+" RMSE: " +str(RMSE[0]))
+            ax2.imshow(mean_img)
+            
+            ax3.set_title("SSIM: "+str(SSIM[1])+ " MSE: "+str(MSE[1])+" RMSE: " +str(RMSE[1]))
+            ax3.imshow(h_img)
+            
+            ax4.set_title("SSIM: "+str(SSIM[2])+ " MSE: "+str(MSE[2])+" RMSE: " +str(RMSE[2]))
+            ax4.imshow(own_img)
+            
+            #ax5.set_title("Ground truth")
+            ax5.imshow(rgb_img)
+            
+            hide_plot_legend(ax1)
+            hide_plot_legend(ax2)
+            hide_plot_legend(ax3)
+            hide_plot_legend(ax4)
+            hide_plot_legend(ax5)
+            plt.savefig(gv.IMAGE_PATH_PREDICT + "/ssim_"+str(count)+ ".png", bbox_inches='tight', pad_inches=0)
+            plt.show()  
+    except:
+        SSIM = [0.0, 0.0, 0.0]; MSE = [1.0, 1.0, 1.0]; RMSE = [1.0, 1.0, 1.0]
     return SSIM, MSE, RMSE
 
 def show_auto_encoder_img(warp_img, pred_img, ground_truth_img, test_title):
