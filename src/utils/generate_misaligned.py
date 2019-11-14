@@ -221,7 +221,8 @@ def generate_unseen_samples(repeat):
 def generate(index_start = 0):
     rgb_list = retrieve_kitti_rgb_list();
     print("Images found: ", np.size(rgb_list))
-    
+    num_images = np.size(rgb_list)
+    train_split = num_images * 0.8
     NO_WARP_CHANCE = 0.05;
     
     for i in range(np.size(rgb_list)): 
@@ -251,18 +252,18 @@ def generate(index_start = 0):
                                           value=[255,255,255])
         result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
         
-        if(i + index_start <= 11195 + index_start):
+        if((i + index_start) < (train_split + index_start)):
             cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(i + index_start)+ ".png", img)
             cv2.imwrite(gv.SAVE_PATH_RGB_CROPPED + "crop_" +str(i + index_start)+ ".png", reverse_img)
             cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".png", result)
-            np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".txt", inverse_M)
+            np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".txt", M)
             if (i % 200 == 0):
                 print("Successfully generated transformed image " ,str(i + index_start), ". Saved as train.")
         else:
             cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(i + index_start)+ ".png", img)
             cv2.imwrite(gv.SAVE_PATH_RGB_CROPPED_VAL + "crop_" +str(i + index_start)+ ".png", reverse_img)
             cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".png", result)
-            np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".txt", inverse_M)
+            np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".txt", M)
             if (i % 200 == 0):
                 print("Successfully generated transformed image " ,str(i + index_start), ". Saved as val.")
         
@@ -270,7 +271,8 @@ def generate(index_start = 0):
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
-    check_generate_data()
-    #generate(index_start = 0)
-    #generate(index_start = 11196)
+    #check_generate_data()
+    generate(index_start = 0)
+    generate(index_start = 11196)
+    generate(index_start = 22392)
     #generate_unseen_samples(repeat = 15)

@@ -15,112 +15,48 @@ class ConcatCNN(nn.Module):
     def __init__(self):
         super(ConcatCNN, self).__init__()
         
-        conv1 = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=5, stride=2, padding=1)
-        pool1 = nn.MaxPool2d(kernel_size=5, stride=2, padding=0)
+        conv = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=5, stride=2, padding=1)
+        pool = nn.MaxPool2d(kernel_size=5, stride=2, padding=0)
         relu = nn.ReLU()
         
-        self.conv1_block1 = nn.Sequential(conv1,pool1,relu)
-        self.conv1_block2 = nn.Sequential(conv1,pool1,relu)
-        self.conv1_block3 = nn.Sequential(conv1,pool1,relu)
-        self.conv1_block4 = nn.Sequential(conv1,pool1,relu)
-        self.conv1_block5 = nn.Sequential(conv1,pool1,relu)
-        self.conv1_block6 = nn.Sequential(conv1,pool1,relu)    
+        self.conv1 = nn.Sequential(conv, pool, relu)
         
-        conv2 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1)
-        pool2 = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
+        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1)
+        pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
         
-        self.conv2_block1 = nn.Sequential(conv2,pool2,relu)
-        self.conv2_block2 = nn.Sequential(conv2,pool2,relu)
-        self.conv2_block3 = nn.Sequential(conv2,pool2,relu)
-        self.conv2_block4 = nn.Sequential(conv2,pool2,relu)
-        self.conv2_block5 = nn.Sequential(conv2,pool2,relu)
-        self.conv2_block6 = nn.Sequential(conv2,pool2,relu)
+        self.conv2 = nn.Sequential(conv, pool, relu)
+        self.conv3 = nn.Sequential(conv, pool, relu)
+        self.conv4 = nn.Sequential(conv, pool, relu)
         
-        conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1)
-        pool3 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
+        self.conv5 = nn.Sequential(conv, relu)
+        self.conv6 = nn.Sequential(conv, relu)
+        self.conv7 = nn.Sequential(conv, relu)
         
-        self.conv3_block1 = nn.Sequential(conv3,pool3,relu)
-        self.conv3_block2 = nn.Sequential(conv3,pool3,relu)
-        self.conv3_block3 = nn.Sequential(conv3,pool3,relu)
-        self.conv3_block4 = nn.Sequential(conv3,pool3,relu)
-        self.conv3_block5 = nn.Sequential(conv3,pool3,relu)
-        self.conv3_block6 = nn.Sequential(conv3,pool3,relu)
-        
-        conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)
-        pool4 = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        
-        self.conv4_block1 = nn.Sequential(conv4,pool4,relu)
-        self.conv4_block2 = nn.Sequential(conv4,pool4,relu)
-        self.conv4_block3 = nn.Sequential(conv4,pool4,relu)
-        self.conv4_block4 = nn.Sequential(conv4,pool4,relu)
-        self.conv4_block5 = nn.Sequential(conv4,pool4,relu)
-        self.conv4_block6 = nn.Sequential(conv4,pool4,relu)
-        
-        conv_middle = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
-        self.conv_middle1_block1 = nn.Sequential(conv_middle, relu)
-        self.conv_middle1_block2 = nn.Sequential(conv_middle, relu)
-        self.conv_middle1_block3 = nn.Sequential(conv_middle, relu)
-        self.conv_middle1_block4 = nn.Sequential(conv_middle, relu)
-        self.conv_middle1_block5 = nn.Sequential(conv_middle, relu)
-        self.conv_middle1_block6 = nn.Sequential(conv_middle, relu)
-        
-        conv5 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)
-        pool5 = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        
-        self.conv5_block1 = nn.Sequential(conv5,pool5,relu)
-        self.conv5_block2 = nn.Sequential(conv5,pool5,relu)
-        self.conv5_block3 = nn.Sequential(conv5,pool5,relu)
-        self.conv5_block4 = nn.Sequential(conv5,pool5,relu)
-        self.conv5_block5 = nn.Sequential(conv5,pool5,relu)
-        self.conv5_block6 = nn.Sequential(conv5,pool5,relu)
-        
-        conv_middle = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
-        self.conv_middle2_block1 = nn.Sequential(conv_middle, relu)
-        self.conv_middle2_block2 = nn.Sequential(conv_middle, relu)
-        self.conv_middle2_block3 = nn.Sequential(conv_middle, relu)
-        self.conv_middle2_block4 = nn.Sequential(conv_middle, relu)
-        self.conv_middle2_block5 = nn.Sequential(conv_middle, relu)
-        self.conv_middle2_block6 = nn.Sequential(conv_middle, relu)
-        
-        self.fc1_block1 = nn.Linear(256, 128)
-        self.fc1_block2 = nn.Linear(256, 128)
-        self.fc1_block3 = nn.Linear(256, 128)
-        self.fc1_block4 = nn.Linear(256, 128)
-        self.fc1_block5 = nn.Linear(256, 128)
-        self.fc1_block6 = nn.Linear(256, 128)
-        
-        self.fc2_block1 = nn.Linear(128, 64)
-        self.fc2_block2 = nn.Linear(128, 64)
-        self.fc2_block3 = nn.Linear(128, 64)
-        self.fc2_block4 = nn.Linear(128, 64)
-        self.fc2_block5 = nn.Linear(128, 64)
-        self.fc2_block6 = nn.Linear(128, 64)
-        
-        concat1 = nn.Linear(384, 192)
-        activation1 = nn.Tanh()
-        
-        self.concat1_block = nn.Sequential(concat1, activation1)
-        
-        concat2 = nn.Linear(192, 6)
-        
-        self.concat2_block = nn.Sequential(concat2)
-        
-        nn.init.xavier_uniform_(concat1.weight)
-        nn.init.xavier_uniform_(self.fc1_block1.weight)
-        nn.init.xavier_uniform_(self.fc1_block2.weight)
-        nn.init.xavier_uniform_(self.fc1_block3.weight)
-        nn.init.xavier_uniform_(self.fc1_block4.weight)
-        nn.init.xavier_uniform_(self.fc1_block5.weight)
-        nn.init.xavier_uniform_(self.fc1_block6.weight)
-        
-        nn.init.xavier_uniform_(self.fc2_block1.weight)
-        nn.init.xavier_uniform_(self.fc2_block2.weight)
-        nn.init.xavier_uniform_(self.fc2_block3.weight)
-        nn.init.xavier_uniform_(self.fc2_block4.weight)
-        nn.init.xavier_uniform_(self.fc2_block5.weight)
-        nn.init.xavier_uniform_(self.fc2_block6.weight)
+        self.fc_block = nn.Sequential(
+                            nn.Linear(320, 128),
+                            nn.ReLU(),
+                            nn.Linear(128, 64),
+                            nn.Tanh(),
+                            nn.Linear(64, 6),
+                            nn.Tanh())
         
     def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
+        x = self.conv6(x)
+        x = self.conv7(x)
+        #x = x.view(x.size()[0], -1) #flatten
+        x = torch.flatten(x,1)
+        x = self.fc_block(x)
+        
+        
+        return x
+        
+    def concat_forward(self, x):
         #create 6 different CNNs   
         x1 = self.conv1_block1(x)
         x1 = self.conv2_block1(x1)

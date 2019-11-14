@@ -16,10 +16,10 @@ import modular_trainer as trainer
 import concat_trainer
 import numpy as np
 
-LR = 0.0001
+LR = 0.0005
 num_epochs = 60
-BATCH_SIZE = 8
-CNN_VERSION = "cnn_v3.26"
+BATCH_SIZE = 42
+CNN_VERSION = "cnn_v3.28"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -30,7 +30,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(True):
+    if(False):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         ct.load_saved_states(checkpoint[ct.get_name()], checkpoint[ct.get_name() + OPTIMIZER_KEY])
@@ -66,7 +66,7 @@ def start_train(gpu_device):
         M, loss = ct.infer(warp_tensor, ground_truth_tensor)
         print("Shape: ", np.shape(M), "M: ", M)
         visualizer.show_transform_image(warp_img, M_list = M,
-                                    ground_truth_M = ground_truth_M,
+                                    ground_truth_M = ground_truth_M, should_inverse = True,
                                     should_save = False, current_epoch = epoch, save_every_epoch = 5)
          
         accum_loss = 0.0
@@ -85,7 +85,7 @@ def start_train(gpu_device):
         
         M, loss = ct.infer(warp_tensor, ground_truth_tensor)
         visualizer.show_transform_image(warp_img, M_list = M,
-                                    ground_truth_M = ground_truth_M,
+                                    ground_truth_M = ground_truth_M, should_inverse = True,
                                     should_save = False, current_epoch = epoch, save_every_epoch = 5)
         
         print("Total training loss on epoch ", epoch, ": ", train_ave_loss)
