@@ -154,25 +154,25 @@ def check_generate_data():
     #test read image
     M0_list = []; M1_list = []; M2_list = []; M3_list = []; M4_list= []; M5_list = []
     
-    for i in range(20):
+    for i in range(200):
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M = perform_warp(img, np.random.rand() * 0.005, np.random.rand() * 0.005, 
                                             np.random.rand() * 0.005, np.random.rand() * 0.005, 
                                             WARP_MULT)
-        result = remove_border_and_resize(result, 1)
-        reverse_img = perform_unwarp(result, inverse_M)  
-        plt.title("Original image"); plt.imshow(img); plt.show()
-        plt.title("Warped image"); plt.imshow(result); plt.show()
-        plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
-        difference = img - reverse_img
-        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
+#        result = remove_border_and_resize(result, 1)
+#        reverse_img = perform_unwarp(result, inverse_M)  
+#        plt.title("Original image"); plt.imshow(img); plt.show()
+#        plt.title("Warped image"); plt.imshow(result); plt.show()
+#        plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
+#        difference = img - reverse_img
+#        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
-        M0_list.append(inverse_M[0,1])
-        M1_list.append(inverse_M[0,2])
-        M2_list.append(inverse_M[1,0])
-        M3_list.append(inverse_M[1,2])
-        M4_list.append(inverse_M[2,0])
-        M5_list.append(inverse_M[2,1])
+        M0_list.append(M[0,1])
+        M1_list.append(M[0,2])
+        M2_list.append(M[1,0])
+        M3_list.append(M[1,2])
+        M4_list.append(M[2,0])
+        M5_list.append(M[2,1])
     
     M_parent_list = [];
     M_parent_list.append(M0_list)
@@ -270,7 +270,7 @@ def generate(index_start = 0):
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
-    #check_generate_data()
-    generate(index_start = 0)
-    generate(index_start = 11196)
+    check_generate_data()
+    #generate(index_start = 0)
+    #generate(index_start = 11196)
     #generate_unseen_samples(repeat = 15)

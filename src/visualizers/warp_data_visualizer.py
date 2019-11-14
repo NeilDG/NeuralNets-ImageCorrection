@@ -258,7 +258,7 @@ def visualize_M_list(M_list):
     
     for i in range(np.shape(M_list)[0]):
         c = next(color)
-        visualize_individual_M(M_list[i], color = c, label = "M" + str(i))
+        visualize_individual_M(M_list[i], color = c, label = "A" + str(i+1))
       
     plt.show()
     

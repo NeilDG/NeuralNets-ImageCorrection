@@ -19,7 +19,7 @@ import numpy as np
 LR = 0.0001
 num_epochs = 60
 BATCH_SIZE = 8
-CNN_VERSION = "cnn_v3.27"
+CNN_VERSION = "cnn_v3.26"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
