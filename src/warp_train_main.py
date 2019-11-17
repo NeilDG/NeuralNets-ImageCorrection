@@ -16,10 +16,10 @@ import modular_trainer as trainer
 import concat_trainer
 import numpy as np
 
-LR = 0.001
-num_epochs = 65
-BATCH_SIZE = 4
-CNN_VERSION = "cnn_v3.25"
+LR = 0.0005
+num_epochs = 60
+BATCH_SIZE = 42
+CNN_VERSION = "cnn_v3.28"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -38,7 +38,7 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = -1)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 500)
     
     for epoch in range(start_epoch, num_epochs):
@@ -66,7 +66,7 @@ def start_train(gpu_device):
         M, loss = ct.infer(warp_tensor, ground_truth_tensor)
         print("Shape: ", np.shape(M), "M: ", M)
         visualizer.show_transform_image(warp_img, M_list = M,
-                                    ground_truth_M = ground_truth_M,
+                                    ground_truth_M = ground_truth_M, should_inverse = True,
                                     should_save = False, current_epoch = epoch, save_every_epoch = 5)
          
         accum_loss = 0.0
@@ -85,7 +85,7 @@ def start_train(gpu_device):
         
         M, loss = ct.infer(warp_tensor, ground_truth_tensor)
         visualizer.show_transform_image(warp_img, M_list = M,
-                                    ground_truth_M = ground_truth_M,
+                                    ground_truth_M = ground_truth_M, should_inverse = True,
                                     should_save = False, current_epoch = epoch, save_every_epoch = 5)
         
         print("Total training loss on epoch ", epoch, ": ", train_ave_loss)
