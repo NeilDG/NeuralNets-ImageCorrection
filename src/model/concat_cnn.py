@@ -23,6 +23,7 @@ class ConcatCNN(nn.Module):
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1)
         pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
+        dropout = nn.Dropout2d(p = 0.4)
         
         self.conv2 = nn.Sequential(conv, pool, relu)
         self.conv3 = nn.Sequential(conv, pool, relu)
@@ -39,6 +40,7 @@ class ConcatCNN(nn.Module):
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
         self.conv8 = nn.Sequential(conv, relu)
+        self.conv9 = nn.Sequential(conv, relu)
         
         self.fc_block = nn.Sequential(
                             nn.Linear(256, 128),
@@ -57,6 +59,7 @@ class ConcatCNN(nn.Module):
         x = self.conv6(x)
         x = self.conv7(x)
         x = self.conv8(x)
+        x = self.conv9(x)
         #x = x.view(x.size()[0], -1) #flatten
         x = torch.flatten(x,1)
         x = self.fc_block(x)

@@ -16,10 +16,10 @@ import modular_trainer as trainer
 import concat_trainer
 import numpy as np
 
-LR = 0.0005
-num_epochs = 60
-BATCH_SIZE = 42
-CNN_VERSION = "cnn_v3.28"
+LR = 0.005
+num_epochs = 80
+BATCH_SIZE = 16 
+CNN_VERSION = "cnn_v3.29"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -30,7 +30,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(False):
+    if(True):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         ct.load_saved_states(checkpoint[ct.get_name()], checkpoint[ct.get_name() + OPTIMIZER_KEY])
