@@ -25,18 +25,18 @@ class ConcatCNN(nn.Module):
         pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
         dropout = nn.Dropout2d(p = 0.4)
         
-        self.conv2 = nn.Sequential(conv, pool, relu)
-        self.conv3 = nn.Sequential(conv, pool, relu)
-        self.conv4 = nn.Sequential(conv, pool, relu)
+        self.conv2 = nn.Sequential(conv, pool, relu, dropout)
+        self.conv3 = nn.Sequential(conv, pool, relu, dropout)
+        self.conv4 = nn.Sequential(conv, pool, relu, dropout)
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1)
         pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.conv5 = nn.Sequential(conv, pool, relu)
-        self.conv6 = nn.Sequential(conv, pool, relu)
+        self.conv5 = nn.Sequential(conv, pool, relu, dropout)
+        self.conv6 = nn.Sequential(conv, pool, relu, dropout)
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=1, padding=1)
         pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        self.conv7 = nn.Sequential(conv, pool, relu)
+        self.conv7 = nn.Sequential(conv, pool, relu, dropout)
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
         self.conv8 = nn.Sequential(conv, relu)
