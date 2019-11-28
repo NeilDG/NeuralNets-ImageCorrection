@@ -16,16 +16,16 @@ import modular_trainer as trainer
 import concat_trainer
 import numpy as np
 
-LR = 0.001
+LR = 0.0001
 num_epochs = 80
 BATCH_SIZE = 16 
-CNN_VERSION = "cnn_v3.30"
+CNN_VERSION = "cnn_v3.31"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
     #initialize tensorboard writer
     writer = SummaryWriter('train/train_result')
-    ct = concat_trainer.ConcatTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR)
+    ct = concat_trainer.ConcatTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR, weight_decay = 0.0)
     
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'

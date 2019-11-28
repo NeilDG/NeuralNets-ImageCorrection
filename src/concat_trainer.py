@@ -18,7 +18,7 @@ import torch.nn as nn
 
 class ConcatTrainer:
     
-    def __init__(self, name, gpu_device, writer, lr = 0.05):
+    def __init__(self, name, gpu_device, writer, lr = 0.05, weight_decay = 0.0):
         self.gpu_device = gpu_device
         self.lr = lr
         self.name = name
@@ -26,8 +26,9 @@ class ConcatTrainer:
         
         self.model = concat_cnn.ConcatCNN()
         self.model.to(self.gpu_device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr = self.lr, weight_decay = 0.0)
-        self.loss_func = torch.nn.MSELoss(reduction = 'sum')
+        self.optimizer = optim.Adam(self.model.parameters(), lr = self.lr, weight_decay = weight_decay)
+        #self.loss_func = torch.nn.MSELoss(reduction = 'sum')
+        self.loss_func = torch.nn.SmoothL1Loss(reduction = 'sum')
     
     def train(self, warp, transform):
         self.model.train()
