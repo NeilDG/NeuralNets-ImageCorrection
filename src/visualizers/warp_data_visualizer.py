@@ -5,6 +5,7 @@ Data visualizer for analyzing input data
 @author: delgallegon
 """
 from loaders import torch_image_loader as loader
+from utils import tensor_utils as tu
 import os
 import numpy as np
 import cv2
@@ -411,7 +412,7 @@ def visualize_transform_M(M_list, label, color = 'g'):
     X = list(range(0, np.shape(M_list)[0]))
     Y = []
     for i in range(np.shape(M_list)[0]):
-        print(M_list[i].mean())
+        #print(M_list[i].mean())
         Y.append(M_list[i].mean())
         #Y.append(np.linalg.norm(M_list[i]))
     
@@ -440,11 +441,47 @@ def visualize_predict_M(predicted_M_list):
     
     plt.title("Differences of predicted T")
     plt.show()
+
+def count_edges(train_data, test_data):
+    Y = []
+    for warp_tensor in train_data:
+        warp_img = tu.convert_to_opencv(warp_tensor)
+        sobel_edge = cv2.Sobel(warp_img,cv2.CV_64F,1,0,ksize=5)
+        abs_sobel = np.clip(np.absolute(sobel_edge),0,1)
+        abs_sobel = abs_sobel.astype(np.uint8)
+        abs_sobel = cv2.cvtColor(abs_sobel, cv2.COLOR_BGR2GRAY)
+#        plt.imshow(warp_img)
+#        plt.show()
+#        plt.imshow(abs_sobel)
+#        plt.show()
+        Y.append(cv2.countNonZero(abs_sobel))
+    
+    X = list(range(0, np.shape(Y)[0]))
+    plt.title("Edge counts")
+    plt.scatter(X, Y, color = 'r')
+    
+    X = []; Y = []
+    for warp_tensor in test_data:
+        warp_img = tu.convert_to_opencv(warp_tensor)
+        sobel_edge = cv2.Sobel(warp_img,cv2.CV_64F,1,0,ksize=5)
+        abs_sobel = np.clip(np.absolute(sobel_edge),0,1)
+        abs_sobel = abs_sobel.astype(np.uint8)
+        abs_sobel = cv2.cvtColor(abs_sobel, cv2.COLOR_BGR2GRAY)
+#        plt.imshow(warp_img)
+#        plt.show()
+#        plt.imshow(abs_sobel)
+#        plt.show()
+        Y.append(cv2.countNonZero(abs_sobel))
+    X = list(range(0, np.shape(Y)[0]))
+    plt.scatter(X, Y, color = 'g')
     
 def main():
     all_transforms = []
     predict_transforms = []
-    warp_list = []
+    train_warp_list = []
+    test_warp_list = []
+    train_rgb_list = []
+    test_rgb_list = []
     predict_list_files = retrieve_predict_warp_list()
     for pfile in predict_list_files:
         predict_transforms.append(np.loadtxt(pfile))
@@ -453,37 +490,44 @@ def main():
     predict_transforms.insert(0, 1.0)
     predict_transforms.insert(4, 1.0)
     
-    for batch_idx, (rgb, warp, transform) in enumerate(loader.load_dataset(batch_size = 64)):
+    for batch_idx, (rgb, warp, transform) in enumerate(loader.load_dataset(batch_size = 64, num_image_to_load = 500)):
         for t in transform:
             all_transforms.append(t.numpy())
         
         for warp_img in warp:
-            warp_list.append(warp_img.numpy())
-       
-    visualize_transform_M(all_transforms, color = 'g', label = "training set")
-    all_transforms.clear()
-    all_transforms = []
+            train_warp_list.append(warp_img)
         
-        #if(batch_idx % 500 == 0):
-            #break
+        for rgb_img in rgb:
+            train_rgb_list.append(rgb_img)
+    
+        #visualize_transform_M(all_transforms, color = 'g', label = "training set")
+        all_transforms.clear()
+        all_transforms = []
         
-    for batch_idx, (rgb, warp, transform) in enumerate(loader.load_test_dataset(batch_size = 64)):
+        count_edges(train_warp_list, test_warp_list)
+        train_warp_list.clear(); test_warp_list.clear();
+        train_rgb_list.clear(); test_rgb_list.clear();
+        
+    for batch_idx, (rgb, warp, transform) in enumerate(loader.load_test_dataset(batch_size = 64, num_image_to_load = 500)):
         for t in transform:
             all_transforms.append(t.numpy())
         
         for warp_img in warp:
-            warp_list.append(warp_img.numpy())
-       
-    visualize_transform_M(all_transforms, color = 'b', label = "test set")
-    all_transforms.clear()
-    all_transforms = []
+            test_warp_list.append(warp_img)
         
-        #if(batch_idx % 500 == 0):
-            #break
+        for rgb_img in rgb:
+            test_rgb_list.append(rgb_img)
+       
+        #visualize_transform_M(all_transforms, color = 'b', label = "test set")
+        all_transforms.clear()
+        all_transforms = []
     
-    visualize_predict_M(predict_transforms)
+        count_edges(train_warp_list, test_warp_list)
+        train_warp_list.clear(); test_warp_list.clear();
+        train_rgb_list.clear(); test_rgb_list.clear();
     
-    #visualize_input_data(warp_list)
+    plt.show()
+    
     
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     main()
