@@ -460,7 +460,7 @@ def count_edges(warp_data, edge_list, counter):
 #        plt.imshow(abs_sobel)
 #        plt.show()
         num_zero = cv2.countNonZero(abs_sobel)
-        if(num_zero > 400000 and num_zero < 500000):
+        if(num_zero < 100000):
             plt.imshow(warp_img)
             plt.savefig(gv.IMAGE_PATH_EDGES + "/rgb_" +str(counter.edge_img_counter)+".png", bbox_inches='tight', pad_inches=0)
             plt.show()
@@ -472,6 +472,16 @@ def count_edges(warp_data, edge_list, counter):
         edge_list.append(num_zero)
     
     return edge_list
+
+def count_edge_from_img(warp_img):
+    sobel_edge_x = cv2.Sobel(warp_img,cv2.CV_64F,1,0,ksize=5)
+    sobel_edge_y = cv2.Sobel(warp_img,cv2.CV_64F,0,1,ksize=5)
+    abs_sobel = np.clip(np.absolute(sobel_edge_x + sobel_edge_y),0,1)
+    abs_sobel = abs_sobel.astype(np.uint8)
+    abs_sobel = cv2.cvtColor(abs_sobel, cv2.COLOR_BGR2GRAY)
+    num_zero = cv2.countNonZero(abs_sobel)
+    
+    return num_zero
 
 def visualize_edge_count(train_edge_list, test_edge_list, should_save, filename = ""):
     X = list(range(0, np.shape(train_edge_list)[0]))
@@ -535,7 +545,7 @@ def main():
         all_transforms = []
         
         count_edges(train_warp_list, train_warp_edge_list, counter)
-        count_edges(train_rgb_list, train_rgb_edge_list, counter)
+        #count_edges(train_rgb_list, train_rgb_edge_list, counter)
         train_warp_list.clear();
         train_rgb_list.clear();
         
@@ -554,12 +564,12 @@ def main():
         all_transforms = []
     
         count_edges(test_warp_list, test_warp_edge_list, counter)
-        count_edges(test_rgb_list, test_rgb_edge_list, counter)
+        #count_edges(test_rgb_list, test_rgb_edge_list, counter)
         test_warp_list.clear();
         test_rgb_list.clear();
     
     visualize_edge_count(train_warp_edge_list, test_warp_edge_list, True, "warp_edge_dist")
-    visualize_edge_count(train_rgb_edge_list, test_rgb_edge_list, True, "test_edge_dist")
+    #visualize_edge_count(train_rgb_edge_list, test_rgb_edge_list, True, "test_edge_dist")
     
     
     
