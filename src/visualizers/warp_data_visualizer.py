@@ -15,6 +15,10 @@ from skimage.measure import compare_ssim
 from skimage.measure import compare_mse
 from skimage.measure import compare_nrmse
 
+class Counters:
+    def __init__(self):
+        self.edge_img_counter = 0
+
 #saves predicted transforms inferred by network. Always set start_index = 0 if you want to
 #override saved predictions
 def save_predicted_transforms(M_list, start_index = 0):
@@ -442,38 +446,56 @@ def visualize_predict_M(predicted_M_list):
     plt.title("Differences of predicted T")
     plt.show()
 
-def count_edges(train_data, test_data):
+def count_edges(warp_data, edge_list, counter):  
+    
+    for warp_tensor in warp_data:
+        warp_img = tu.convert_to_opencv(warp_tensor)
+        sobel_edge_x = cv2.Sobel(warp_img,cv2.CV_64F,1,0,ksize=5)
+        sobel_edge_y = cv2.Sobel(warp_img,cv2.CV_64F,0,1,ksize=5)
+        abs_sobel = np.clip(np.absolute(sobel_edge_x + sobel_edge_y),0,1)
+        abs_sobel = abs_sobel.astype(np.uint8)
+        abs_sobel = cv2.cvtColor(abs_sobel, cv2.COLOR_BGR2GRAY)
+#        plt.imshow(warp_img)
+#        plt.show()
+#        plt.imshow(abs_sobel)
+#        plt.show()
+        num_zero = cv2.countNonZero(abs_sobel)
+        if(num_zero > 400000 and num_zero < 500000):
+            plt.imshow(warp_img)
+            plt.savefig(gv.IMAGE_PATH_EDGES + "/rgb_" +str(counter.edge_img_counter)+".png", bbox_inches='tight', pad_inches=0)
+            plt.show()
+            plt.imshow(abs_sobel)
+            plt.savefig(gv.IMAGE_PATH_EDGES + "/edge_" +str(counter.edge_img_counter)+".png", bbox_inches='tight', pad_inches=0)
+            plt.show()
+            counter.edge_img_counter = counter.edge_img_counter + 1
+        
+        edge_list.append(num_zero)
+    
+    return edge_list
+
+def visualize_edge_count(train_edge_list, test_edge_list, should_save, filename = ""):
+    X = list(range(0, np.shape(train_edge_list)[0]))
     Y = []
-    for warp_tensor in train_data:
-        warp_img = tu.convert_to_opencv(warp_tensor)
-        sobel_edge = cv2.Sobel(warp_img,cv2.CV_64F,1,0,ksize=5)
-        abs_sobel = np.clip(np.absolute(sobel_edge),0,1)
-        abs_sobel = abs_sobel.astype(np.uint8)
-        abs_sobel = cv2.cvtColor(abs_sobel, cv2.COLOR_BGR2GRAY)
-#        plt.imshow(warp_img)
-#        plt.show()
-#        plt.imshow(abs_sobel)
-#        plt.show()
-        Y.append(cv2.countNonZero(abs_sobel))
     
-    X = list(range(0, np.shape(Y)[0]))
-    plt.title("Edge counts")
-    plt.scatter(X, Y, color = 'r')
+    for i in range(np.shape(train_edge_list)[0]):
+        Y.append(train_edge_list[i])
     
-    X = []; Y = []
-    for warp_tensor in test_data:
-        warp_img = tu.convert_to_opencv(warp_tensor)
-        sobel_edge = cv2.Sobel(warp_img,cv2.CV_64F,1,0,ksize=5)
-        abs_sobel = np.clip(np.absolute(sobel_edge),0,1)
-        abs_sobel = abs_sobel.astype(np.uint8)
-        abs_sobel = cv2.cvtColor(abs_sobel, cv2.COLOR_BGR2GRAY)
-#        plt.imshow(warp_img)
-#        plt.show()
-#        plt.imshow(abs_sobel)
-#        plt.show()
-        Y.append(cv2.countNonZero(abs_sobel))
-    X = list(range(0, np.shape(Y)[0]))
-    plt.scatter(X, Y, color = 'g')
+    plt.scatter(X, Y, color = 'r', label = "train")
+    
+    X = list(range(0, np.shape(test_edge_list)[0]))
+    Y = []
+    
+    for i in range(np.shape(test_edge_list)[0]):
+        Y.append(test_edge_list[i])
+    
+    plt.scatter(X, Y, color = 'g', label = "test")
+    plt.legend()
+    plt.title("Sharpness measure distribution of images")
+    
+    if(should_save):
+        plt.savefig(gv.IMAGE_PATH_EDGES + "/" +filename+".png", bbox_inches='tight', pad_inches=0)
+    
+    plt.show()
     
 def main():
     all_transforms = []
@@ -482,6 +504,14 @@ def main():
     test_warp_list = []
     train_rgb_list = []
     test_rgb_list = []
+    
+    train_warp_edge_list = []
+    test_warp_edge_list = []
+    train_rgb_edge_list = []
+    test_rgb_edge_list = []
+    
+    counter = Counters()
+    
     predict_list_files = retrieve_predict_warp_list()
     for pfile in predict_list_files:
         predict_transforms.append(np.loadtxt(pfile))
@@ -493,7 +523,7 @@ def main():
     for batch_idx, (rgb, warp, transform) in enumerate(loader.load_dataset(batch_size = 64, num_image_to_load = 500)):
         for t in transform:
             all_transforms.append(t.numpy())
-        
+            
         for warp_img in warp:
             train_warp_list.append(warp_img)
         
@@ -504,9 +534,10 @@ def main():
         all_transforms.clear()
         all_transforms = []
         
-        count_edges(train_warp_list, test_warp_list)
-        train_warp_list.clear(); test_warp_list.clear();
-        train_rgb_list.clear(); test_rgb_list.clear();
+        count_edges(train_warp_list, train_warp_edge_list, counter)
+        count_edges(train_rgb_list, train_rgb_edge_list, counter)
+        train_warp_list.clear();
+        train_rgb_list.clear();
         
     for batch_idx, (rgb, warp, transform) in enumerate(loader.load_test_dataset(batch_size = 64, num_image_to_load = 500)):
         for t in transform:
@@ -522,11 +553,14 @@ def main():
         all_transforms.clear()
         all_transforms = []
     
-        count_edges(train_warp_list, test_warp_list)
-        train_warp_list.clear(); test_warp_list.clear();
-        train_rgb_list.clear(); test_rgb_list.clear();
+        count_edges(test_warp_list, test_warp_edge_list, counter)
+        count_edges(test_rgb_list, test_rgb_edge_list, counter)
+        test_warp_list.clear();
+        test_rgb_list.clear();
     
-    plt.show()
+    visualize_edge_count(train_warp_edge_list, test_warp_edge_list, True, "warp_edge_dist")
+    visualize_edge_count(train_rgb_edge_list, test_rgb_edge_list, True, "test_edge_dist")
+    
     
     
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
