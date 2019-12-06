@@ -18,7 +18,7 @@ import numpy as np
 
 LR = 0.0001
 num_epochs = 80
-BATCH_SIZE = 16 
+BATCH_SIZE = 8
 CNN_VERSION = "cnn_v3.31"
 OPTIMIZER_KEY = "optimizer"
 
@@ -30,7 +30,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(True):
+    if(False):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         ct.load_saved_states(checkpoint[ct.get_name()], checkpoint[ct.get_name() + OPTIMIZER_KEY])
@@ -48,7 +48,7 @@ def start_train(gpu_device):
         for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
             ct.train(warp, transform)
             accum_loss = accum_loss + ct.get_batch_loss()
-            
+             
             if(batch_idx % 25 == 0):
                 print("Batch id: ", batch_idx,
                       "\n[",ct.get_name(),"] Loss: ", ct.get_batch_loss())
