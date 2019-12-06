@@ -217,7 +217,19 @@ def generate_unseen_samples(repeat):
             cv2.imwrite(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(count)+ ".png", result)
             np.savetxt(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(count)+ ".txt", inverse_M)
             count = count + 1
-        
+
+def refine_data(orig_img, result, M, inverse_M, reverse_img, threshold):
+   num_edge = wdv.count_edge_from_img(reverse_img)
+   while(num_edge < threshold):
+       print("Edge count not enough! Regenerating! Edge count is only ", num_edge)
+       result, M, inverse_M = perform_warp(orig_img, np.random.rand() * 0.005, np.random.rand() * 0.005, 
+                                            np.random.rand() * 0.005, np.random.rand() * 0.005, 
+                                            WARP_MULT)
+       result = remove_border_and_resize(result, 1)
+       reverse_img = perform_unwarp(result, inverse_M)
+       num_edge = wdv.count_edge_from_img(reverse_img)
+   return result, M, inverse_M, reverse_img
+
 def generate(index_start = 0):
     rgb_list = retrieve_kitti_rgb_list();
     print("Images found: ", np.size(rgb_list))
@@ -226,6 +238,8 @@ def generate(index_start = 0):
     NO_WARP_CHANCE = 0.05;
     
     for i in range(np.size(rgb_list)): 
+            
+        
         img = cv2.imread(rgb_list[i])
         dice_roll = np.random.rand();
         if(dice_roll < NO_WARP_CHANCE):
@@ -251,6 +265,8 @@ def generate(index_start = 0):
         img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
                                           value=[255,255,255])
         result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
+        
+        result, M, inverse_M, reverse_img = refine_data(cv2.imread(rgb_list[i]), result, M, inverse_M, reverse_img, 400000)
         
         if((i + index_start) < (train_split + index_start)):
             cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(i + index_start)+ ".png", img)

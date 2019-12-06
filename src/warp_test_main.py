@@ -24,7 +24,8 @@ OPTIMIZER_KEY = "optimizer"
   
 def compute_dataset_mean(test_dataset):
     accumulate_T = np.zeros(9)
-    count = 0     
+    count = 0   
+     
     for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
         for index in range(len(warp)):
             reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
@@ -62,7 +63,7 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 1000)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = -1)
     compute_dataset_mean(test_dataset)
     #visualize_layers(gpu_device, model_list, test_dataset)
     measure_performance(gpu_device, ct, test_dataset)

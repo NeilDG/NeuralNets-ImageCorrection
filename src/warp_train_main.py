@@ -16,16 +16,16 @@ import modular_trainer as trainer
 import concat_trainer
 import numpy as np
 
-LR = 0.0005
-num_epochs = 60
-BATCH_SIZE = 42
-CNN_VERSION = "cnn_v3.28"
+LR = 0.0001
+num_epochs = 80
+BATCH_SIZE = 8
+CNN_VERSION = "cnn_v3.31"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
     #initialize tensorboard writer
     writer = SummaryWriter('train/train_result')
-    ct = concat_trainer.ConcatTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR)
+    ct = concat_trainer.ConcatTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR, weight_decay = 0.0)
     
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
@@ -48,7 +48,7 @@ def start_train(gpu_device):
         for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
             ct.train(warp, transform)
             accum_loss = accum_loss + ct.get_batch_loss()
-            
+             
             if(batch_idx % 25 == 0):
                 print("Batch id: ", batch_idx,
                       "\n[",ct.get_name(),"] Loss: ", ct.get_batch_loss())
