@@ -460,7 +460,7 @@ def count_edges(warp_data, edge_list, counter):
 #        plt.imshow(abs_sobel)
 #        plt.show()
         num_zero = cv2.countNonZero(abs_sobel)
-        if(num_zero < 100000):
+        if(num_zero < 150000):
             plt.imshow(warp_img)
             plt.savefig(gv.IMAGE_PATH_EDGES + "/rgb_" +str(counter.edge_img_counter)+".png", bbox_inches='tight', pad_inches=0)
             plt.show()
