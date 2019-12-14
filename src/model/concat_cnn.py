@@ -47,7 +47,7 @@ class ConcatCNN(nn.Module):
                             nn.ReLU(),
                             nn.Linear(128, 64),
                             nn.Tanh(),
-                            nn.Linear(64, 6),
+                            nn.Linear(64, 4),
                             nn.Tanh())
         
     def forward(self, x):

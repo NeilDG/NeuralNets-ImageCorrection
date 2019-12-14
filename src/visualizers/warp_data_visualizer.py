@@ -222,14 +222,12 @@ def show_transform_image(rgb, M_list, ground_truth_M, should_inverse, should_sav
     f.set_size_inches(12,10)
     
     pred_M = np.ones((3,3))
-    #pred_M[0,0] = M_list[0]
     pred_M[0,1] = M_list[0]
-    pred_M[0,2] = M_list[1]
-    pred_M[1,0] = M_list[2]
-    #pred_M[1,1] = M_list[4]
-    pred_M[1,2] = M_list[3]
-    pred_M[2,0] = M_list[4]
-    pred_M[2,1] = M_list[5]
+    pred_M[0,2] = 0.0
+    pred_M[1,0] = M_list[1]
+    pred_M[1,2] = 0.0
+    pred_M[2,0] = M_list[2]
+    pred_M[2,1] = M_list[3]
     
     M = ground_truth_M.numpy()
     if(should_inverse):
@@ -252,14 +250,15 @@ def show_transform_image(rgb, M_list, ground_truth_M, should_inverse, should_sav
         plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
     plt.show()
     
-    print("Predicted M1 val: ", 1.0, "Actual val: ",ground_truth_M[0,0].numpy())
-    print("Predicted M2 val: ", M_list[0], "Actual val: ",ground_truth_M[0,1].numpy())
-    print("Predicted M3 val: ", M_list[1], "Actual val: ",ground_truth_M[0,2].numpy())
-    print("Predicted M4 val: ", M_list[2], "Actual val: ",ground_truth_M[1,0].numpy())
-    print("Predicted M5 val: ", 1.0, "Actual val: ",ground_truth_M[1,1].numpy())
-    print("Predicted M6 val: ", M_list[3], "Actual val: ",ground_truth_M[1,2].numpy())
-    print("Predicted M7 val: ", M_list[4], "Actual val: ",ground_truth_M[2,0].numpy())
-    print("Predicted M8 val: ", M_list[5], "Actual val: ",ground_truth_M[2,1].numpy())
+    print("Predicted M[0] val: ", 1.0, "Actual val: ",ground_truth_M[0,0].numpy())
+    print("Predicted M[1] val: ", M_list[0], "Actual val: ",ground_truth_M[0,1].numpy())
+    print("Predicted M[2] val: ", 0.0, "Actual val: ",ground_truth_M[0,2].numpy())
+    print("Predicted M[3] val: ", M_list[1], "Actual val: ",ground_truth_M[1,0].numpy())
+    print("Predicted M[4] val: ", 1.0, "Actual val: ",ground_truth_M[1,1].numpy())
+    print("Predicted M[5] val: ", 0.0, "Actual val: ",ground_truth_M[1,2].numpy())
+    print("Predicted M[6] val: ", M_list[2], "Actual val: ",ground_truth_M[2,0].numpy())
+    print("Predicted M[7] val: ", M_list[3], "Actual val: ",ground_truth_M[2,1].numpy())
+    print("Predicted M[8] val: ", 1.0, "Actual val: ",ground_truth_M[2,2].numpy())
 
 
 def visualize_M_list(M_list):

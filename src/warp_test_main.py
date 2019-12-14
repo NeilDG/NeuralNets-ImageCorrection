@@ -133,9 +133,11 @@ def measure_performance(gpu_device, trainer, test_dataset):
             reshaped_t = torch.reshape(transform[i], (1, 9)).type('torch.FloatTensor')
             M, loss = trainer.infer(warp_candidate, reshaped_t)
             
-            #append 1's element on correct places
+            #append element on correct places
             M = np.insert(M, 0, 1.0)
+            M = np.insert(M, 2, 0.0)
             M = np.insert(M, 4, 1.0)
+            M = np.insert(M, 5, 0.0)
             M = np.append(M, 1.0)
             print("Predicted M: ", M)
             print("Actual M: ", reshaped_t.numpy())
