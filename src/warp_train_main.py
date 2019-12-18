@@ -19,18 +19,18 @@ import numpy as np
 LR = 0.001
 num_epochs = 100
 BATCH_SIZE = 16
-CNN_VERSION = "cnn_v3.32"
+CNN_VERSION = "cnn_v3.34"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
     #initialize tensorboard writer
     writer = SummaryWriter('train/train_result')
     ct = concat_trainer.ConcatTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR, weight_decay = 0.0)
-    
+     
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(False):
+    if(True):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         ct.load_saved_states(checkpoint[ct.get_name()], checkpoint[ct.get_name() + OPTIMIZER_KEY])
