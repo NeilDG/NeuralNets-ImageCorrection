@@ -41,14 +41,16 @@ class ConcatCNN(nn.Module):
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
         self.conv8 = nn.Sequential(conv, relu)
         self.conv9 = nn.Sequential(conv, relu)
+        self.conv10 = nn.Sequential(conv, relu)
         
         self.fc_block = nn.Sequential(
                             nn.Linear(256, 128),
                             nn.ReLU(),
                             nn.Linear(128, 64),
-                            nn.Tanh(),
-                            nn.Linear(64, 6),
-                            nn.Tanh())
+                            nn.ReLU(),
+                            nn.Linear(64,32),
+                            nn.ReLU(),
+                            nn.Linear(32, 4))
         
     def forward(self, x):
         x = self.conv1(x)
@@ -60,6 +62,7 @@ class ConcatCNN(nn.Module):
         x = self.conv7(x)
         x = self.conv8(x)
         x = self.conv9(x)
+        x = self.conv10(x)
         #x = x.view(x.size()[0], -1) #flatten
         x = torch.flatten(x,1)
         x = self.fc_block(x)

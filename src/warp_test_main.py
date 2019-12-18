@@ -63,7 +63,7 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = -1)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
     compute_dataset_mean(test_dataset)
     #visualize_layers(gpu_device, model_list, test_dataset)
     measure_performance(gpu_device, ct, test_dataset)
@@ -133,9 +133,11 @@ def measure_performance(gpu_device, trainer, test_dataset):
             reshaped_t = torch.reshape(transform[i], (1, 9)).type('torch.FloatTensor')
             M, loss = trainer.infer(warp_candidate, reshaped_t)
             
-            #append 1's element on correct places
+            #append element on correct places
             M = np.insert(M, 0, 1.0)
+            M = np.insert(M, 2, 0.0)
             M = np.insert(M, 4, 1.0)
+            M = np.insert(M, 5, 0.0)
             M = np.append(M, 1.0)
             print("Predicted M: ", M)
             print("Actual M: ", reshaped_t.numpy())
@@ -180,29 +182,29 @@ def measure_performance(gpu_device, trainer, test_dataset):
             pixel_rmse[2] = pixel_rmse[2] + RMSE[2]
             count = count + 1
     
-    average_MAE[0] = np.round(np.sum(accum_mae[0] / (count * 1.0)), 4)
-    average_MAE[1] = np.round(np.sum(accum_mae[1] / (count * 1.0)), 4)
-    average_MAE[2] = np.round(np.sum(accum_mae[2] / (count * 1.0)), 4)
+    average_MAE[0] = np.round(np.sum(accum_mae[0] / (count * 1.0)), 8)
+    average_MAE[1] = np.round(np.sum(accum_mae[1] / (count * 1.0)), 8)
+    average_MAE[2] = np.round(np.sum(accum_mae[2] / (count * 1.0)), 8)
     
-    average_MSE[0] = np.round(np.sum(accum_mse[0] / (count * 1.0)), 4)
-    average_MSE[1] = np.round(np.sum(accum_mse[1] / (count * 1.0)), 4)
-    average_MSE[2] = np.round(np.sum(accum_mse[2] / (count * 1.0)), 4)
+    average_MSE[0] = np.round(np.sum(accum_mse[0] / (count * 1.0)), 8)
+    average_MSE[1] = np.round(np.sum(accum_mse[1] / (count * 1.0)), 8)
+    average_MSE[2] = np.round(np.sum(accum_mse[2] / (count * 1.0)), 8)
     
-    average_RMSE[0] = np.round(np.sqrt(average_MSE[0]), 4)
-    average_RMSE[1] = np.round(np.sqrt(average_MSE[1]), 4)
-    average_RMSE[2] = np.round(np.sqrt(average_MSE[2]), 4)
+    average_RMSE[0] = np.round(np.sqrt(average_MSE[0]), 8)
+    average_RMSE[1] = np.round(np.sqrt(average_MSE[1]), 8)
+    average_RMSE[2] = np.round(np.sqrt(average_MSE[2]), 8)
     
-    average_SSIM[0] = np.round(accum_ssim[0] / (count * 1.0), 4)
-    average_SSIM[1] = np.round(accum_ssim[1] / (count * 1.0), 4)
-    average_SSIM[2] = np.round(accum_ssim[2] / (count * 1.0), 4)
+    average_SSIM[0] = np.round(accum_ssim[0] / (count * 1.0), 8)
+    average_SSIM[1] = np.round(accum_ssim[1] / (count * 1.0), 8)
+    average_SSIM[2] = np.round(accum_ssim[2] / (count * 1.0), 8)
     
-    average_pixel_MSE[0] = np.round(np.sum(pixel_mse[0] / (count * 1.0)), 4)
-    average_pixel_MSE[1] = np.round(np.sum(pixel_mse[1] / (count * 1.0)), 4)
-    average_pixel_MSE[2] = np.round(np.sum(pixel_mse[2] / (count * 1.0)), 4)
+    average_pixel_MSE[0] = np.round(np.sum(pixel_mse[0] / (count * 1.0)), 8)
+    average_pixel_MSE[1] = np.round(np.sum(pixel_mse[1] / (count * 1.0)), 8)
+    average_pixel_MSE[2] = np.round(np.sum(pixel_mse[2] / (count * 1.0)), 8)
     
-    average_pixel_RMSE[0] = np.round(np.sum(pixel_rmse[0] / (count * 1.0)), 4)
-    average_pixel_RMSE[1] = np.round(np.sum(pixel_rmse[1] / (count * 1.0)), 4)
-    average_pixel_RMSE[2] = np.round(np.sum(pixel_rmse[2] / (count * 1.0)), 4)
+    average_pixel_RMSE[0] = np.round(np.sum(pixel_rmse[0] / (count * 1.0)), 8)
+    average_pixel_RMSE[1] = np.round(np.sum(pixel_rmse[1] / (count * 1.0)), 8)
+    average_pixel_RMSE[2] = np.round(np.sum(pixel_rmse[2] / (count * 1.0)), 8)
     
     with open(gv.IMAGE_PATH_PREDICT + "test_data_result.txt", "w") as f:
         print("Average MAE using dataset mean: ", average_MAE[0], file = f)
