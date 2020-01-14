@@ -19,7 +19,7 @@ import numpy as np
 LR = 0.001
 num_epochs = 100
 BATCH_SIZE = 16
-CNN_VERSION = "cnn_v3.34"
+CNN_VERSION = "cnn_v3.35"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -30,7 +30,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(True):
+    if(False):
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
         ct.load_saved_states(checkpoint[ct.get_name()], checkpoint[ct.get_name() + OPTIMIZER_KEY])

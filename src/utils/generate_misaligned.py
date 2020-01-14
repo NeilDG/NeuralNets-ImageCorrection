@@ -312,9 +312,9 @@ def generate(index_start = 0):
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
-    batch_iterative_warp()
-    #check_generate_data()
+    #batch_iterative_warp()
+    #check_generate_data() 
     #generate(index_start = 0)
-    #generate(index_start = 11196)
-    #generate(index_start = 22392)
+    generate(index_start = 40027)
+    generate(index_start = 80053)
     #generate_unseen_samples(repeat = 15)
