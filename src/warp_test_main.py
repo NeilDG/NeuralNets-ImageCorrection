@@ -17,7 +17,7 @@ import concat_trainer
 import warp_train_main as train_main
 from utils import tensor_utils
 import global_vars as gv
-
+from matplotlib import pyplot as plt
 
 BATCH_SIZE = 32
 OPTIMIZER_KEY = "optimizer"
@@ -26,7 +26,7 @@ def compute_dataset_mean(test_dataset):
     accumulate_T = np.zeros(9)
     count = 0   
      
-    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(test_dataset):
         for index in range(len(warp)):
             reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
             accumulate_T = accumulate_T + reshaped_t.numpy()
@@ -36,24 +36,6 @@ def compute_dataset_mean(test_dataset):
     np.savetxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt", dataset_mean)
    
 def start_test(gpu_device):
-    model_list = []
-##    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/1', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-##                                             writer = None, gt_index = 1, lr = train_main.LR))
-#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/2', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = None, gt_index = 2, lr = train_main.LR))
-#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/3', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = None, gt_index = 3, lr = train_main.LR))
-#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/4', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = None, gt_index = 4, lr = train_main.LR))
-##    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/5', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-##                                             writer = None, gt_index = 5, lr = train_main.LR))
-#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/6', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = None, gt_index = 6, lr = train_main.LR))
-#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/7', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = None, gt_index = 7, lr = train_main.LR))
-#    model_list.append(trainer.ModularTrainer(train_main.CNN_VERSION + '/8', gpu_device = gpu_device, batch_size = BATCH_SIZE,
-#                                             writer = None, gt_index = 8, lr = train_main.LR))
-    
     ct = concat_trainer.ConcatTrainer(train_main.CNN_VERSION, gpu_device = gpu_device, writer = None, lr = train_main.LR)
     
     #checkpoint loading here
@@ -65,7 +47,6 @@ def start_test(gpu_device):
     
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
     compute_dataset_mean(test_dataset)
-    #visualize_layers(gpu_device, model_list, test_dataset)
     measure_performance(gpu_device, ct, test_dataset)
     
 #visualize each layer's output
@@ -127,11 +108,12 @@ def measure_performance(gpu_device, trainer, test_dataset):
     average_pixel_MSE = [0.0, 0.0, 0.0]
     average_pixel_RMSE = [0.0, 0.0, 0.0] 
     
-    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
-        for i in range(np.shape(warp)[0]):
+    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(test_dataset):
+        for i,j in zip(range(np.shape(warp)[0]), range(np.shape(warp_orig)[0])):
             warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0)
+            warp_candidate_orig = torch.unsqueeze(warp_orig[i,:,:,:], 0)
             reshaped_t = torch.reshape(transform[i], (1, 9)).type('torch.FloatTensor')
-            M, loss = trainer.infer(warp_candidate, reshaped_t)
+            M, loss = trainer.infer(warp_candidate, warp_candidate_orig, reshaped_t)
             
             #append element on correct places
             M = np.insert(M, 0, 1.0)
@@ -139,10 +121,10 @@ def measure_performance(gpu_device, trainer, test_dataset):
             M = np.insert(M, 4, 1.0)
             M = np.insert(M, 5, 0.0)
             M = np.append(M, 1.0)
-            print("Predicted M: ", M)
-            print("Actual M: ", reshaped_t.numpy())
-            
+            #print("Predicted M: ", M)
+            #print("Actual M: ", reshaped_t.numpy())
             warp_img = tensor_utils.convert_to_matplotimg(warp, i)
+            warp_orig_img = tensor_utils.convert_to_matplotimg(warp_orig, j)
             rgb_img = tensor_utils.convert_to_matplotimg(rgb, i)
             homog_img, homography_M = warp_visualizer.warp_perspective_least_squares(warp_img, rgb_img)
             
@@ -166,7 +148,8 @@ def measure_performance(gpu_device, trainer, test_dataset):
             matrix_mean = np.reshape(dataset_mean, (3,3))
             matrix_own = np.reshape(M, (3,3))
             chance = np.random.rand() * 100
-            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
+            
+            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, warp_orig_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
             print("Img ", count, " SSIM: ", SSIM)
             
             accum_ssim[0] = accum_ssim[0] + SSIM[0]

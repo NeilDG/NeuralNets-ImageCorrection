@@ -69,6 +69,15 @@ def perform_warp(img):
     
     return result, M, inverse_M
 
+def perform_padded_warp(img, M):
+    x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
+    padded_image = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
+    value=[255,255,255])
+    padded_dim = np.shape(padded_image)
+    result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]), borderValue = (255,255,255))
+    
+    return result
+
 #for debugging and analysis
 def perform_iterative_warp(img):
     #add padding to image to avoid overflow
@@ -193,9 +202,10 @@ def check_generate_data():
     #test read image
     M0_list = []; M1_list = []; M2_list = []; M3_list = []; M4_list= []; M5_list = []
     
-    for i in range(10):
+    for i in range(5):
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M = perform_warp(img)
+        orig_result = perform_padded_warp(img, M)
         result, result_fill = remove_border_and_resize(result, 1)
         reverse_img = perform_unwarp(result_fill, inverse_M, padding_deduct=0)  
         
@@ -203,6 +213,7 @@ def check_generate_data():
                                           value=[255,255,255])
         plt.title("Original image"); plt.imshow(img); plt.show()
         plt.title("Warped image"); plt.imshow(result); plt.show()
+        plt.title("Warped image (Original Res)"); plt.imshow(orig_result); plt.show()
         plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
         #difference = img - reverse_img
         #plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
@@ -274,12 +285,10 @@ def generate(index_start = 0):
     rgb_list = retrieve_kitti_rgb_list();
     print("Images found: ", np.size(rgb_list))
     num_images = np.size(rgb_list)
-    train_split = num_images * 0.8
+    train_split = num_images * 0.9
     NO_WARP_CHANCE = 0.05;
     
     for i in range(np.size(rgb_list)): 
-            
-        
         img = cv2.imread(rgb_list[i])
         dice_roll = np.random.rand();
         if(dice_roll < NO_WARP_CHANCE):
@@ -303,18 +312,18 @@ def generate(index_start = 0):
         img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
                                           value=[255,255,255])
         result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
-        
+        orig_result = perform_padded_warp(img, M)
         #result, M, inverse_M, reverse_img = refine_data(cv2.imread(rgb_list[i]), result, M, inverse_M, reverse_img, 430000)
         
         if((i + index_start) < (train_split + index_start)):
-            cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(i + index_start)+ ".png", img)
+            cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(i + index_start)+ ".png", orig_result)
             cv2.imwrite(gv.SAVE_PATH_RGB_CROPPED + "crop_" +str(i + index_start)+ ".png", reverse_img)
             cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".png", result)
             np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".txt", M)
             if (i % 200 == 0):
                 print("Successfully generated transformed image " ,str(i + index_start), ". Saved as train.")
         else:
-            cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(i + index_start)+ ".png", img)
+            cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(i + index_start)+ ".png", orig_result)
             cv2.imwrite(gv.SAVE_PATH_RGB_CROPPED_VAL + "crop_" +str(i + index_start)+ ".png", reverse_img)
             cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".png", result)
             np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".txt", M)
@@ -328,6 +337,6 @@ if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #batch_iterative_warp()
     #check_generate_data() 
     generate(index_start = 0)
-    generate(index_start = 40027)
-    generate(index_start = 80053)
+    generate(index_start = 45156)
+    generate(index_start = 90312)
     #generate_unseen_samples(repeat = 15)

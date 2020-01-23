@@ -211,7 +211,7 @@ def show_blind_image_test(rgb, least_squares_img, M_list, ground_truth_img, inde
 #    print("Predicted M8 val: ", M_list[5], "Actual val: ",ground_truth_M[2,1].numpy())
 
 #performs inference using training data and visualize results
-def show_transform_image(rgb, M_list, ground_truth_M, should_inverse, should_save, current_epoch, save_every_epoch):
+def show_transform_image(rgb, rgb_orig, M_list, ground_truth_M, should_inverse, should_save, current_epoch, save_every_epoch):
     plt.title("Input image")
     plt.imshow(rgb)
     if(should_save and current_epoch % save_every_epoch == 0):
@@ -234,14 +234,14 @@ def show_transform_image(rgb, M_list, ground_truth_M, should_inverse, should_sav
         M = np.linalg.inv(M)
         pred_M = np.linalg.inv(pred_M)
     
-    result = cv2.warpPerspective(rgb, M, (np.shape(rgb)[1], np.shape(rgb)[0]),
+    result = cv2.warpPerspective(rgb_orig, M, (np.shape(rgb)[1], np.shape(rgb)[0]),
                                  borderValue = (1,1,1))
     
     ax1.set_title("Ground truth")
     ax1.imshow(result)
     
     #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
-    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]),
+    result = cv2.warpPerspective(rgb_orig, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]),
                                  borderValue = (1,1,1))
     ax2.set_title("Predicted warp")
     ax2.imshow(result)
@@ -293,8 +293,8 @@ def visualize_results(warp_img, rgb_img, M_list, ground_truth_M, index, p = 0.03
     if(chance_to_save <= p):
         should_save = True
         least_squares_img, h = warp_perspective_least_squares(warp_img, rgb_img)
-        show_transform_image_test(rgb = warp_img, least_squares_img = least_squares_img, M_list = M_list, ground_truth_M = ground_truth_M,
-                                        should_save = should_save, index = index)
+       #show_transform_image_test(rgb = warp_img, least_squares_img = least_squares_img, M_list = M_list, ground_truth_M = ground_truth_M,
+                                        #should_save = should_save, index = index)
 #visualize unseen data
 def visualize_blind_results(warp_img, rgb_img, M_list, index, p = 0.03):
     chance_to_save = np.random.rand()
@@ -306,15 +306,16 @@ def visualize_blind_results(warp_img, rgb_img, M_list, index, p = 0.03):
                               M_list = M_list, ground_truth_img = rgb_img,
                               should_save = should_save, index = index)
         
-def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
+def measure_ssim(warp_img, warp_img_orig, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
+    
     try:
-        mean_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_mean), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        mean_img = cv2.warpPerspective(warp_img_orig, matrix_mean, (np.shape(warp_img_orig)[1], np.shape(warp_img_orig)[0]),borderValue = (1,1,1))
         h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-        own_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_own), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        own_img = cv2.warpPerspective(warp_img_orig, np.linalg.inv(matrix_own), (np.shape(warp_img_orig)[1], np.shape(warp_img_orig)[0]),borderValue = (1,1,1))
         rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
-        
-        print("Shapes: ", np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
+        print("Shapes: ", np.shape(warp_img_orig), np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
         SSIM = [0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0]
+        
         SSIM[0] = np.round(compare_ssim(mean_img, rgb_img, multichannel = True),4)
         SSIM[1] = np.round(compare_ssim(h_img, rgb_img, multichannel = True),4)
         SSIM[2] = np.round(compare_ssim(own_img, rgb_img, multichannel = True),4)

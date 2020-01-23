@@ -30,13 +30,17 @@ class ConcatTrainer:
         #self.loss_func = torch.nn.MSELoss(reduction = 'sum')
         self.loss_func = torch.nn.SmoothL1Loss(reduction = 'sum')
     
-    def train(self, warp, transform):
+    def train(self, warp, warp_orig, transform):
         self.model.train()
         
         warp_gpu = warp.to(self.gpu_device)
         warp_img = warp[0,:,:,:].numpy()
         warp_img = np.moveaxis(warp_img, -1, 0)
         warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
+        
+        warp_img_orig = warp_orig[0,:,:,:].numpy()
+        warp_img_orig = np.moveaxis(warp_img_orig, -1, 0)
+        warp_img_orig = np.moveaxis(warp_img_orig, -1, 0) #for properly displaying image in matplotlib
         
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
         revised_t = torch.index_select(reshaped_t, 1, torch.tensor([1,3,6,7])).to(self.gpu_device)
@@ -51,7 +55,9 @@ class ConcatTrainer:
         self.batch_loss = loss.cpu().data
         
         self.last_warp_img = warp_img
+        self.last_warp_img_orig = warp_img_orig
         self.last_warp_tensor = torch.unsqueeze(warp[0,:,:,:], 0)
+        self.last_warp_tensor_orig = torch.unsqueeze(warp_orig[0,:,:,:], 0)
         self.last_transform = transform[0]
         self.last_transform_tensor = torch.unsqueeze(reshaped_t[0], 0)
     
@@ -63,17 +69,24 @@ class ConcatTrainer:
                     #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
                     self.writer.add_histogram(module_name + '/weights/' +name, param.data, global_step = current_epoch)
 
-    def infer(self, warp, transform):    
+    def infer(self, warp, warp_orig, transform):    
         #output preview
         warp_gpu = warp.to(self.gpu_device)
         warp_img = warp[0,:,:,:].numpy()
         warp_img = np.moveaxis(warp_img, -1, 0)
         warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
+        
+        warp_img_orig = warp_orig[0,:,:,:].numpy()
+        warp_img_orig = np.moveaxis(warp_img_orig, -1, 0)
+        warp_img_orig = np.moveaxis(warp_img_orig, -1, 0) #for properly displaying image in matplotlib
+        
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
         revised_t = torch.index_select(reshaped_t, 1, torch.tensor([1,3,6,7])).to(self.gpu_device)
         
         self.last_warp_img = warp_img
+        self.last_warp_img_orig = warp_img_orig
         self.last_warp_tensor = torch.unsqueeze(warp[0,:,:,:], 0)
+        self.last_warp_tensor_orig = torch.unsqueeze(warp_orig[0,:,:,:], 0)
         self.last_transform = transform[0]
         self.last_transform_tensor = torch.unsqueeze(reshaped_t[0], 0)
         
@@ -98,12 +111,18 @@ class ConcatTrainer:
     
     def get_last_warp_tensor(self):
         return self.last_warp_tensor
+    
+    def get_last_warp_tensor_orig(self):
+        return self.last_warp_tensor_orig
 
     def get_last_transform(self):
         return self.last_transform
     
     def get_last_transform_tensor(self):
         return self.last_transform_tensor
+    
+    def get_last_warp_img_orig(self):
+        return self.last_warp_img_orig
     
     def get_name(self):
         return self.name

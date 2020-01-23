@@ -13,7 +13,7 @@ import os
 from torchvision import transforms
 
 def assemble_train_data(num_image_to_load = -1):
-    rgb_list = []; warp_list = []; transform_list = []
+    rgb_list = []; warp_list = []; warp_list_orig = []; transform_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB_CROPPED)
     image_len = len(images)
@@ -25,19 +25,35 @@ def assemble_train_data(num_image_to_load = -1):
         rgbImagePath = gv.SAVE_PATH_RGB_CROPPED + images[i]
         rgb_list.append(rgbImagePath)
     
+    images = os.listdir(gv.SAVE_PATH_RGB)
+    image_len = len(images)
+    
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load
+        
+    for i in range(image_len):
+        imagePath = gv.SAVE_PATH_RGB + images[i]
+        warp_list_orig.append(imagePath)
+    
     images = os.listdir(gv.SAVE_PATH_WARP)
-    for i in range(image_len * 2):
+    image_len = len(images)
+    
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load
+    
+    print("Image len: ", image_len)
+    for i in range(image_len):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP + images[i]
             transformPath = gv.SAVE_PATH_WARP + images[i].replace(".png", ".txt")
             warp_list.append(warpImagePath)
             transform_list.append(transformPath)
         
-    return rgb_list, warp_list, transform_list
+    return rgb_list, warp_list_orig, warp_list, transform_list
 
 #if -1, then load all images
 def assemble_test_data(num_image_to_load = -1):
-    rgb_list = []; warp_list = []; transform_list = []
+    rgb_list = []; warp_list = []; warp_list_orig = []; transform_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB_CROPPED_VAL)
     image_len = len(images)
@@ -49,7 +65,22 @@ def assemble_test_data(num_image_to_load = -1):
         rgbImagePath = gv.SAVE_PATH_RGB_CROPPED_VAL + images[i]
         rgb_list.append(rgbImagePath)
     
+    images = os.listdir(gv.SAVE_PATH_RGB_VAL)
+    image_len = len(images)
+    
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load
+        
+    for i in range(image_len):
+        imagePath = gv.SAVE_PATH_RGB_VAL + images[i]
+        warp_list_orig.append(imagePath)
+    
     images = os.listdir(gv.SAVE_PATH_WARP_VAL)
+    image_len = len(images)
+    
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load
+        
     for i in range(image_len * 2):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP_VAL + images[i]
@@ -57,7 +88,7 @@ def assemble_test_data(num_image_to_load = -1):
             warp_list.append(warpImagePath)
             transform_list.append(transformPath)
         
-    return rgb_list, warp_list, transform_list
+    return rgb_list, warp_list_orig, warp_list, transform_list
 
 def assemble_unseen_data():
     rgb_list = []; warp_list = []; transform_list = []
@@ -80,7 +111,7 @@ def assemble_unseen_data():
     return rgb_list, warp_list, transform_list
 
 def load_dataset(batch_size = 8, num_image_to_load = -1):
-    rgb_list, warp_list, transform_list = assemble_train_data(num_image_to_load = num_image_to_load)
+    rgb_list, warp_orig_list, warp_list, transform_list = assemble_train_data(num_image_to_load = num_image_to_load)
     print("Length of train images: ", len(rgb_list), len(warp_list), len(transform_list))
     
     generic_transform = transforms.Compose([
@@ -89,7 +120,7 @@ def load_dataset(batch_size = 8, num_image_to_load = -1):
     ])
     
 
-    train_dataset = image_dataset.TorchImageDataset(rgb_list, warp_list, transform_list, image_transform_op = generic_transform)
+    train_dataset = image_dataset.TorchImageDataset(rgb_list, warp_orig_list, warp_list, transform_list, image_transform_op = generic_transform)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=batch_size,
@@ -100,15 +131,15 @@ def load_dataset(batch_size = 8, num_image_to_load = -1):
     return train_loader
 
 def load_test_dataset(batch_size = 8, num_image_to_load = -1):
-    rgb_list, warp_list, transform_list = assemble_test_data(num_image_to_load = num_image_to_load)
-    print("Length of test images: ", len(rgb_list), len(warp_list), len(transform_list))
+    rgb_list, warp_orig_list, warp_list, transform_list = assemble_test_data(num_image_to_load = num_image_to_load)
+    print("Length of test images: ", len(rgb_list), len(warp_orig_list), len(warp_list), len(transform_list))
     
     generic_transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.ToTensor(),
     ])
 
-    test_dataset = image_dataset.TorchImageDataset(rgb_list, warp_list, transform_list, image_transform_op = generic_transform)
+    test_dataset = image_dataset.TorchImageDataset(rgb_list, warp_orig_list, warp_list, transform_list, image_transform_op = generic_transform)
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
