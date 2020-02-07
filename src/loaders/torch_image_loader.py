@@ -15,14 +15,14 @@ from torchvision import transforms
 def assemble_train_data(num_image_to_load = -1):
     rgb_list = []; warp_list = []; warp_list_orig = []; transform_list = []
     
-    images = os.listdir(gv.SAVE_PATH_RGB_CROPPED)
+    images = os.listdir(gv.SAVE_PATH_RGB_GT)
     image_len = len(images)
     
     if(num_image_to_load > 0):
         image_len = num_image_to_load
     
     for i in range(image_len): #len(images)
-        rgbImagePath = gv.SAVE_PATH_RGB_CROPPED + images[i]
+        rgbImagePath = gv.SAVE_PATH_RGB_GT + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_RGB)
@@ -39,9 +39,9 @@ def assemble_train_data(num_image_to_load = -1):
     image_len = len(images)
     
     if(num_image_to_load > 0):
-        image_len = num_image_to_load
+        image_len = num_image_to_load * 2
     
-    print("Image len: ", image_len)
+    #print("Image len: ", image_len)
     for i in range(image_len):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP + images[i]
@@ -55,14 +55,14 @@ def assemble_train_data(num_image_to_load = -1):
 def assemble_test_data(num_image_to_load = -1):
     rgb_list = []; warp_list = []; warp_list_orig = []; transform_list = []
     
-    images = os.listdir(gv.SAVE_PATH_RGB_CROPPED_VAL)
+    images = os.listdir(gv.SAVE_PATH_RGB_GT_VAL)
     image_len = len(images)
     
     if(num_image_to_load > 0):
         image_len = num_image_to_load
     
     for i in range(image_len): #len(images)
-        rgbImagePath = gv.SAVE_PATH_RGB_CROPPED_VAL + images[i]
+        rgbImagePath = gv.SAVE_PATH_RGB_GT_VAL + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_RGB_VAL)
@@ -76,12 +76,12 @@ def assemble_test_data(num_image_to_load = -1):
         warp_list_orig.append(imagePath)
     
     images = os.listdir(gv.SAVE_PATH_WARP_VAL)
-    image_len = len(images)
+    image_len = int(len(images))
     
     if(num_image_to_load > 0):
-        image_len = num_image_to_load
+        image_len = num_image_to_load * 2
         
-    for i in range(image_len * 2):
+    for i in range(image_len):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_WARP_VAL + images[i]
             transformPath = gv.SAVE_PATH_WARP_VAL + images[i].replace(".png", ".txt")

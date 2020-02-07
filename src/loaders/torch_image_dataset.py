@@ -49,10 +49,9 @@ class TorchImageDataset(data.Dataset):
         contents = np.loadtxt(transform_id)
         #print("Contents:", contents, "Shape: ", np.shape(contents))
         transform_values = torch.tensor(contents)
-          
-        print("Path: ", warp_orig_id, warp_img_id)
+        
+        #path_filter = warp_img_id.split("/")[3];
         return img.to(), warp_orig_img, warp_img, transform_values
-
     def __len__(self):
         return len(self.rgb_image_list)
         

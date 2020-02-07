@@ -50,7 +50,7 @@ class ConcatCNN(nn.Module):
                             nn.ReLU(),
                             nn.Linear(64,32),
                             nn.ReLU(),
-                            nn.Linear(32, 4))
+                            nn.Linear(32, 9))
         
     def forward(self, x):
         x = self.conv1(x)

@@ -43,7 +43,8 @@ class ConcatTrainer:
         warp_img_orig = np.moveaxis(warp_img_orig, -1, 0) #for properly displaying image in matplotlib
         
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-        revised_t = torch.index_select(reshaped_t, 1, torch.tensor([1,3,6,7])).to(self.gpu_device)
+        #revised_t = torch.index_select(reshaped_t, 1, torch.tensor([1,3,6,7])).to(self.gpu_device)
+        revised_t = reshaped_t.to(self.gpu_device)
         predictions = self.model(warp_gpu)
         
         #print("Prediction size: " ,predictions.size(), " Revised_T size: ", revised_t.size())
@@ -81,7 +82,8 @@ class ConcatTrainer:
         warp_img_orig = np.moveaxis(warp_img_orig, -1, 0) #for properly displaying image in matplotlib
         
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-        revised_t = torch.index_select(reshaped_t, 1, torch.tensor([1,3,6,7])).to(self.gpu_device)
+        #revised_t = torch.index_select(reshaped_t, 1, torch.tensor([1,3,6,7])).to(self.gpu_device)
+        revised_t = reshaped_t.to(self.gpu_device)
         
         self.last_warp_img = warp_img
         self.last_warp_img_orig = warp_img_orig

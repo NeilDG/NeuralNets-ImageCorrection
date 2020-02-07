@@ -10,12 +10,14 @@ Constants files
 DIRECTORY FOR PC
 """
 SAVE_PATH_RGB = 'E:/NN_Dataset/warp_rgb_orig/'
-SAVE_PATH_WARP = 'E:/NN_Dataset/warp_rgb_mod/'
-SAVE_PATH_RGB_CROPPED = 'E:/NN_Dataset/warp_rgb_cropped/'
+SAVE_PATH_WARP = 'E:/NN_Dataset/warp_rgb_train/'
+SAVE_PATH_RGB_GT = 'E:/NN_Dataset/warp_rgb_ground_truth/'
 
 SAVE_PATH_RGB_VAL = 'E:/NN_Dataset/warp_rgb_orig_val/'
-SAVE_PATH_WARP_VAL = 'E:/NN_Dataset/warp_rgb_mod_val/'
-SAVE_PATH_RGB_CROPPED_VAL = 'E:/NN_Dataset/warp_rgb_cropped_val/'
+SAVE_PATH_WARP_VAL = 'E:/NN_Dataset/warp_rgb_val/'
+SAVE_PATH_RGB_GT_VAL = 'E:/NN_Dataset/warp_rgb_ground_truth_val/'
+
+RRL_1_RESULTS_PATH = 'E:/NN_Dataset/KITTI_Result/'
 
 SAVE_PATH_UNSEEN_DATA = 'E:/NN_Dataset/unseen_data_orig/'
 SAVE_PATH_UNSEEN_DATA_RGB = 'E:/NN_Dataset/unseen_data_rgb/'

@@ -45,7 +45,6 @@ def retrieve_unseen_list():
     
     return rgb_list
     
-    return rgb_list
 def perform_warp(img):
     #add padding to image to avoid overflow
     x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
@@ -103,16 +102,20 @@ def perform_iterative_warp(img):
         plt.imshow(result_img)
         plt.show()  
     
-def perform_unwarp(img, inverse_M, padding_deduct = 100):
+def perform_unwarp(img, inverse_M):
     #remove padding first before unwarping
-    dim = np.shape(img)
-    initial_result = cv2.warpPerspective(img, inverse_M, (dim[1], dim[0]), borderValue = (255,255,255))
+    # dim = np.shape(img)
+    # initial_result = cv2.warpPerspective(img, inverse_M, (dim[1], dim[0]), borderValue = (255,255,255))
     
-    x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
-    upper_x = x_dim - padding_deduct
-    upper_y = y_dim - padding_deduct
-    roi_image = initial_result[padding_deduct:upper_x, padding_deduct:upper_y]
-    #roi_image = cv2.resize(roi_image, (gv.WARP_W, gv.WARP_H)) 
+    # x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
+    # upper_x = x_dim - padding_deduct
+    # upper_y = y_dim - padding_deduct
+    # roi_image = initial_result[padding_deduct:upper_x, padding_deduct:upper_y]
+    padded_image = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
+                                          value=[255,255,255])
+    padded_dim = np.shape(padded_image)
+    roi_image = cv2.warpPerspective(img, inverse_M, (padded_dim[1], padded_dim[0]), borderValue = (255,255,255))
+    roi_image = cv2.resize(roi_image, (gv.WARP_W, gv.WARP_H)) 
     return roi_image
 
 def resize_by_border_filling(img):
@@ -194,6 +197,37 @@ def batch_iterative_warp():
     for i in range(1):
         img = cv2.imread(rgb_list[i])
         perform_iterative_warp(img)
+
+def generate_single_data(img):
+    
+    x_ratio = 0.0; y_ratio = 0.0; z_ratio = 0.0
+    while(x_ratio < 0.7 and y_ratio < 0.7 and z_ratio < 0.7):
+        result, M, inverse_M = perform_warp(img)
+        threshold = 1
+        gray = cv2.cvtColor(result,cv2.COLOR_BGR2GRAY)
+        _,thresh = cv2.threshold(gray,threshold,255,cv2.THRESH_BINARY)
+        
+        _,contours,hierarchy = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        cnt = contours[0]
+        x,y,w,h = cv2.boundingRect(cnt)
+        
+        crop = result[y:y+h,x:x+w]
+    
+        crop = polish_border(crop)
+        crop_img = cv2.resize(crop, (gv.WARP_W, gv.WARP_H)) 
+        
+        #print("SHAPES. Cropped: " ,np.shape(crop), " Resized: ", np.shape(crop_img))
+        
+        #compute z ratio
+        x_ratio = (np.shape(crop)[0] + gv.PADDING_CONSTANT) / np.shape(crop_img)[0]
+        y_ratio = (np.shape(crop)[1] + gv.PADDING_CONSTANT) / np.shape(crop_img)[1]
+        z_ratio = ((x_ratio * 0.5) + (y_ratio * 0.5)) / 1.0
+        print("Ratio X:", x_ratio, " Ratio Y: ", y_ratio, "Ratio Z: ", z_ratio)
+        
+        M[0,0] = x_ratio; M[1,1] = y_ratio; M[2,2] = z_ratio
+        inverse_M = np.linalg.inv(M)
+    
+    return result, M, inverse_M, crop_img
     
 def check_generate_data():
     rgb_list = retrieve_kitti_rgb_list();
@@ -204,16 +238,12 @@ def check_generate_data():
     
     for i in range(5):
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M = perform_warp(img)
-        orig_result = perform_padded_warp(img, M)
-        result, result_fill = remove_border_and_resize(result, 1)
-        reverse_img = perform_unwarp(result_fill, inverse_M, padding_deduct=0)  
-        
-        img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
-                                          value=[255,255,255])
+        result, M, inverse_M, crop_img = generate_single_data(img)      
+        reverse_img = perform_unwarp(crop_img, inverse_M)
+
         plt.title("Original image"); plt.imshow(img); plt.show()
-        plt.title("Warped image"); plt.imshow(result); plt.show()
-        plt.title("Warped image (Original Res)"); plt.imshow(orig_result); plt.show()
+        plt.title("Warped image (Original Res)"); plt.imshow(result); plt.show()
+        plt.title("Warped image"); plt.imshow(crop_img); plt.show()
         plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
         #difference = img - reverse_img
         #plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
@@ -281,62 +311,56 @@ def refine_data(orig_img, result, M, inverse_M, reverse_img, threshold):
        num_edge = wdv.count_edge_from_img(reverse_img)
    return result, M, inverse_M, reverse_img
 
-def generate(index_start = 0):
+def generate(repeat = 1):
     rgb_list = retrieve_kitti_rgb_list();
-    print("Images found: ", np.size(rgb_list))
     num_images = np.size(rgb_list)
-    train_split = num_images * 0.9
-    NO_WARP_CHANCE = 0.05;
+    train_split = int(num_images * repeat * 0.95)
+    print("Images found: ", num_images * repeat, "Train split: ", train_split)
     
-    for i in range(np.size(rgb_list)): 
-        img = cv2.imread(rgb_list[i])
-        dice_roll = np.random.rand();
-        if(dice_roll < NO_WARP_CHANCE):
-            result, M, inverse_M = perform_warp(img)
-            result, result_fill = remove_border_and_resize(result, 1)
-        else:
-            result, M, inverse_M = perform_warp(img)
-            result, result_fill = remove_border_and_resize(result, 1)
-        reverse_img = perform_unwarp(result_fill, inverse_M, padding_deduct=0)
-#        plt.imshow(img)
-#        plt.show()
-#        
-#        plt.imshow(reverse_img)
-#        plt.show()
-#        
-#        difference = img - reverse_img
-#        plt.imshow(difference)
-#        plt.show()
-        
-        img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
-        img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
-                                          value=[255,255,255])
-        result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
-        orig_result = perform_padded_warp(img, M)
-        #result, M, inverse_M, reverse_img = refine_data(cv2.imread(rgb_list[i]), result, M, inverse_M, reverse_img, 430000)
-        
-        if((i + index_start) < (train_split + index_start)):
-            cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(i + index_start)+ ".png", orig_result)
-            cv2.imwrite(gv.SAVE_PATH_RGB_CROPPED + "crop_" +str(i + index_start)+ ".png", reverse_img)
-            cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".png", result)
-            np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(i + index_start)+ ".txt", M)
-            if (i % 200 == 0):
-                print("Successfully generated transformed image " ,str(i + index_start), ". Saved as train.")
-        else:
-            cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(i + index_start)+ ".png", orig_result)
-            cv2.imwrite(gv.SAVE_PATH_RGB_CROPPED_VAL + "crop_" +str(i + index_start)+ ".png", reverse_img)
-            cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".png", result)
-            np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(i + index_start)+ ".txt", M)
-            if (i % 200 == 0):
-                print("Successfully generated transformed image " ,str(i + index_start), ". Saved as val.")
-        
-    print("Finished generating dataset!")
+    index = 0
+    for j in range(repeat):
+        for i in range(np.size(rgb_list)): 
+            img = cv2.imread(rgb_list[i])
+            
+            result, M, inverse_M, crop_img = generate_single_data(img)      
+            reverse_img = perform_unwarp(crop_img, inverse_M)
+            
+            img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
+            img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
+                                              value=[255,255,255])
+            result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
+            orig_result = perform_padded_warp(img, M)
+            
+            # f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
+            # f.set_size_inches(20,25)
+            
+            # ax1.imshow(img)
+            # ax2.imshow(orig_result)
+            # ax3.imshow(crop_img)
+            # ax4.imshow(reverse_img)
+            # plt.show()
+            
+            if(index < (train_split + index)):
+                cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(index)+ ".png", orig_result)
+                cv2.imwrite(gv.SAVE_PATH_RGB_GT + "crop_" +str(index)+ ".png", reverse_img)
+                cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(index)+ ".png", crop_img)
+                np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(index)+ ".txt", M)
+                if (i % 200 == 0):
+                    print("Successfully generated transformed image " ,str(index), ". Saved as train.")
+            else:
+                cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(index)+ ".png", orig_result)
+                cv2.imwrite(gv.SAVE_PATH_RGB_GT_VAL + "crop_" +str(index)+ ".png", reverse_img)
+                cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(index)+ ".png", crop_img)
+                np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(index)+ ".txt", M)
+                if (i % 200 == 0):
+                    print("Successfully generated transformed image " ,str(index), ". Saved as val.")
+            
+            index = index + 1
+            
+        print("Finished generating dataset!")
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #batch_iterative_warp()
     #check_generate_data() 
-    generate(index_start = 0)
-    generate(index_start = 45156)
-    generate(index_start = 90312)
-    #generate_unseen_samples(repeat = 15)
+    generate(5)

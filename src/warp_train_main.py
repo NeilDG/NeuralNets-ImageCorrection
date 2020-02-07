@@ -16,10 +16,10 @@ import modular_trainer as trainer
 import concat_trainer
 import numpy as np
 
-LR = 0.001
+LR = 0.0001
 num_epochs = 100
 BATCH_SIZE = 16
-CNN_VERSION = "cnn_v3.36"
+CNN_VERSION = "cnn_v3.37"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
