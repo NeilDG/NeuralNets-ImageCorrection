@@ -57,13 +57,13 @@ def perform_warp(img):
     M = cv2.getPerspectiveTransform(pts1, pts2)
     
     #print("Original M: ", M)
-    M[0,1] = np.random.uniform(-0.00075, 0.00075);
-    #M[0,2] = np.random.uniform(-10, 10);
-    M[1,0] = np.random.uniform(-0.00075, 0.00075);
-    #M[1,2] = M[1,2] + (np.random.random() * W4) - (np.random.random() * W4)
+    M[0,0] = np.random.uniform(0.6, 1.5)
+    M[1,1] = np.random.uniform(0.6, 1.5)
+    M[0,1] = np.random.uniform(-0.009, 0.009)
+    M[1,0] = np.random.uniform(-0.009, 0.009)
     M[2,0] = np.random.uniform(-0.00075, 0.00075)
     M[2,1] = np.random.uniform(-0.00075, 0.00075)
-    result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]), borderValue = (0,0,0))
+    result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
     inverse_M = np.linalg.inv(M)
     
     return result, M, inverse_M
@@ -103,19 +103,15 @@ def perform_iterative_warp(img):
         plt.show()  
     
 def perform_unwarp(img, inverse_M):
-    #remove padding first before unwarping
-    # dim = np.shape(img)
-    # initial_result = cv2.warpPerspective(img, inverse_M, (dim[1], dim[0]), borderValue = (255,255,255))
-    
-    # x_dim = np.shape(img)[0]; y_dim = np.shape(img)[1];
-    # upper_x = x_dim - padding_deduct
-    # upper_y = y_dim - padding_deduct
-    # roi_image = initial_result[padding_deduct:upper_x, padding_deduct:upper_y]
-    padded_image = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
-                                          value=[255,255,255])
-    padded_dim = np.shape(padded_image)
+    # padded_image = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
+    #                                       value=[255,255,255])
+    # padded_dim = np.shape(padded_image)
+    # roi_image = cv2.warpPerspective(img, inverse_M, (padded_dim[1], padded_dim[0]), borderValue = (255,255,255))
+    # roi_image = cv2.resize(roi_image, (gv.WARP_W, gv.WARP_H)) 
+
+    padded_dim = np.shape(img)
     roi_image = cv2.warpPerspective(img, inverse_M, (padded_dim[1], padded_dim[0]), borderValue = (255,255,255))
-    roi_image = cv2.resize(roi_image, (gv.WARP_W, gv.WARP_H)) 
+    #roi_image = cv2.resize(roi_image, (gv.WARP_W, gv.WARP_H)) 
     return roi_image
 
 def resize_by_border_filling(img):
@@ -200,8 +196,8 @@ def batch_iterative_warp():
 
 def generate_single_data(img):
     
-    x_ratio = 0.0; y_ratio = 0.0; z_ratio = 0.0
-    while(x_ratio < 0.7 and y_ratio < 0.7 and z_ratio < 0.7):
+    x_ratio = 0.0; y_ratio = 0.0; z_ratio = 1.0; kp_count = 0
+    while(x_ratio < 0.8 or y_ratio < 0.8 or z_ratio < 0.65 or kp_count < 600):
         result, M, inverse_M = perform_warp(img)
         threshold = 1
         gray = cv2.cvtColor(result,cv2.COLOR_BGR2GRAY)
@@ -210,23 +206,43 @@ def generate_single_data(img):
         _,contours,hierarchy = cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
         cnt = contours[0]
         x,y,w,h = cv2.boundingRect(cnt)
-        
         crop = result[y:y+h,x:x+w]
-    
         crop = polish_border(crop)
         crop_img = cv2.resize(crop, (gv.WARP_W, gv.WARP_H)) 
         
-        #print("SHAPES. Cropped: " ,np.shape(crop), " Resized: ", np.shape(crop_img))
+        # x_dim = np.shape(result)[1]; y_dim = np.shape(result)[0];
+        # img_pts = np.float32([[0,y_dim], [0,0], [x_dim,0], [x_dim, y_dim]])
         
-        #compute z ratio
-        x_ratio = (np.shape(crop)[0] + gv.PADDING_CONSTANT) / np.shape(crop_img)[0]
-        y_ratio = (np.shape(crop)[1] + gv.PADDING_CONSTANT) / np.shape(crop_img)[1]
-        z_ratio = ((x_ratio * 0.5) + (y_ratio * 0.5)) / 1.0
-        print("Ratio X:", x_ratio, " Ratio Y: ", y_ratio, "Ratio Z: ", z_ratio)
+        # crop_pts = cv2.boxPoints(rect)
+        # cv2.drawContours(result, [crop_pts.astype(int)], 0, (0,255,0), 5)
         
-        M[0,0] = x_ratio; M[1,1] = y_ratio; M[2,2] = z_ratio
-        inverse_M = np.linalg.inv(M)
-    
+        # cv2.drawContours(crop_img, [img_pts.astype(int)], 0, (0,255,0), 5)
+        
+        # new_M = cv2.getPerspectiveTransform(img_pts, crop_pts)
+        #new_M = np.linalg.inv(new_M)
+        
+        # print(crop_pts)
+        # print(img_pts)
+        # print("Old M: ", M[0,0], M[1,1], M[2,2])
+        # print("New M: ", new_M[0,0], new_M[1,1], new_M[2,2])
+        #M[0,0] = new_M[0,0]; M[1,1] = new_M[1,1]
+        
+        x_ratio = (w) / gv.WARP_W
+        y_ratio = (h) / gv.WARP_H
+        z_ratio = (w * h) / (gv.WARP_W * gv.WARP_H);
+        #M[0,0] = 1 + (1.0 - x_ratio); M[1,1] = 1.0 + (1.0 - y_ratio); 
+        #M[2,2] = z_ratio
+        #M[0,2] = y; M[1,2] = x
+        #inverse_M = np.linalg.inv(M)
+        
+        #Initiate ORB detector for image verification
+        orb = cv2.ORB_create(700)
+        kp = orb.detect(crop_img,None)
+        kp, des = orb.compute(crop_img, kp)
+        kp_count = np.shape(kp)[0]
+        #print("Keypoint shape: ", kp_count)
+        
+    #print("Ratio X:", x_ratio, " Ratio Y: ", y_ratio, "Ratio Z: ", z_ratio, "Offset X: ", x, " Y: ", y)
     return result, M, inverse_M, crop_img
     
 def check_generate_data():
@@ -234,36 +250,27 @@ def check_generate_data():
     print("Images found: ", np.size(rgb_list))
     
     #test read image
-    M0_list = []; M1_list = []; M2_list = []; M3_list = []; M4_list= []; M5_list = []
+    M_list = []
     
-    for i in range(5):
+    for i in range(25):
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M, crop_img = generate_single_data(img)      
         reverse_img = perform_unwarp(crop_img, inverse_M)
 
-        plt.title("Original image"); plt.imshow(img); plt.show()
-        plt.title("Warped image (Original Res)"); plt.imshow(result); plt.show()
-        plt.title("Warped image"); plt.imshow(crop_img); plt.show()
-        plt.title("Recovered image"); plt.imshow(reverse_img); plt.show()
+        f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1)
+        f.set_size_inches(12,15)
+        
+        ax1.set_title("Warped image (original res)"); ax1.imshow(result);
+        ax2.set_title("Warped image"); ax2.imshow(crop_img);
+        ax3.set_title("Recovered image"); ax3.imshow(reverse_img);
+        img = cv2.resize(img, (gv.WARP_W, gv.WARP_H))
+        ax4.set_title("Original image"); ax4.imshow(img); plt.show()
         #difference = img - reverse_img
         #plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
-        M0_list.append(M[0,1])
-        M1_list.append(M[0,2])
-        M2_list.append(M[1,0])
-        M3_list.append(M[1,2])
-        M4_list.append(M[2,0])
-        M5_list.append(M[2,1])
-    
-    M_parent_list = [];
-    M_parent_list.append(M0_list)
-    M_parent_list.append(M1_list)
-    M_parent_list.append(M2_list)
-    M_parent_list.append(M3_list)
-    M_parent_list.append(M4_list)
-    M_parent_list.append(M5_list)
-    
-    wdv.visualize_M_list(M_list = M_parent_list)
+        M_list.append(M)
+        
+    wdv.visualize_M_list(M_list)
 
 def generate_unseen_samples(repeat):
     rgb_list = retrieve_unseen_list();
@@ -311,13 +318,14 @@ def refine_data(orig_img, result, M, inverse_M, reverse_img, threshold):
        num_edge = wdv.count_edge_from_img(reverse_img)
    return result, M, inverse_M, reverse_img
 
-def generate(repeat = 1):
+def generate(repeat = 1, offset = 0):
     rgb_list = retrieve_kitti_rgb_list();
     num_images = np.size(rgb_list)
     train_split = int(num_images * repeat * 0.95)
     print("Images found: ", num_images * repeat, "Train split: ", train_split)
     
     index = 0
+    offset_index = index + offset
     for j in range(repeat):
         for i in range(np.size(rgb_list)): 
             img = cv2.imread(rgb_list[i])
@@ -340,27 +348,27 @@ def generate(repeat = 1):
             # ax4.imshow(reverse_img)
             # plt.show()
             
-            if(index < (train_split + index)):
-                cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(index)+ ".png", orig_result)
-                cv2.imwrite(gv.SAVE_PATH_RGB_GT + "crop_" +str(index)+ ".png", reverse_img)
-                cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(index)+ ".png", crop_img)
-                np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(index)+ ".txt", M)
+            if(index < train_split):
+                cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(offset_index)+ ".png", orig_result)
+                cv2.imwrite(gv.SAVE_PATH_RGB_GT + "crop_" +str(offset_index)+ ".png", reverse_img)
+                cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(offset_index)+ ".png", crop_img)
+                np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(offset_index)+ ".txt", M)
                 if (i % 200 == 0):
-                    print("Successfully generated transformed image " ,str(index), ". Saved as train.")
+                    print("Successfully generated transformed image " ,str(offset_index), ". Saved as train.")
             else:
-                cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(index)+ ".png", orig_result)
-                cv2.imwrite(gv.SAVE_PATH_RGB_GT_VAL + "crop_" +str(index)+ ".png", reverse_img)
-                cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(index)+ ".png", crop_img)
-                np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(index)+ ".txt", M)
+                cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(offset_index)+ ".png", orig_result)
+                cv2.imwrite(gv.SAVE_PATH_RGB_GT_VAL + "crop_" +str(offset_index)+ ".png", reverse_img)
+                cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(offset_index)+ ".png", crop_img)
+                np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(offset_index)+ ".txt", M)
                 if (i % 200 == 0):
-                    print("Successfully generated transformed image " ,str(index), ". Saved as val.")
+                    print("Successfully generated transformed image " ,str(offset_index), ". Saved as val.")
             
             index = index + 1
-            
+            offset_index = index + offset
         print("Finished generating dataset!")
 
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #batch_iterative_warp()
-    #check_generate_data() 
-    generate(5)
+    check_generate_data() 
+    generate(3, 0)

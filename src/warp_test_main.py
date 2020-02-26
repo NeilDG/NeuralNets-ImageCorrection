@@ -88,7 +88,7 @@ def measure_performance(gpu_device, trainer, test_dataset):
     average_pixel_MSE = [0.0, 0.0, 0.0, 0.0]
     average_pixel_RMSE = [0.0, 0.0, 0.0, 0.0]
     
-    for batch_idx, (rgb, warp_orig, warp, transform, path) in enumerate(test_dataset):
+    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(test_dataset):
         for i in range(np.shape(warp)[0]):
             warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0)
             warp_candidate_orig = torch.unsqueeze(warp_orig[i,:,:,:], 0)
@@ -96,11 +96,11 @@ def measure_performance(gpu_device, trainer, test_dataset):
             M, loss = trainer.infer(warp_candidate, warp_candidate_orig, reshaped_t)
             
             #append element on correct places
-            # M = np.insert(M, 0, 1.0)
-            # M = np.insert(M, 2, 0.0)
-            # M = np.insert(M, 4, 1.0)
-            # M = np.insert(M, 5, 0.0)
-            # M = np.append(M, 1.0)
+            #M = np.insert(M, 0, 1.0)
+            M = np.insert(M, 2, 0.0)
+            #M = np.insert(M, 4, 1.0)
+            M = np.insert(M, 5, 0.0)
+            M = np.append(M, 1.0)
             #print("Predicted M: ", M)
             #print("Actual M: ", reshaped_t.numpy())
             warp_img = tensor_utils.convert_to_matplotimg(warp, i)
@@ -115,40 +115,41 @@ def measure_performance(gpu_device, trainer, test_dataset):
              
             accum_mae[0] = accum_mae[0] + np.absolute(dataset_mean - reshaped_t.numpy())
             accum_mae[1] = accum_mae[1] + np.absolute(h_intensity)
-            accum_mae[3] = accum_mae[3] + np.absolute(M - reshaped_t.numpy())
+            accum_mae[2] = accum_mae[2] + np.absolute(M - reshaped_t.numpy())
             
             accum_mse[0] = accum_mse[0] + np.power(np.absolute(dataset_mean - reshaped_t.numpy()),2)
             accum_mse[1] = accum_mse[1] + np.power(h_intensity,2)
-            accum_mse[3] = accum_mse[3] + np.power(np.absolute(M - reshaped_t.numpy()),2)
+            accum_mse[2] = accum_mse[2] + np.power(np.absolute(M - reshaped_t.numpy()),2)
             
             #measure SSIM
             matrix_mean = np.reshape(dataset_mean, (3,3))
             matrix_own = np.reshape(M, (3,3))
             chance = np.random.rand() * 100
-            try:
-                rrl_1_path = gv.RRL_1_RESULTS_PATH + path[i].split(".")[0] + "_m" + ".jpg"
-                rrl_img = tensor_utils.load_image(rrl_1_path)
-                SSIM, MSE, RMSE = warp_visualizer.measure_ssim(path[i], warp_img, warp_orig_img, rrl_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 10))
-                print("Img ", count, " Path: ", path[i], "RRL path:  ", rrl_1_path, " SSIM: ", SSIM)
+            #rrl_1_path = gv.RRL_1_RESULTS_PATH + path[i].split(".")[0] + "_m" + ".jpg"
+            #rrl_img = tensor_utils.load_image(rrl_1_path)
+            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, warp_orig_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 100))
+            print("Img ", count, " SSIM: ", SSIM, "Chance: ", chance)
+            
+            accum_ssim[0] = accum_ssim[0] + SSIM[0]
+            accum_ssim[1] = accum_ssim[1] + SSIM[1]
+            accum_ssim[2] = accum_ssim[2] + SSIM[2]
+            #accum_ssim[3] = accum_ssim[3] + SSIM[3]
+            
+            pixel_mse[0] = pixel_mse[0] + MSE[0]
+            pixel_mse[1] = pixel_mse[1] + MSE[1]
+            pixel_mse[2] = pixel_mse[2] + MSE[2]
+            #pixel_mse[3] = pixel_mse[3] + MSE[3]
+            
+            pixel_rmse[0] = pixel_rmse[0] + RMSE[0]
+            pixel_rmse[1] = pixel_rmse[1] + RMSE[1]
+            pixel_rmse[2] = pixel_rmse[2] + RMSE[2]
+            #pixel_rmse[3] = pixel_rmse[3] + RMSE[3]
                 
-                accum_ssim[0] = accum_ssim[0] + SSIM[0]
-                accum_ssim[1] = accum_ssim[1] + SSIM[1]
-                accum_ssim[2] = accum_ssim[2] + SSIM[2]
-                accum_ssim[3] = accum_ssim[3] + SSIM[3]
+            count = count + 1
+            # try:
                 
-                pixel_mse[0] = pixel_mse[0] + MSE[0]
-                pixel_mse[1] = pixel_mse[1] + MSE[1]
-                pixel_mse[2] = pixel_mse[2] + MSE[2]
-                pixel_mse[3] = pixel_mse[3] + MSE[3]
-                
-                pixel_rmse[0] = pixel_rmse[0] + RMSE[0]
-                pixel_rmse[1] = pixel_rmse[1] + RMSE[1]
-                pixel_rmse[2] = pixel_rmse[2] + RMSE[2]
-                pixel_rmse[3] = pixel_rmse[3] + RMSE[3]
-                    
-                count = count + 1
-            except:
-                print("RRL path possible error: ", rrl_1_path)
+            # except:
+            #     print("RRL path possible error: ", rrl_1_path)
     
     average_MAE[0] = np.round(np.sum(accum_mae[0] / (count * 1.0)), 8)
     average_MAE[1] = np.round(np.sum(accum_mae[1] / (count * 1.0)), 8)
