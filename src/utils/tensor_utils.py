@@ -7,6 +7,7 @@ Image and tensor utilities
 """
 
 import numpy as np
+import cv2
 
 def convert_to_matplotimg(img_tensor, batch_idx):
     img = img_tensor[batch_idx,:,:,:].numpy()
@@ -20,5 +21,11 @@ def convert_to_opencv(img_tensor):
     img = np.moveaxis(img, -1, 0)
     img = np.moveaxis(img, -1, 0) #for properly displaying image in matplotlib
     
+    return img
+
+#loads an image compatible with opencv
+def load_image(file_path):
+    img = cv2.imread(file_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) 
     return img
     

@@ -9,49 +9,62 @@ import torch.nn as nn
 import torch.nn.functional as F
 import global_vars as gv
 import numpy as np
+from torchvision import models
 
 class ConcatCNN(nn.Module):
     
     def __init__(self):
         super(ConcatCNN, self).__init__()
         
-        conv = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=5, stride=2, padding=1)
-        pool = nn.MaxPool2d(kernel_size=5, stride=1, padding=0)
+        self.resnet_model = models.resnet50(True)
+        for param in self.resnet_model.parameters():
+            param.requires_grad = False
+        
+        
+        conv = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=5, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
+        pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
         relu = nn.ReLU()
         
         self.conv1 = nn.Sequential(conv, pool, relu)
         
-        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1)
+        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
         pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
         dropout = nn.Dropout2d(p = 0.4)
-        
+
         self.conv2 = nn.Sequential(conv, pool, relu, dropout)
         self.conv3 = nn.Sequential(conv, pool, relu, dropout)
         self.conv4 = nn.Sequential(conv, pool, relu, dropout)
         
-        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1)
+        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
         pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         self.conv5 = nn.Sequential(conv, pool, relu, dropout)
         self.conv6 = nn.Sequential(conv, pool, relu, dropout)
         
-        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=1, padding=1)
-        pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        self.conv7 = nn.Sequential(conv, pool, relu, dropout)
+        #conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=1, padding=1); nn.init.xavier_normal_(conv.weight)
+        #pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
+        # self.conv7 = nn.Sequential(conv, pool, relu, dropout)
+        # self.conv8 = nn.Sequential(conv, pool, relu, dropout)
         
-        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 1, padding = 1)
-        self.conv8 = nn.Sequential(conv, relu)
-        self.conv9 = nn.Sequential(conv, relu)
-        self.conv10 = nn.Sequential(conv, relu)
+        # conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)
+        # self.conv9 = nn.Sequential(conv, relu)
+        # self.conv10 = nn.Sequential(conv, relu)
+        # self.conv11 = nn.Sequential(conv, relu)
         
         self.fc_block = nn.Sequential(
+                            nn.Linear(640, 512),
+                            nn.ReLU(),
+                            nn.Linear(512, 512),
+                            nn.ReLU(),
+                            nn.Linear(512, 512),
+                            nn.ReLU(),
+                            nn.Linear(512, 256),
+                            nn.ReLU(),
                             nn.Linear(256, 128),
                             nn.ReLU(),
                             nn.Linear(128, 64),
                             nn.ReLU(),
-                            nn.Linear(64,32),
-                            nn.ReLU(),
-                            nn.Linear(32, 4))
-        
+                            nn.Linear(64,6))
+    
     def forward(self, x):
         x = self.conv1(x)
         x = self.conv2(x)
@@ -59,10 +72,11 @@ class ConcatCNN(nn.Module):
         x = self.conv4(x)
         x = self.conv5(x)
         x = self.conv6(x)
-        x = self.conv7(x)
-        x = self.conv8(x)
-        x = self.conv9(x)
-        x = self.conv10(x)
+        # x = self.conv7(x)
+        # x = self.conv8(x)
+        # x = self.conv9(x)
+        # x = self.conv10(x)
+        # x = self.conv11(x)
         #x = x.view(x.size()[0], -1) #flatten
         x = torch.flatten(x,1)
         x = self.fc_block(x)

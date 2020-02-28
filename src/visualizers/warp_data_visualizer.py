@@ -11,6 +11,7 @@ import numpy as np
 import cv2
 import global_vars as gv
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from skimage.measure import compare_ssim
 from skimage.measure import compare_mse
 from skimage.measure import compare_nrmse
@@ -211,7 +212,7 @@ def show_blind_image_test(rgb, least_squares_img, M_list, ground_truth_img, inde
 #    print("Predicted M8 val: ", M_list[5], "Actual val: ",ground_truth_M[2,1].numpy())
 
 #performs inference using training data and visualize results
-def show_transform_image(rgb, M_list, ground_truth_M, should_inverse, should_save, current_epoch, save_every_epoch):
+def show_transform_image(rgb, rgb_orig, M_list, ground_truth_M, should_inverse, should_save, current_epoch, save_every_epoch):
     plt.title("Input image")
     plt.imshow(rgb)
     if(should_save and current_epoch % save_every_epoch == 0):
@@ -222,26 +223,50 @@ def show_transform_image(rgb, M_list, ground_truth_M, should_inverse, should_sav
     f.set_size_inches(12,10)
     
     pred_M = np.ones((3,3))
-    pred_M[0,1] = M_list[0]
+    # pred_M[0,0] = M_list[0]
+    # pred_M[0,1] = M_list[1]
+    # pred_M[0,2] = M_list[2]
+    # pred_M[1,0] = M_list[3]
+    # pred_M[1,1] = M_list[4]
+    # pred_M[1,2] = M_list[5]
+    # pred_M[2,0] = M_list[6]
+    # pred_M[2,1] = M_list[7]
+    # pred_M[2,2] = M_list[8]
+    
+    pred_M[0,0] = M_list[0]
+    pred_M[0,1] = M_list[1]
     pred_M[0,2] = 0.0
-    pred_M[1,0] = M_list[1]
+    pred_M[1,0] = M_list[2]
+    pred_M[1,1] = M_list[3]
     pred_M[1,2] = 0.0
-    pred_M[2,0] = M_list[2]
-    pred_M[2,1] = M_list[3]
+    pred_M[2,0] = M_list[4]
+    pred_M[2,1] = M_list[5]
     
     M = ground_truth_M.numpy()
+    
+    print("Predicted M[0] val: ", pred_M[0,0], "Actual val: ",ground_truth_M[0,0].numpy())
+    print("Predicted M[1] val: ", pred_M[0,1], "Actual val: ",ground_truth_M[0,1].numpy())
+    print("Predicted M[2] val: ", pred_M[0,2], "Actual val: ",ground_truth_M[0,2].numpy())
+    print("Predicted M[3] val: ", pred_M[1,0], "Actual val: ",ground_truth_M[1,0].numpy())
+    print("Predicted M[4] val: ", pred_M[1,1], "Actual val: ",ground_truth_M[1,1].numpy())
+    print("Predicted M[5] val: ", pred_M[1,2], "Actual val: ",ground_truth_M[1,2].numpy())
+    print("Predicted M[6] val: ", pred_M[2,0], "Actual val: ",ground_truth_M[2,0].numpy())
+    print("Predicted M[7] val: ", pred_M[2,1], "Actual val: ",ground_truth_M[2,1].numpy())
+    print("Predicted M[8] val: ", pred_M[2,2], "Actual val: ",ground_truth_M[2,2].numpy())
+    print()
+    
     if(should_inverse):
         M = np.linalg.inv(M)
         pred_M = np.linalg.inv(pred_M)
     
-    result = cv2.warpPerspective(rgb, M, (np.shape(rgb)[1], np.shape(rgb)[0]),
+    result = cv2.warpPerspective(rgb_orig, M, (np.shape(rgb)[1], np.shape(rgb)[0]),
                                  borderValue = (1,1,1))
     
     ax1.set_title("Ground truth")
     ax1.imshow(result)
     
     #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
-    result = cv2.warpPerspective(rgb, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]),
+    result = cv2.warpPerspective(rgb_orig, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]),
                                  borderValue = (1,1,1))
     ax2.set_title("Predicted warp")
     ax2.imshow(result)
@@ -249,31 +274,19 @@ def show_transform_image(rgb, M_list, ground_truth_M, should_inverse, should_sav
     if(should_save and current_epoch % save_every_epoch == 0):
         plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
     plt.show()
-    
-    print("Predicted M[0] val: ", 1.0, "Actual val: ",ground_truth_M[0,0].numpy())
-    print("Predicted M[1] val: ", M_list[0], "Actual val: ",ground_truth_M[0,1].numpy())
-    print("Predicted M[2] val: ", 0.0, "Actual val: ",ground_truth_M[0,2].numpy())
-    print("Predicted M[3] val: ", M_list[1], "Actual val: ",ground_truth_M[1,0].numpy())
-    print("Predicted M[4] val: ", 1.0, "Actual val: ",ground_truth_M[1,1].numpy())
-    print("Predicted M[5] val: ", 0.0, "Actual val: ",ground_truth_M[1,2].numpy())
-    print("Predicted M[6] val: ", M_list[2], "Actual val: ",ground_truth_M[2,0].numpy())
-    print("Predicted M[7] val: ", M_list[3], "Actual val: ",ground_truth_M[2,1].numpy())
-    print("Predicted M[8] val: ", 1.0, "Actual val: ",ground_truth_M[2,2].numpy())
 
 
 def visualize_M_list(M_list):
-    color=iter(['r', 'g', 'b', 'y', 'c', 'm', 'y']) 
+    #color=iter(['r', 'g', 'b', 'y', 'c', 'm', 'r', 'g', 'b']) 
     plt.title("Distribution of generated M elements")
     
     for i in range(np.shape(M_list)[0]):
-        c = next(color)
-        visualize_individual_M(M_list[i], color = c, label = "A" + str(i+1))
-      
-    plt.show()
+        items = np.ndarray.flatten(M_list[i])
+        x = np.random.rand(np.shape(items)[0])
+        plt.scatter(x, items)
     
 def visualize_individual_M(M0, color, label):
     x = np.random.rand(np.shape(M0)[0])
-
     plt.scatter(x, M0, color = color, label = label)
     plt.legend()
     #plt.show()
@@ -293,8 +306,8 @@ def visualize_results(warp_img, rgb_img, M_list, ground_truth_M, index, p = 0.03
     if(chance_to_save <= p):
         should_save = True
         least_squares_img, h = warp_perspective_least_squares(warp_img, rgb_img)
-        show_transform_image_test(rgb = warp_img, least_squares_img = least_squares_img, M_list = M_list, ground_truth_M = ground_truth_M,
-                                        should_save = should_save, index = index)
+       #show_transform_image_test(rgb = warp_img, least_squares_img = least_squares_img, M_list = M_list, ground_truth_M = ground_truth_M,
+                                        #should_save = should_save, index = index)
 #visualize unseen data
 def visualize_blind_results(warp_img, rgb_img, M_list, index, p = 0.03):
     chance_to_save = np.random.rand()
@@ -305,16 +318,19 @@ def visualize_blind_results(warp_img, rgb_img, M_list, index, p = 0.03):
         show_blind_image_test(rgb = warp_img, least_squares_img = least_squares_img, 
                               M_list = M_list, ground_truth_img = rgb_img,
                               should_save = should_save, index = index)
-        
-def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
+
+def measure_ssim(warp_img, warp_img_orig, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
+    
     try:
-        mean_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_mean), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-        h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-        own_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_own), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        mean_img = cv2.warpPerspective(warp_img_orig, matrix_mean, (np.shape(warp_img_orig)[1], np.shape(warp_img_orig)[0]),borderValue = (1,1,1))
+        h_img = cv2.warpPerspective(warp_img_orig, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        own_img = cv2.warpPerspective(warp_img_orig, np.linalg.inv(matrix_own), (np.shape(warp_img_orig)[1], np.shape(warp_img_orig)[0]),borderValue = (1,1,1))
         rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
         
-        print("Shapes: ", np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
+        #print("Shapes: ", np.shape(warp_img_orig), np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
+       
         SSIM = [0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0]
+        
         SSIM[0] = np.round(compare_ssim(mean_img, rgb_img, multichannel = True),4)
         SSIM[1] = np.round(compare_ssim(h_img, rgb_img, multichannel = True),4)
         SSIM[2] = np.round(compare_ssim(own_img, rgb_img, multichannel = True),4)
@@ -331,7 +347,7 @@ def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, sh
             f, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 1, sharex=True)
             f.set_size_inches(20,15)
             
-            #ax1.set_title("Input image")
+            #ax1.set_title("Input image: " + path)
             ax1.imshow(warp_img)
             
             ax2.set_title("SSIM: "+str(SSIM[0])+ " MSE: "+str(MSE[0])+" RMSE: " +str(RMSE[0]))
@@ -351,10 +367,72 @@ def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, sh
             hide_plot_legend(ax3)
             hide_plot_legend(ax4)
             hide_plot_legend(ax5)
-            plt.savefig(gv.IMAGE_PATH_PREDICT + "/ssim_"+str(count)+ ".png", bbox_inches='tight', pad_inches=0)
+            plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_"+str(count)+ ".png", bbox_inches='tight', pad_inches=0)
             plt.show()  
     except:
-        SSIM = [0.0, 0.0, 0.0]; MSE = [1.0, 1.0, 1.0]; RMSE = [1.0, 1.0, 1.0]
+        SSIM = [0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0]; RMSE = [0.5, 0.5, 0.5]
+        print("Error with measurement")
+    return SSIM, MSE, RMSE
+
+def measure_with_rrl(path, warp_img, warp_img_orig, rrl_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
+    
+    try:
+        mean_img = cv2.warpPerspective(warp_img_orig, matrix_mean, (np.shape(warp_img_orig)[1], np.shape(warp_img_orig)[0]),borderValue = (1,1,1))
+        h_img = cv2.warpPerspective(warp_img_orig, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        own_img = cv2.warpPerspective(warp_img_orig, np.linalg.inv(matrix_own), (np.shape(warp_img_orig)[1], np.shape(warp_img_orig)[0]),borderValue = (1,1,1))
+        rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
+        
+        #print("Shapes: ", np.shape(warp_img_orig), np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
+       
+        SSIM = [0.0, 0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0, 0.0]
+        
+        SSIM[0] = np.round(compare_ssim(mean_img, rgb_img, multichannel = True),4)
+        SSIM[1] = np.round(compare_ssim(h_img, rgb_img, multichannel = True),4)
+        SSIM[2] = np.round(compare_ssim(rrl_img, rgb_img, multichannel = True),4)
+        SSIM[3] = np.round(compare_ssim(own_img, rgb_img, multichannel = True),4)
+        
+        MSE[0] = np.round(compare_mse(mean_img, rgb_img),4)
+        MSE[1] = np.round(compare_mse(h_img, rgb_img),4)
+        MSE[2] = np.round(compare_mse(rrl_img, rgb_img),4)
+        MSE[3] = np.round(compare_mse(own_img, rgb_img),4)
+        
+        RMSE[0] = np.round(compare_nrmse(rgb_img, mean_img),4)
+        RMSE[1] = np.round(compare_nrmse(rgb_img, h_img),4)
+        RMSE[2] = np.round(compare_nrmse(rrl_img, rgb_img),4)
+        RMSE[3] = np.round(compare_nrmse(rgb_img, own_img),4)
+        
+        if(should_visualize):
+            f, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, sharex=True)
+            f.set_size_inches(20,15)
+            
+            #ax1.set_title("Input image: " + path)
+            ax1.imshow(warp_img)
+            
+            ax2.set_title("SSIM: "+str(SSIM[0])+ " MSE: "+str(MSE[0])+" RMSE: " +str(RMSE[0]))
+            ax2.imshow(mean_img)
+            
+            ax3.set_title("SSIM: "+str(SSIM[1])+ " MSE: "+str(MSE[1])+" RMSE: " +str(RMSE[1]))
+            ax3.imshow(h_img)
+            
+            ax4.set_title("SSIM: "+str(SSIM[2])+ " MSE: "+str(MSE[2])+" RMSE: " +str(RMSE[2]))
+            ax4.imshow(rrl_img)
+            
+            ax5.set_title("SSIM: "+str(SSIM[3])+ " MSE: "+str(MSE[3])+" RMSE: " +str(RMSE[3]))
+            ax5.imshow(own_img)
+            
+            #ax5.set_title("Ground truth")
+            ax6.imshow(rgb_img)
+            
+            hide_plot_legend(ax1)
+            hide_plot_legend(ax2)
+            hide_plot_legend(ax3)
+            hide_plot_legend(ax4)
+            hide_plot_legend(ax5)
+            hide_plot_legend(ax6)
+            plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_"+str(count)+ ".png", bbox_inches='tight', pad_inches=0)
+            plt.show()  
+    except:
+        SSIM = [0.0, 0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0, 0.0]; RMSE = [0.5, 0.5, 0.5, 0.5]
     return SSIM, MSE, RMSE
 
 def show_auto_encoder_img(warp_img, pred_img, ground_truth_img, test_title):
@@ -419,7 +497,7 @@ def visualize_transform_M(M_list, label, color = 'g'):
         Y.append(M_list[i].mean())
         #Y.append(np.linalg.norm(M_list[i]))
     
-    plt.scatter(X, Y, color = color, label = label)
+    plt.scatter(X, Y, color = color)
     #plt.ylim(np.average(Y), np.average(Y))
     plt.legend()
 
@@ -527,9 +605,12 @@ def main():
     
     #append 1's element on correct places
     predict_transforms.insert(0, 1.0)
+    predict_transforms.insert(2, 0.0)
     predict_transforms.insert(4, 1.0)
+    predict_transforms.insert(5, 0.0)
+    predict_transforms.append(1.0)
     
-    for batch_idx, (rgb, warp, transform) in enumerate(loader.load_dataset(batch_size = 64, num_image_to_load = 500)):
+    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(loader.load_dataset(batch_size = 32, num_image_to_load = 500)):
         for t in transform:
             all_transforms.append(t.numpy())
             
@@ -539,16 +620,16 @@ def main():
         for rgb_img in rgb:
             train_rgb_list.append(rgb_img)
     
-        #visualize_transform_M(all_transforms, color = 'g', label = "training set")
+        visualize_transform_M(all_transforms, color = 'g', label = "training set")
         all_transforms.clear()
         all_transforms = []
         
-        count_edges(train_warp_list, train_warp_edge_list, counter)
+        #count_edges(train_warp_list, train_warp_edge_list, counter)
         #count_edges(train_rgb_list, train_rgb_edge_list, counter)
         train_warp_list.clear();
         train_rgb_list.clear();
         
-    for batch_idx, (rgb, warp, transform) in enumerate(loader.load_test_dataset(batch_size = 64, num_image_to_load = 500)):
+    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(loader.load_test_dataset(batch_size = 64, num_image_to_load = 500)):
         for t in transform:
             all_transforms.append(t.numpy())
         
@@ -558,16 +639,17 @@ def main():
         for rgb_img in rgb:
             test_rgb_list.append(rgb_img)
        
-        #visualize_transform_M(all_transforms, color = 'b', label = "test set")
+        visualize_transform_M(all_transforms, color = 'b', label = "test set")
         all_transforms.clear()
         all_transforms = []
     
-        count_edges(test_warp_list, test_warp_edge_list, counter)
+        #count_edges(test_warp_list, test_warp_edge_list, counter)
         #count_edges(test_rgb_list, test_rgb_edge_list, counter)
         test_warp_list.clear();
         test_rgb_list.clear();
     
-    visualize_edge_count(train_warp_edge_list, test_warp_edge_list, True, "warp_edge_dist")
+    plt.show();
+    #visualize_edge_count(train_warp_edge_list, test_warp_edge_list, True, "warp_edge_dist")
     #visualize_edge_count(train_rgb_edge_list, test_rgb_edge_list, True, "test_edge_dist")
     
     
