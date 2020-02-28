@@ -27,7 +27,7 @@ def compute_dataset_mean(test_dataset):
     accumulate_T = np.zeros(9)
     count = 0   
      
-    for batch_idx, (rgb, warp_orig, warp, transform, path) in enumerate(test_dataset):
+    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(test_dataset):
         for index in range(len(warp)):
             reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
             accumulate_T = accumulate_T + reshaped_t.numpy()
@@ -47,7 +47,7 @@ def start_test(gpu_device):
     print("Loaded checkpt ",CHECKPATH)
     
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
-    #compute_dataset_mean(test_dataset)
+    compute_dataset_mean(test_dataset)
     measure_performance(gpu_device, ct, test_dataset)
     
 #visualize each layer's output
@@ -127,7 +127,7 @@ def measure_performance(gpu_device, trainer, test_dataset):
             chance = np.random.rand() * 100
             #rrl_1_path = gv.RRL_1_RESULTS_PATH + path[i].split(".")[0] + "_m" + ".jpg"
             #rrl_img = tensor_utils.load_image(rrl_1_path)
-            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, warp_orig_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 100))
+            SSIM, MSE, RMSE = warp_visualizer.measure_ssim(warp_img, warp_orig_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
             print("Img ", count, " SSIM: ", SSIM, "Chance: ", chance)
             
             accum_ssim[0] = accum_ssim[0] + SSIM[0]

@@ -28,8 +28,7 @@ class ConcatTrainer:
         self.model = concat_cnn.ConcatCNN()
         self.model.to(self.gpu_device)
         self.optimizer = optim.Adam(self.model.parameters(), lr = self.lr, weight_decay = weight_decay)
-        self.mse_loss = torch.nn.MSELoss(reduction = 'sum')
-        self.smooth_l1_loss = torch.nn.SmoothL1Loss(reduction = 'sum')
+        self.loss_weights = [1.0, 1.15, 2.5]
     
     def custom_loss(self, pred_group, target_group, weight_group):
         mse_loss = torch.nn.MSELoss(reduction = 'sum')
@@ -65,7 +64,6 @@ class ConcatTrainer:
         p2 = torch.index_select(pred, 1, torch.tensor([1,2]).to(self.gpu_device)).to(self.gpu_device)
         p3 = torch.index_select(pred, 1, torch.tensor([4,5]).to(self.gpu_device)).to(self.gpu_device)
         
-        self.loss_weights = [1.0, 1.15, 2.5]
         
         self.optimizer.zero_grad()
         loss = self.custom_loss([p1, p2, p3], [t1, t2, t3], self.loss_weights)
