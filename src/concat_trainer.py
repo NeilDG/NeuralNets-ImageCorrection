@@ -25,9 +25,13 @@ class ConcatTrainer:
         self.name = name
         self.writer = writer
         
-        self.model = concat_cnn.ConcatCNN()
-        self.model.to(self.gpu_device)
-        self.optimizer = optim.Adam(self.model.parameters(), lr = self.lr, weight_decay = weight_decay)
+        self.model = [0, 0, 0]
+        self.optimizers = [0, 0, 0]
+        for i in range(3):
+            self.model[i] = concat_cnn.ConcatCNN()
+            self.model[i].to(self.gpu_device)
+            self.optimizers[i] = optim.Adam(self.model[i].parameters(), lr = self.lr, weight_decay = weight_decay)
+        
         self.loss_weights = [1.0, 1.15, 2.5]
     
     def custom_loss(self, pred_group, target_group, weight_group):
@@ -39,8 +43,12 @@ class ConcatTrainer:
         loss_group[2] = mse_loss(pred_group[2], target_group[2]) * weight_group[2]
         return loss_group[0] + loss_group[1] + loss_group[2]
     
+    def singular_loss(self, pred, target):
+        mse_loss = torch.nn.MSELoss(reduction = 'sum')
+        return mse_loss(pred, target)
+    
     def train(self, warp, warp_orig, transform):
-        self.model.train()
+        self.model[0].train(); self.model[1].train(); self.model[2].train();
         
         warp_gpu = warp.to(self.gpu_device)
         warp_img = warp[0,:,:,:].numpy()
@@ -53,23 +61,20 @@ class ConcatTrainer:
         
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
         revised_t = torch.index_select(reshaped_t, 1, torch.tensor([0,1,3,4,6,7])).to(self.gpu_device)
-        #custom weighted loss
-        t1 = torch.index_select(reshaped_t, 1, torch.tensor([0,4])).to(self.gpu_device)
-        t2 = torch.index_select(reshaped_t, 1, torch.tensor([1,3])).to(self.gpu_device)
-        t3 = torch.index_select(reshaped_t, 1, torch.tensor([6,7])).to(self.gpu_device)
+        t = [0, 0, 0]
+        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0,4])).to(self.gpu_device)
+        t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1,3])).to(self.gpu_device)
+        t[2] = torch.index_select(reshaped_t, 1, torch.tensor([6,7])).to(self.gpu_device)
         
         #0 1 2 3 4 5
-        pred = self.model(warp_gpu)
-        p1 = torch.index_select(pred, 1, torch.tensor([0,3]).to(self.gpu_device)).to(self.gpu_device)
-        p2 = torch.index_select(pred, 1, torch.tensor([1,2]).to(self.gpu_device)).to(self.gpu_device)
-        p3 = torch.index_select(pred, 1, torch.tensor([4,5]).to(self.gpu_device)).to(self.gpu_device)
-        
-        
-        self.optimizer.zero_grad()
-        loss = self.custom_loss([p1, p2, p3], [t1, t2, t3], self.loss_weights)
-        loss.backward()
-        self.optimizer.step()
-        self.batch_loss = loss.cpu().data
+        self.batch_loss = 0.0
+        for i in range(3):
+            pred = self.model[i](warp_gpu)
+            self.optimizers[i].zero_grad()
+            loss = self.singular_loss(pred, t[i])
+            loss.backward()
+            self.optimizers[i].step();
+            self.batch_loss = self.batch_loss + loss.cpu().data     
         
         self.last_warp_img = warp_img
         self.last_warp_img_orig = warp_img_orig
@@ -80,11 +85,12 @@ class ConcatTrainer:
     
     def log_weights(self, current_epoch):
         #log update in weights
-        for module_name,module in self.model.named_modules():
-            for name, param in module.named_parameters():
-                if(module_name != ""):
-                    #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
-                    self.writer.add_histogram(module_name + '/weights/' +name, param.data, global_step = current_epoch)
+        for model in self.model:
+            for module_name,module in model.named_modules():
+                for name, param in module.named_parameters():
+                    if(module_name != ""):
+                        #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
+                        self.writer.add_histogram(module_name + '/weights/' +name, param.data, global_step = current_epoch)
 
     def infer(self, warp, warp_orig, transform):    
         #output preview
@@ -107,29 +113,37 @@ class ConcatTrainer:
         self.last_transform = transform[0]
         self.last_transform_tensor = torch.unsqueeze(reshaped_t[0], 0)
         
-        self.model.eval()
+        self.model[0].eval(); self.model[1].eval(); self.model[2].eval();
         with torch.no_grad():
-            #custom weighted loss
-            t1 = torch.index_select(reshaped_t, 1, torch.tensor([0,4])).to(self.gpu_device)
-            t2 = torch.index_select(reshaped_t, 1, torch.tensor([1,3])).to(self.gpu_device)
-            t3 = torch.index_select(reshaped_t, 1, torch.tensor([6,7])).to(self.gpu_device)
             
-            pred = self.model(warp_gpu)
-            p1 = torch.index_select(pred, 1, torch.tensor([0,3]).to(self.gpu_device)).to(self.gpu_device)
-            p2 = torch.index_select(pred, 1, torch.tensor([1,2]).to(self.gpu_device)).to(self.gpu_device)
-            p3 = torch.index_select(pred, 1, torch.tensor([4,5]).to(self.gpu_device)).to(self.gpu_device)
-            loss = self.custom_loss([t1, t2, t3], [p1, p2, p3], self.loss_weights)
-            return pred[0].cpu().numpy(), loss.cpu().data #return 1 sample of prediction
+            t = [0, 0, 0]
+            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0,4])).to(self.gpu_device)
+            t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1,3])).to(self.gpu_device)
+            t[2] = torch.index_select(reshaped_t, 1, torch.tensor([6,7])).to(self.gpu_device)
+            
+            #0 1 2 3 4 5
+            pred_0 = self.model[0](warp_gpu)
+            pred_1 = self.model[1](warp_gpu)
+            pred_2 = self.model[2](warp_gpu)
+            loss = 0.0
+            loss = loss + self.singular_loss(pred_0, t[0])
+            loss = loss + self.singular_loss(pred_1, t[1])
+            loss = loss + self.singular_loss(pred_2, t[2])
+            overall_pred = torch.cat((pred_0, pred_1, pred_2), 1).cpu().numpy()
+            overall_pred = np.ndarray.flatten(overall_pred)
+            #re-arrange
+            overall_pred = [overall_pred[0], overall_pred[2], overall_pred[3], overall_pred[1], overall_pred[4], overall_pred[5]]
+            return overall_pred, loss.cpu().data
     
     def get_batch_loss(self):
         return self.batch_loss
     
-    def get_state_dicts(self):
-        return self.model.state_dict(), self.optimizer.state_dict()
+    def get_state_dicts(self, index):
+        return self.model[index].state_dict(), self.optimizers[index].state_dict()
     
-    def load_saved_states(self, model_dict, optimizer_dict):
-        self.model.load_state_dict(model_dict)
-        self.optimizer.load_state_dict(optimizer_dict)
+    def load_saved_states(self, index, model_dict, optimizer_dict):
+        self.model[index].load_state_dict(model_dict)
+        self.optimizers[index].load_state_dict(optimizer_dict)
     
     def get_last_warp_img(self):
         return self.last_warp_img

@@ -19,7 +19,7 @@ import numpy as np
 LR = 0.001
 num_epochs = 100
 BATCH_SIZE = 16
-CNN_VERSION = "cnn_v4.03"
+CNN_VERSION = "cnn_v4.04"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -31,9 +31,11 @@ def start_train(gpu_device):
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
     if(False):
+         
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch']
-        ct.load_saved_states(checkpoint[ct.get_name()], checkpoint[ct.get_name() + OPTIMIZER_KEY])
+        for i in range(3):         
+            ct.load_saved_states(i,checkpoint[ct.get_name() + str(i)], checkpoint[ct.get_name() + OPTIMIZER_KEY + str(i)])
  
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
@@ -49,7 +51,7 @@ def start_train(gpu_device):
             ct.train(warp, warp_orig, transform)
             accum_loss = accum_loss + ct.get_batch_loss()
              
-            if(batch_idx % 25 == 0):
+            if(batch_idx % 100 == 0):
                 print("Batch id: ", batch_idx,
                       "\n[",ct.get_name(),"] Loss: ", ct.get_batch_loss())
             
@@ -102,9 +104,11 @@ def start_train(gpu_device):
         if(epoch % 1 == 0 and epoch != 0): #only save a batch every X epochs
                 #visualizer.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
                 save_dict = {'epoch': epoch}
-                model_state_dict, optimizer_state_dict = ct.get_state_dicts()
-                save_dict[ct.get_name()] = model_state_dict
-                save_dict[ct.get_name() + OPTIMIZER_KEY] = optimizer_state_dict
+                
+                for i in range(3):
+                    model_state_dict, optimizer_state_dict = ct.get_state_dicts(i)
+                    save_dict[ct.get_name() + str(i)] = model_state_dict
+                    save_dict[ct.get_name() + OPTIMIZER_KEY + str(i)] = optimizer_state_dict
                 
                 torch.save(save_dict, CHECKPATH)
                 print("Saved model state:", len(save_dict))   
