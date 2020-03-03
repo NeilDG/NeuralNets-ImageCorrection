@@ -63,7 +63,9 @@ class ConcatCNN(nn.Module):
                             nn.ReLU(),
                             nn.Linear(128, 64),
                             nn.ReLU(),
-                            nn.Linear(64,6))
+                            nn.Linear(64,32),
+                            nn.ReLU(),
+                            nn.Linear(32, 2)) #RELU better than tanh.
     
     def forward(self, x):
         x = self.conv1(x)
@@ -72,18 +74,11 @@ class ConcatCNN(nn.Module):
         x = self.conv4(x)
         x = self.conv5(x)
         x = self.conv6(x)
-        # x = self.conv7(x)
-        # x = self.conv8(x)
-        # x = self.conv9(x)
-        # x = self.conv10(x)
-        # x = self.conv11(x)
-        #x = x.view(x.size()[0], -1) #flatten
         x = torch.flatten(x,1)
         x = self.fc_block(x)
         
-        
         return x
-        
+    
     def concat_forward(self, x):
         #create 6 different CNNs   
         x1 = self.conv1_block1(x)
