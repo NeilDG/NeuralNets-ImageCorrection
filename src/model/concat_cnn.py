@@ -52,21 +52,20 @@ class ConcatCNN(nn.Module):
         
         self.fc_block = nn.Sequential(
                             nn.Linear(640, 512),
-                            nn.Tanh(),
+                            nn.ReLU(),
                             nn.Linear(512, 512),
-                            nn.Tanh(),
+                            nn.ReLU(),
                             nn.Linear(512, 512),
-                            nn.Tanh(),
+                            nn.ReLU(),
                             nn.Linear(512, 256),
-                            nn.Tanh(),
+                            nn.ReLU(),
                             nn.Linear(256, 128),
-                            nn.Tanh(),
+                            nn.ReLU(),
                             nn.Linear(128, 64),
-                            nn.Tanh(),
+                            nn.ReLU(),
                             nn.Linear(64,32),
-                            nn.Tanh(),
-                            nn.Linear(32, 2),
-                            nn.Tanh())
+                            nn.ReLU(),
+                            nn.Linear(32, 2)) #RELU better than tanh.
     
     def forward(self, x):
         x = self.conv1(x)
