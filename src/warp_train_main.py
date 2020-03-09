@@ -17,9 +17,9 @@ import concat_trainer
 import numpy as np
 
 LR = 0.001
-num_epochs = 10
-BATCH_SIZE = 16
-CNN_VERSION = "cnn_v4.05"
+num_epochs = 50
+BATCH_SIZE = 4
+CNN_VERSION = "cnn_v4.08"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -30,7 +30,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(True): 
+    if(False): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
         for i in range(3):         
@@ -39,7 +39,7 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = -1)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = 500)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 100)
     
     for epoch in range(start_epoch, num_epochs):

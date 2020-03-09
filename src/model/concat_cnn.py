@@ -16,19 +16,17 @@ class ConcatCNN(nn.Module):
     def __init__(self):
         super(ConcatCNN, self).__init__()
         
-        self.resnet_model = models.resnet50(True)
-        for param in self.resnet_model.parameters():
-            param.requires_grad = False
+        # self.resnet_model = models.resnet50(True)
+        # for param in self.resnet_model.parameters():
+        #     param.requires_grad = False
         
-        
-        conv = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=5, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
+        conv = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
         pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
         relu = nn.ReLU()
         
         self.conv1 = nn.Sequential(conv, pool, relu)
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
-        pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
         dropout = nn.Dropout2d(p = 0.4)
 
         self.conv2 = nn.Sequential(conv, pool, relu, dropout)
@@ -36,22 +34,31 @@ class ConcatCNN(nn.Module):
         self.conv4 = nn.Sequential(conv, pool, relu, dropout)
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
-        pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
         self.conv5 = nn.Sequential(conv, pool, relu, dropout)
         self.conv6 = nn.Sequential(conv, pool, relu, dropout)
         
-        #conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=1, padding=1); nn.init.xavier_normal_(conv.weight)
-        #pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        # self.conv7 = nn.Sequential(conv, pool, relu, dropout)
-        # self.conv8 = nn.Sequential(conv, pool, relu, dropout)
-        
-        # conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)
-        # self.conv9 = nn.Sequential(conv, relu)
-        # self.conv10 = nn.Sequential(conv, relu)
-        # self.conv11 = nn.Sequential(conv, relu)
+        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
+        pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
+        self.conv7 = nn.Sequential(conv, pool, relu, dropout)
+        self.conv8 = nn.Sequential(conv, pool, relu, dropout)
         
         self.fc_block = nn.Sequential(
-                            nn.Linear(640, 512),
+                            nn.Linear(9408, 4704),
+                            nn.ReLU(),
+                            nn.Linear(4704, 2048),
+                            nn.ReLU(),
+                            nn.Linear(2048, 2048),
+                            nn.ReLU(),
+                            nn.Linear(2048, 2048),
+                            nn.ReLU(),
+                            nn.Linear(2048, 1024),
+                            nn.ReLU(),
+                            nn.Linear(1024, 1024),
+                            nn.ReLU(),
+                            nn.Linear(1024, 1024),
+                            nn.ReLU(),
+                            nn.Linear(1024, 512),
                             nn.ReLU(),
                             nn.Linear(512, 512),
                             nn.ReLU(),
@@ -59,13 +66,23 @@ class ConcatCNN(nn.Module):
                             nn.ReLU(),
                             nn.Linear(512, 256),
                             nn.ReLU(),
+                            nn.Linear(256, 256),
+                            nn.ReLU(),
+                            nn.Linear(256, 256),
+                            nn.ReLU(),
                             nn.Linear(256, 128),
+                            nn.ReLU(),
+                            nn.Linear(128, 128),
+                            nn.ReLU(),
+                            nn.Linear(128, 128),
                             nn.ReLU(),
                             nn.Linear(128, 64),
                             nn.ReLU(),
                             nn.Linear(64,32),
                             nn.ReLU(),
-                            nn.Linear(32, 2)) #RELU better than tanh.
+                            nn.Linear(32, 16),
+                            nn.ReLU(),
+                            nn.Linear(16, 1)) #RELU better than tanh.
     
     def forward(self, x):
         x = self.conv1(x)
@@ -74,6 +91,8 @@ class ConcatCNN(nn.Module):
         x = self.conv4(x)
         x = self.conv5(x)
         x = self.conv6(x)
+        #x = self.conv7(x)
+        #x = self.conv8(x)
         x = torch.flatten(x,1)
         x = self.fc_block(x)
         

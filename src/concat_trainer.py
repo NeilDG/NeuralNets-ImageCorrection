@@ -25,9 +25,9 @@ class ConcatTrainer:
         self.name = name
         self.writer = writer
         
-        self.model = [0, 0, 0]
-        self.optimizers = [0, 0, 0]
-        for i in range(3):
+        self.model = [0, 0, 0, 0, 0, 0]
+        self.optimizers = [0, 0, 0, 0, 0, 0]
+        for i in range(6):
             self.model[i] = concat_cnn.ConcatCNN()
             self.model[i].to(self.gpu_device)
             self.optimizers[i] = optim.Adam(self.model[i].parameters(), lr = self.lr, weight_decay = weight_decay)
@@ -60,15 +60,17 @@ class ConcatTrainer:
         warp_img_orig = np.moveaxis(warp_img_orig, -1, 0) #for properly displaying image in matplotlib
         
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-        revised_t = torch.index_select(reshaped_t, 1, torch.tensor([0,1,3,4,6,7])).to(self.gpu_device)
-        t = [0, 0, 0]
-        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0,4])).to(self.gpu_device)
-        t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1,3])).to(self.gpu_device)
-        t[2] = torch.index_select(reshaped_t, 1, torch.tensor([6,7])).to(self.gpu_device)
+        t = [0, 0, 0, 0, 0, 0]
+        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0])).to(self.gpu_device)
+        t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1])).to(self.gpu_device)
+        t[2] = torch.index_select(reshaped_t, 1, torch.tensor([3])).to(self.gpu_device)
+        t[3] = torch.index_select(reshaped_t, 1, torch.tensor([4])).to(self.gpu_device)
+        t[4] = torch.index_select(reshaped_t, 1, torch.tensor([6])).to(self.gpu_device)
+        t[5] = torch.index_select(reshaped_t, 1, torch.tensor([7])).to(self.gpu_device)
         
         #0 1 2 3 4 5
         self.batch_loss = 0.0
-        for i in range(3):
+        for i in range(6):
             pred = self.model[i](warp_gpu)
             self.optimizers[i].zero_grad()
             loss = self.singular_loss(pred, t[i])
@@ -104,7 +106,6 @@ class ConcatTrainer:
         warp_img_orig = np.moveaxis(warp_img_orig, -1, 0) #for properly displaying image in matplotlib
         
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-        revised_t = torch.index_select(reshaped_t, 1, torch.tensor([0,1,3,4,6,7])).to(self.gpu_device)
 
         self.last_warp_img = warp_img
         self.last_warp_img_orig = warp_img_orig
@@ -116,24 +117,21 @@ class ConcatTrainer:
         self.model[0].eval(); self.model[1].eval(); self.model[2].eval();
         with torch.no_grad():
             
-            t = [0, 0, 0]
-            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0,4])).to(self.gpu_device)
-            t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1,3])).to(self.gpu_device)
-            t[2] = torch.index_select(reshaped_t, 1, torch.tensor([6,7])).to(self.gpu_device)
+            t = [0, 0, 0, 0, 0, 0]
+            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0])).to(self.gpu_device)
+            t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1])).to(self.gpu_device)
+            t[2] = torch.index_select(reshaped_t, 1, torch.tensor([3])).to(self.gpu_device)
+            t[3] = torch.index_select(reshaped_t, 1, torch.tensor([4])).to(self.gpu_device)
+            t[4] = torch.index_select(reshaped_t, 1, torch.tensor([6])).to(self.gpu_device)
+            t[5] = torch.index_select(reshaped_t, 1, torch.tensor([7])).to(self.gpu_device)
             
-            #0 1 2 3 4 5
-            pred_0 = self.model[0](warp_gpu)
-            pred_1 = self.model[1](warp_gpu)
-            pred_2 = self.model[2](warp_gpu)
+            pred = [0,0,0,0,0,0]
             loss = 0.0
-            loss = loss + self.singular_loss(pred_0, t[0])
-            loss = loss + self.singular_loss(pred_1, t[1])
-            loss = loss + self.singular_loss(pred_2, t[2])
-            overall_pred = torch.cat((pred_0, pred_1, pred_2), 1).cpu().numpy()
-            overall_pred = np.ndarray.flatten(overall_pred)
-            #re-arrange
-            overall_pred = [overall_pred[0], overall_pred[2], overall_pred[3], overall_pred[1], overall_pred[4], overall_pred[5]]
-            return overall_pred, loss.cpu().data
+            for i in range(6):
+                pred[i] = self.model[i](warp_gpu)
+                loss = loss + self.singular_loss(pred[i], t[i])
+                
+            return pred, loss.cpu().data
     
     def get_batch_loss(self):
         return self.batch_loss
