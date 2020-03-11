@@ -11,7 +11,6 @@ import numpy as np
 import cv2
 import global_vars as gv
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from skimage.measure import compare_ssim
 from skimage.measure import compare_mse
 from skimage.measure import compare_nrmse

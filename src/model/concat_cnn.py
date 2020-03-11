@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import global_vars as gv
 import numpy as np
 from torchvision import models
-
+from matplotlib import pyplot as plt
 class ConcatCNN(nn.Module):
     
     def __init__(self):
@@ -21,7 +21,7 @@ class ConcatCNN(nn.Module):
         #     param.requires_grad = False
         
         conv = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
-        pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
+        pool = nn.AvgPool2d(kernel_size=3, stride=1, padding=0)
         relu = nn.ReLU()
         
         self.conv1 = nn.Sequential(conv, pool, relu)
@@ -29,60 +29,31 @@ class ConcatCNN(nn.Module):
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
         dropout = nn.Dropout2d(p = 0.4)
 
-        self.conv2 = nn.Sequential(conv, pool, relu, dropout)
-        self.conv3 = nn.Sequential(conv, pool, relu, dropout)
-        self.conv4 = nn.Sequential(conv, pool, relu, dropout)
+        self.conv2 = nn.Sequential(conv, pool, relu)
+        self.conv3 = nn.Sequential(conv, pool, relu)
+        self.conv4 = nn.Sequential(conv, pool, relu)
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
-        pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        self.conv5 = nn.Sequential(conv, pool, relu, dropout)
-        self.conv6 = nn.Sequential(conv, pool, relu, dropout)
+        pool = nn.AvgPool2d(kernel_size=2, stride=1, padding=0)
         
-        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
-        pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
-        self.conv7 = nn.Sequential(conv, pool, relu, dropout)
-        self.conv8 = nn.Sequential(conv, pool, relu, dropout)
+        self.conv5 = nn.Sequential(conv, pool, relu)
+        self.conv6 = nn.Sequential(conv, pool, relu)
+        self.conv7 = nn.Sequential(conv, pool, relu)
+        self.conv8 = nn.Sequential(conv, pool, relu)
         
         self.fc_block = nn.Sequential(
-                            nn.Linear(9408, 4704),
-                            nn.ReLU(),
-                            nn.Linear(4704, 2048),
-                            nn.ReLU(),
-                            nn.Linear(2048, 2048),
-                            nn.ReLU(),
-                            nn.Linear(2048, 2048),
-                            nn.ReLU(),
-                            nn.Linear(2048, 1024),
-                            nn.ReLU(),
-                            nn.Linear(1024, 1024),
-                            nn.ReLU(),
-                            nn.Linear(1024, 1024),
-                            nn.ReLU(),
-                            nn.Linear(1024, 512),
-                            nn.ReLU(),
-                            nn.Linear(512, 512),
-                            nn.ReLU(),
-                            nn.Linear(512, 512),
-                            nn.ReLU(),
-                            nn.Linear(512, 256),
-                            nn.ReLU(),
-                            nn.Linear(256, 256),
-                            nn.ReLU(),
-                            nn.Linear(256, 256),
-                            nn.ReLU(),
                             nn.Linear(256, 128),
-                            nn.ReLU(),
-                            nn.Linear(128, 128),
-                            nn.ReLU(),
-                            nn.Linear(128, 128),
                             nn.ReLU(),
                             nn.Linear(128, 64),
                             nn.ReLU(),
-                            nn.Linear(64,32),
+                            nn.Linear(64, 32),
                             nn.ReLU(),
                             nn.Linear(32, 16),
                             nn.ReLU(),
                             nn.Linear(16, 1)) #RELU better than tanh.
+        
+        #self.fc_block.register_backward_hook(self.print_grad)
+        #self.conv8.register_forward_hook(self.visualize_activation);
     
     def forward(self, x):
         x = self.conv1(x)
@@ -91,13 +62,42 @@ class ConcatCNN(nn.Module):
         x = self.conv4(x)
         x = self.conv5(x)
         x = self.conv6(x)
-        #x = self.conv7(x)
-        #x = self.conv8(x)
+        x = self.conv7(x)
+        x = self.conv8(x)
         x = torch.flatten(x,1)
         x = self.fc_block(x)
         
         return x
     
+    def print_grad(self, module, grad_input, grad_output):
+        print('Inside ' + module.__class__.__name__ + ' backward')
+        #print('grad_input size:', grad_input[0].size())
+        #print('grad_output size:', grad_output[0].size())
+        print('grad_input norm:', grad_input[0].norm())
+    
+    def visualize_activation(self, module, input, output):
+        feature_map = output.cpu().data.numpy()
+        a,filter_range,x,y = np.shape(feature_map)
+        fig = plt.figure(figsize=(y * 0.07, x * 2))
+        #fig = plt.figure()
+        
+        for i in range(filter_range):
+            ax = fig.add_subplot(filter_range, 3, i+1)
+            ax.set_xticklabels([])
+            ax.set_yticklabels([])
+            ax.set_aspect('equal')
+            
+            activation = feature_map[0,i]
+            if(i == 0):
+                print("Activation shape :", np.shape(activation))
+            
+            # = cv2.resize(activation, (y * resize_scale, x * resize_scale), interpolation = cv2.INTER_CUBIC)  # scale image up
+            ax.imshow(np.squeeze(activation), cmap='gray')
+            ax.set_title('%s' % str(i+1))
+        
+        plt.subplots_adjust(wspace=0, hspace=0.35)
+        plt.show() 
+        
     def concat_forward(self, x):
         #create 6 different CNNs   
         x1 = self.conv1_block1(x)

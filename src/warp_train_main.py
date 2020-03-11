@@ -16,10 +16,12 @@ import modular_trainer as trainer
 import concat_trainer
 import numpy as np
 
-LR = 0.001
-num_epochs = 50
-BATCH_SIZE = 4
-CNN_VERSION = "cnn_v4.08"
+
+LR = 0.005
+num_epochs = 82
+BATCH_SIZE = 16
+CNN_VERSION = "cnn_v4.15"
+CNN_ITERATION = "6"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -30,10 +32,10 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(False): 
+    if(True): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
-        for i in range(3):         
+        for i in range(6):         
             ct.load_saved_states(i,checkpoint[ct.get_name() + str(i)], checkpoint[ct.get_name() + OPTIMIZER_KEY + str(i)])
  
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
@@ -71,7 +73,7 @@ def start_train(gpu_device):
         visualizer.show_transform_image(warp_img, warp_img_orig, M_list = M,
                                     ground_truth_M = ground_truth_M, should_inverse = True,
                                     should_save = False, current_epoch = epoch, save_every_epoch = 5)
-         
+        
         accum_loss = 0.0
         #perform validation test
         for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(test_dataset):
@@ -96,15 +98,16 @@ def start_train(gpu_device):
         print("Total training loss on epoch ", epoch, ": ", train_ave_loss)
         print("Total validation loss on epoch ", epoch, ": ", val_ave_loss) 
         
-        writer.add_scalars(CNN_VERSION +'/MSE_loss', {'training_loss' :train_ave_loss, 'validation_loss' : val_ave_loss},
-                           global_step = epoch) #plot validation loss
-        writer.close()
+        if(epoch != 1): #don't write on first epoch. observation: error too large. skews visualization.
+            writer.add_scalars(CNN_VERSION +'/MSE_loss' + "/" + CNN_ITERATION, {'training_loss' :train_ave_loss, 'validation_loss' : val_ave_loss},
+                               global_step = epoch) #plot validation loss
+            writer.close()
         
         if(epoch % 1 == 0 and epoch != 0): #only save a batch every X epochs
                 #visualizer.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
                 save_dict = {'epoch': epoch}
                 
-                for i in range(3):
+                for i in range(6):
                     model_state_dict, optimizer_state_dict = ct.get_state_dicts(i)
                     save_dict[ct.get_name() + str(i)] = model_state_dict
                     save_dict[ct.get_name() + OPTIMIZER_KEY + str(i)] = optimizer_state_dict
