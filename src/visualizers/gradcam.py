@@ -1,4 +1,7 @@
 """
+Visualizes the activations of each convolution and projects it back to the region of an image. If the layer has a filter bank, the gradients are averaged 
+for visualization.
+
 Created on Thu Oct 26 11:06:51 2017
 
 @author: Utku Ozbulak - github.com/utkuozbulak
@@ -100,6 +103,7 @@ class GradCam():
         # from scipy.ndimage.interpolation import zoom
         # cam = zoom(cam, np.array(input_image[0].shape[1:])/np.array(cam.shape))
         
+        #visualize first image
         grad_times_image = cam * input_image.cpu().numpy()[0]
         return grad_times_image
 

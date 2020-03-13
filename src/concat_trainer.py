@@ -25,66 +25,82 @@ class ConcatTrainer:
         self.lr = lr
         self.name = name
         self.writer = writer
-        
-        self.model = [0, 0, 0, 0, 0, 0]
-        self.optimizers = [0, 0, 0, 0, 0, 0]
-        for i in range(6):
+        self.visualized = False
+        self.model = [0]
+        self.optimizers = [0]
+        self.model_length = 1
+        for i in range(self.model_length):
             self.model[i] = concat_cnn.ConcatCNN()
             self.model[i].to(self.gpu_device)
             self.optimizers[i] = optim.Adam(self.model[i].parameters(), lr = self.lr, weight_decay = weight_decay)
         
-        self.weight_penalties = [1.0, 1.0, 1.0, 1.0, 10.0, 10.0]
-        self.exp_penalties = [2.0, 1.0, 1.0, 2.0, 1.0, 1.0]
-        #self.exp_penalties = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        #self.weight_penalties = [1.0, 1.0, 1.0, 1.0, 10.0, 10.0]
+        #self.exp_penalties = [2.0, 1.0, 1.0, 2.0, 1.0, 1.0]
+        self.weight_penalties = [1.0, 1.0, 1.0, 1.0]
+        self.exp_penalties = [2.0, 1.0, 1.0, 2.0]
     
-    def singular_loss(self, pred, target, penalty_index):
+    def report_new_epoch(self):
+        self.visualized = False
+        
+    def singular_loss(self, pred, target):
         mse_loss = torch.nn.MSELoss(reduction = 'sum')
-        return (mse_loss(pred, target) ** self.exp_penalties[penalty_index]) * self.weight_penalties[penalty_index]
+        
+        #0 1 3 4 6 7
+        loss_shape = np.shape(pred)[0]
+        total_loss = torch.zeros([1], dtype=torch.float64, requires_grad = True, device = self.gpu_device)
+        for i in range(len(self.weight_penalties)): 
+            total_loss = total_loss + ((mse_loss(pred[:, i], target[:, i]) ** self.exp_penalties[i]) * self.weight_penalties[i])
+        
+        return total_loss
     
-    def train(self, warp, warp_orig, transform):
+    def visualize_activation(self, target_layer_name, input, target):
+        fig, ax = plt.subplots(self.model_length)
+        fig.set_size_inches(12,self.model_length * 6)
+        fig.suptitle("Activation regions for " + target_layer_name)
+        
+        for i in range(self.model_length):
+            visualizer = gradcam.GradCam(self.model[i], target_layer=target_layer_name)
+            cam = visualizer.generate_cam(input, target[i])
+            cam = np.moveaxis(cam, -1, 0)
+            cam = np.moveaxis(cam, -1, 0) #for properly displaying image in matplotlib
+            ax.imshow(cam)
+        
+        plt.show()
+    
+    def train(self, warp, transform):
         
         warp_gpu = warp.to(self.gpu_device)
         warp_img = warp[0,:,:,:].numpy()
         warp_img = np.moveaxis(warp_img, -1, 0)
         warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
         
-        warp_img_orig = warp_orig[0,:,:,:].numpy()
-        warp_img_orig = np.moveaxis(warp_img_orig, -1, 0)
-        warp_img_orig = np.moveaxis(warp_img_orig, -1, 0) #for properly displaying image in matplotlib
-        
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-        t = [0, 0, 0, 0, 0, 0]
-        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0])).to(self.gpu_device)
-        t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1])).to(self.gpu_device)
-        t[2] = torch.index_select(reshaped_t, 1, torch.tensor([3])).to(self.gpu_device)
-        t[3] = torch.index_select(reshaped_t, 1, torch.tensor([4])).to(self.gpu_device)
-        t[4] = torch.index_select(reshaped_t, 1, torch.tensor([6])).to(self.gpu_device)
-        t[5] = torch.index_select(reshaped_t, 1, torch.tensor([7])).to(self.gpu_device)
+        t = [0]
+        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 1, 3, 4])).to(self.gpu_device)
+        # t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1])).to(self.gpu_device)
+        # t[2] = torch.index_select(reshaped_t, 1, torch.tensor([3])).to(self.gpu_device)
+        # t[3] = torch.index_select(reshaped_t, 1, torch.tensor([4])).to(self.gpu_device)
+        # t[4] = torch.index_select(reshaped_t, 1, torch.tensor([6])).to(self.gpu_device)
+        # t[5] = torch.index_select(reshaped_t, 1, torch.tensor([7])).to(self.gpu_device)
         
         #0 1 2 3 4 5
         self.batch_loss = 0.0
-        for i in range(6):
+        for i in range(self.model_length):
             self.model[i].train();
             pred = self.model[i](warp_gpu)
             self.optimizers[i].zero_grad()
-            loss = self.singular_loss(pred, t[i], i)
+            loss = self.singular_loss(pred, t[i])
             self.batch_loss = self.batch_loss + loss.cpu().data
             loss.backward()
-            self.optimizers[i].step(); 
-            
-            #visualize
-            visualizer = gradcam.GradCam(self.model[i], target_layer="conv7")
-            cam = visualizer.generate_cam(warp_gpu, t[i])
-            cam = np.moveaxis(cam, -1, 0)
-            cam = np.moveaxis(cam, -1, 0) #for properly displaying image in matplotlib
-            plt.imshow(cam)
-            plt.show()
+            self.optimizers[i].step();       
         
+        if(self.visualized == False):
+            self.visualized = True
+            self.visualize_activation("conv1", warp_gpu, t)
+            self.visualize_activation("conv8", warp_gpu, t)
         
         self.last_warp_img = warp_img
-        self.last_warp_img_orig = warp_img_orig
         self.last_warp_tensor = torch.unsqueeze(warp[0,:,:,:], 0)
-        self.last_warp_tensor_orig = torch.unsqueeze(warp_orig[0,:,:,:], 0)
         self.last_transform = transform[0]
         self.last_transform_tensor = torch.unsqueeze(reshaped_t[0], 0)
     
@@ -97,43 +113,34 @@ class ConcatTrainer:
                         #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
                         self.writer.add_histogram(module_name + '/weights/' +name, param.data, global_step = current_epoch)
 
-    def infer(self, warp, warp_orig, transform):    
+    def infer(self, warp, transform):    
         #output preview
         warp_gpu = warp.to(self.gpu_device)
         warp_img = warp[0,:,:,:].numpy()
         warp_img = np.moveaxis(warp_img, -1, 0)
         warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
         
-        warp_img_orig = warp_orig[0,:,:,:].numpy()
-        warp_img_orig = np.moveaxis(warp_img_orig, -1, 0)
-        warp_img_orig = np.moveaxis(warp_img_orig, -1, 0) #for properly displaying image in matplotlib
-        
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
 
         self.last_warp_img = warp_img
-        self.last_warp_img_orig = warp_img_orig
         self.last_warp_tensor = torch.unsqueeze(warp[0,:,:,:], 0)
-        self.last_warp_tensor_orig = torch.unsqueeze(warp_orig[0,:,:,:], 0)
         self.last_transform = transform[0]
         self.last_transform_tensor = torch.unsqueeze(reshaped_t[0], 0)
         
         with torch.no_grad():
             
-            t = [0, 0, 0, 0, 0, 0]
-            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0])).to(self.gpu_device)
-            t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1])).to(self.gpu_device)
-            t[2] = torch.index_select(reshaped_t, 1, torch.tensor([3])).to(self.gpu_device)
-            t[3] = torch.index_select(reshaped_t, 1, torch.tensor([4])).to(self.gpu_device)
-            t[4] = torch.index_select(reshaped_t, 1, torch.tensor([6])).to(self.gpu_device)
-            t[5] = torch.index_select(reshaped_t, 1, torch.tensor([7])).to(self.gpu_device)
+            t = [0]
             
-            pred = [0,0,0,0,0,0]
+            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 1, 3, 4])).to(self.gpu_device)
+            
+            pred = None
             loss = 0.0
-            for i in range(6):
+            for i in range(self.model_length):
                 self.model[i].eval()
-                pred[i] = self.model[i](warp_gpu)
-                loss = loss + self.singular_loss(pred[i], t[i], i)
-                
+                pred = self.model[i](warp_gpu)
+                loss = loss + self.singular_loss(pred, t[i])
+            
+            pred = np.ndarray.flatten(pred[0].cpu().numpy())
             return pred, loss.cpu().data
     
     def get_batch_loss(self):
@@ -151,18 +158,12 @@ class ConcatTrainer:
     
     def get_last_warp_tensor(self):
         return self.last_warp_tensor
-    
-    def get_last_warp_tensor_orig(self):
-        return self.last_warp_tensor_orig
 
     def get_last_transform(self):
         return self.last_transform
     
     def get_last_transform_tensor(self):
         return self.last_transform_tensor
-    
-    def get_last_warp_img_orig(self):
-        return self.last_warp_img_orig
     
     def get_name(self):
         return self.name

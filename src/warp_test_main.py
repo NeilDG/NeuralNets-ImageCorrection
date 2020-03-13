@@ -27,7 +27,7 @@ def compute_dataset_mean(test_dataset):
     accumulate_T = np.zeros(9)
     count = 0   
      
-    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(test_dataset):
+    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
         for index in range(len(warp)):
             reshaped_t = torch.reshape(transform[index], (1, 9)).type('torch.FloatTensor')
             accumulate_T = accumulate_T + reshaped_t.numpy()
@@ -42,13 +42,13 @@ def start_test(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + train_main.CNN_VERSION +'.pt'
     checkpoint = torch.load(CHECKPATH)
-    for i in range(3):         
+    for i in range(ct.model_length):         
         ct.load_saved_states(i,checkpoint[ct.get_name() + str(i)], checkpoint[ct.get_name() + OPTIMIZER_KEY + str(i)])
  
     print("Loaded checkpt ",CHECKPATH)
     
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
-    compute_dataset_mean(test_dataset)
+    #compute_dataset_mean(test_dataset)
     measure_performance(gpu_device, ct, test_dataset)
     
 #visualize each layer's output
@@ -89,23 +89,25 @@ def measure_performance(gpu_device, trainer, test_dataset):
     average_pixel_MSE = [0.0, 0.0, 0.0, 0.0]
     average_pixel_RMSE = [0.0, 0.0, 0.0, 0.0]
     
-    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(test_dataset):
+    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
         for i in range(np.shape(warp)[0]):
             warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0)
-            warp_candidate_orig = torch.unsqueeze(warp_orig[i,:,:,:], 0)
             reshaped_t = torch.reshape(transform[i], (1, 9)).type('torch.FloatTensor')
-            M, loss = trainer.infer(warp_candidate, warp_candidate_orig, reshaped_t)
+            M, loss = trainer.infer(warp_candidate, reshaped_t)
             
             #append element on correct places
-            #M = np.insert(M, 0, 1.0)
+            ground_truth_M = np.ndarray.flatten(reshaped_t.numpy())
+            print("Ground truth M shape:", ground_truth_M)
+            
             M = np.insert(M, 2, 0.0)
-            #M = np.insert(M, 4, 1.0)
             M = np.insert(M, 5, 0.0)
+            M = np.insert(M, 6, ground_truth_M[6]) #temporary
+            M = np.insert(M, 7, ground_truth_M[7]) #temporary
             M = np.append(M, 1.0)
+            
             #print("Predicted M: ", M)
             #print("Actual M: ", reshaped_t.numpy())
             warp_img = tensor_utils.convert_to_matplotimg(warp, i)
-            warp_orig_img = tensor_utils.convert_to_matplotimg(warp_orig, i)
             rgb_img = tensor_utils.convert_to_matplotimg(rgb, i)
             homog_img, homography_M = warp_visualizer.warp_perspective_least_squares(warp_img, rgb_img)
             

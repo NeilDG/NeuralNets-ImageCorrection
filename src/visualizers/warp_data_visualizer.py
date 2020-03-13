@@ -68,7 +68,7 @@ def warp_perspective_least_squares(warp_img, rgb_img):
     im2Gray = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
     
     # Detect ORB features and compute descriptors.
-    orb = cv2.ORB_create(700)
+    orb = cv2.ORB_create(150)
     keypoints1, descriptors1 = orb.detectAndCompute(im1Gray, None)
     keypoints2, descriptors2 = orb.detectAndCompute(im2Gray, None)
   
@@ -211,9 +211,9 @@ def show_blind_image_test(rgb, least_squares_img, M_list, ground_truth_img, inde
 #    print("Predicted M8 val: ", M_list[5], "Actual val: ",ground_truth_M[2,1].numpy())
 
 #performs inference using training data and visualize results
-def show_transform_image(rgb, rgb_orig, M_list, ground_truth_M, should_inverse, should_save, current_epoch, save_every_epoch):
+def show_transform_image(warped_img, M_list, ground_truth_M, should_inverse, should_save, current_epoch, save_every_epoch):
     plt.title("Input image")
-    plt.imshow(rgb)
+    plt.imshow(warped_img)
     if(should_save and current_epoch % save_every_epoch == 0):
         plt.savefig(gv.IMAGE_PATH_PREDICT + "/input_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
     plt.show()
@@ -221,16 +221,7 @@ def show_transform_image(rgb, rgb_orig, M_list, ground_truth_M, should_inverse, 
     f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
     f.set_size_inches(12,10)
     
-    pred_M = np.ones((3,3))
-    # pred_M[0,0] = M_list[0]
-    # pred_M[0,1] = M_list[1]
-    # pred_M[0,2] = M_list[2]
-    # pred_M[1,0] = M_list[3]
-    # pred_M[1,1] = M_list[4]
-    # pred_M[1,2] = M_list[5]
-    # pred_M[2,0] = M_list[6]
-    # pred_M[2,1] = M_list[7]
-    # pred_M[2,2] = M_list[8]
+    pred_M = np.ones((3,3))  
     
     pred_M[0,0] = M_list[0]
     pred_M[0,1] = M_list[1]
@@ -238,9 +229,9 @@ def show_transform_image(rgb, rgb_orig, M_list, ground_truth_M, should_inverse, 
     pred_M[1,0] = M_list[2]
     pred_M[1,1] = M_list[3]
     pred_M[1,2] = 0.0
-    pred_M[2,0] = M_list[4]
-    pred_M[2,1] = M_list[5]
-    
+    pred_M[2,0] = ground_truth_M[2,0]
+    pred_M[2,1] = ground_truth_M[2,1]
+
     M = ground_truth_M.numpy()
     
     print("Predicted M[0] val: ", pred_M[0,0], "Actual val: ",ground_truth_M[0,0].numpy())
@@ -258,14 +249,13 @@ def show_transform_image(rgb, rgb_orig, M_list, ground_truth_M, should_inverse, 
         M = np.linalg.inv(M)
         pred_M = np.linalg.inv(pred_M)
     
-    result = cv2.warpPerspective(rgb_orig, M, (np.shape(rgb)[1], np.shape(rgb)[0]),
+    result = cv2.warpPerspective(warped_img, M, (np.shape(warped_img)[1], np.shape(warped_img)[0]),
                                  borderValue = (1,1,1))
     
     ax1.set_title("Ground truth")
     ax1.imshow(result)
     
-    #result = cv2.perspectiveTransform(rgb, ground_truth_M.numpy())
-    result = cv2.warpPerspective(rgb_orig, pred_M, (np.shape(rgb)[1], np.shape(rgb)[0]),
+    result = cv2.warpPerspective(warped_img, pred_M, (np.shape(warped_img)[1], np.shape(warped_img)[0]),
                                  borderValue = (1,1,1))
     ax2.set_title("Predicted warp")
     ax2.imshow(result)
@@ -582,7 +572,7 @@ def visualize_edge_count(train_edge_list, test_edge_list, should_save, filename 
         plt.savefig(gv.IMAGE_PATH_EDGES + "/" +filename+".png", bbox_inches='tight', pad_inches=0)
     
     plt.show()
-    
+  
 def main():
     all_transforms = []
     predict_transforms = []

@@ -21,7 +21,7 @@ class ConcatCNN(nn.Module):
         #     param.requires_grad = False
         
         conv = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
-        pool = nn.AvgPool2d(kernel_size=3, stride=1, padding=0)
+        pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
         relu = nn.ReLU()
         
         self.conv1 = nn.Sequential(conv, pool, relu)
@@ -34,7 +34,7 @@ class ConcatCNN(nn.Module):
         self.conv4 = nn.Sequential(conv, pool, relu)
         
         conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
-        pool = nn.AvgPool2d(kernel_size=2, stride=1, padding=0)
+        pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
         
         self.conv5 = nn.Sequential(conv, pool, relu)
         self.conv6 = nn.Sequential(conv, pool, relu)
@@ -50,10 +50,8 @@ class ConcatCNN(nn.Module):
                             nn.ReLU(),
                             nn.Linear(32, 16),
                             nn.ReLU(),
-                            nn.Linear(16, 1)) #RELU better than tanh.
+                            nn.Linear(16, 4)) #RELU better than tanh.
         
-        #self.fc_block.register_backward_hook(self.print_grad)
-        #self.conv8.register_forward_hook(self.visualize_activation);
     
     def forward(self, x):
         x = self.conv1(x)

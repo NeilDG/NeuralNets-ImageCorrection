@@ -9,11 +9,11 @@ Constants files
 """
 DIRECTORY FOR PC
 """
-SAVE_PATH_RGB = 'E:/NN_Dataset/warp_rgb_orig/'
+#SAVE_PATH_RGB = 'E:/NN_Dataset/warp_rgb_orig/'
 SAVE_PATH_WARP = 'E:/NN_Dataset/warp_rgb_train/'
 SAVE_PATH_RGB_GT = 'E:/NN_Dataset/warp_rgb_ground_truth/'
 
-SAVE_PATH_RGB_VAL = 'E:/NN_Dataset/warp_rgb_orig_val/'
+#SAVE_PATH_RGB_VAL = 'E:/NN_Dataset/warp_rgb_orig_val/'
 SAVE_PATH_WARP_VAL = 'E:/NN_Dataset/warp_rgb_val/'
 SAVE_PATH_RGB_GT_VAL = 'E:/NN_Dataset/warp_rgb_ground_truth_val/'
 

@@ -17,11 +17,11 @@ import concat_trainer
 import numpy as np
 
 
-LR = 0.005
-num_epochs = 82
+LR = 0.003
+num_epochs = 250
 BATCH_SIZE = 16
-CNN_VERSION = "cnn_v4.15"
-CNN_ITERATION = "6"
+CNN_VERSION = "cnn_v4.17"
+CNN_ITERATION = "9"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -35,7 +35,7 @@ def start_train(gpu_device):
     if(True): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
-        for i in range(6):         
+        for i in range(ct.model_length):         
             ct.load_saved_states(i,checkpoint[ct.get_name() + str(i)], checkpoint[ct.get_name() + OPTIMIZER_KEY + str(i)])
  
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
@@ -48,8 +48,8 @@ def start_train(gpu_device):
         accum_loss = 0.0
         train_ave_loss = 0.0
         val_ave_loss = 0.0
-        for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(training_dataset):
-            ct.train(warp, warp_orig, transform)
+        for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
+            ct.train(warp, transform)
             accum_loss = accum_loss + ct.get_batch_loss()
              
             if(batch_idx % 100 == 0):
@@ -62,41 +62,42 @@ def start_train(gpu_device):
         
         #perform training inference
         warp_img = ct.get_last_warp_img()
-        warp_img_orig = ct.get_last_warp_img_orig()
         warp_tensor = ct.get_last_warp_tensor()
-        warp_tensor_orig = ct.get_last_warp_tensor_orig()
         ground_truth_M = ct.get_last_transform()
         ground_truth_tensor = ct.get_last_transform_tensor()
         
-        M, loss = ct.infer(warp_tensor, warp_tensor_orig, ground_truth_tensor)
+        M, loss = ct.infer(warp_tensor, ground_truth_tensor)
         print("Shape: ", np.shape(M), "M: ", M)
-        visualizer.show_transform_image(warp_img, warp_img_orig, M_list = M,
+        visualizer.show_transform_image(warp_img, M_list = M,
                                     ground_truth_M = ground_truth_M, should_inverse = True,
                                     should_save = False, current_epoch = epoch, save_every_epoch = 5)
         
         accum_loss = 0.0
         #perform validation test
-        for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(test_dataset):
-            M, loss = ct.infer(warp, warp_orig, transform)
+        for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+            M, loss = ct.infer(warp, transform)
             accum_loss = accum_loss + loss
         
         val_ave_loss = accum_loss / (batch_idx + 1)
         
         #perform inference on validation
         warp_img = ct.get_last_warp_img()
-        warp_img_orig = ct.get_last_warp_img_orig()
         warp_tensor = ct.get_last_warp_tensor()
-        warp_tensor_orig = ct.get_last_warp_tensor_orig()
         ground_truth_M = ct.get_last_transform()
         ground_truth_tensor = ct.get_last_transform_tensor()
         
-        M, loss = ct.infer(warp_tensor, warp_tensor_orig, ground_truth_tensor)
-        visualizer.show_transform_image(warp_img, warp_img_orig, M_list = M,
+        M, loss = ct.infer(warp_tensor, ground_truth_tensor)
+        visualizer.show_transform_image(warp_img, M_list = M,
                                     ground_truth_M = ground_truth_M, should_inverse = True,
                                     should_save = False, current_epoch = epoch, save_every_epoch = 5)
         
+        #train_ave_loss = train_ave_loss.cpu().numpy()
+        #val_ave_loss = val_ave_loss.cpu().numpy()
+        
         print("Total training loss on epoch ", epoch, ": ", train_ave_loss)
         print("Total validation loss on epoch ", epoch, ": ", val_ave_loss) 
+        
+        ct.report_new_epoch()
         
         if(epoch != 1): #don't write on first epoch. observation: error too large. skews visualization.
             writer.add_scalars(CNN_VERSION +'/MSE_loss' + "/" + CNN_ITERATION, {'training_loss' :train_ave_loss, 'validation_loss' : val_ave_loss},
@@ -107,7 +108,7 @@ def start_train(gpu_device):
                 #visualizer.save_predicted_transforms(predict_M_list, 0) #use epoch value if want to save per epoch
                 save_dict = {'epoch': epoch}
                 
-                for i in range(6):
+                for i in range(ct.model_length):
                     model_state_dict, optimizer_state_dict = ct.get_state_dicts(i)
                     save_dict[ct.get_name() + str(i)] = model_state_dict
                     save_dict[ct.get_name() + OPTIMIZER_KEY + str(i)] = optimizer_state_dict
