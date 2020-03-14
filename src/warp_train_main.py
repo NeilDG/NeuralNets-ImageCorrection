@@ -11,11 +11,8 @@ from visualizers import warp_data_visualizer as visualizer
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from loaders import torch_image_loader as loader
-from model import warp_cnn_joiner
-import modular_trainer as trainer
-import concat_trainer
+import warping_trainer
 import numpy as np
-
 
 LR = 0.005
 num_epochs = 250
@@ -27,7 +24,7 @@ OPTIMIZER_KEY = "optimizer"
 def start_train(gpu_device):
     #initialize tensorboard writer
     writer = SummaryWriter('train/train_result')
-    ct = concat_trainer.ConcatTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR, weight_decay = 0.0)
+    ct = warping_trainer.WarpingTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR, weight_decay = 0.0)
      
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
