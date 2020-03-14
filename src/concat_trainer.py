@@ -36,8 +36,8 @@ class ConcatTrainer:
         
         #self.weight_penalties = [1.0, 1.0, 1.0, 1.0, 10.0, 10.0]
         #self.exp_penalties = [2.0, 1.0, 1.0, 2.0, 1.0, 1.0]
-        self.weight_penalties = [1.0, 1.0, 1.0, 1.0]
-        self.exp_penalties = [2.0, 1.0, 1.0, 2.0]
+        self.weight_penalties = [1000000.0, 1000000.0,]
+        self.exp_penalties = [1.0, 1.0]
     
     def report_new_epoch(self):
         self.visualized = False
@@ -53,18 +53,22 @@ class ConcatTrainer:
         
         return total_loss
     
-    def visualize_activation(self, target_layer_name, input, target):
-        fig, ax = plt.subplots(self.model_length)
-        fig.set_size_inches(12,self.model_length * 6)
-        fig.suptitle("Activation regions for " + target_layer_name)
+    def visualize_activation(self, layers, input, target):
+        fig, ax = plt.subplots(self.model_length * len(layers))
+        fig.set_size_inches(12, self.model_length * len(layers) * 6)
+        fig.suptitle("Activation regions")
         
+        index = 0;
         for i in range(self.model_length):
-            visualizer = gradcam.GradCam(self.model[i], target_layer=target_layer_name)
-            cam = visualizer.generate_cam(input, target[i])
-            cam = np.moveaxis(cam, -1, 0)
-            cam = np.moveaxis(cam, -1, 0) #for properly displaying image in matplotlib
-            ax.imshow(cam)
-        
+            for j in range(len(layers)):
+                visualizer = gradcam.GradCam(self.model[i], target_layer=layers[j])
+                cam = visualizer.generate_cam(input, target[i], self.weight_penalties[i])
+                cam = np.moveaxis(cam, -1, 0)
+                cam = np.moveaxis(cam, -1, 0) #for properly displaying image in matplotlib
+                ax[index].imshow(cam)
+                index = index + 1
+                
+        plt.savefig(gv.SAVE_PATH_FIGURES + "/activation_latest.png", bbox_inches='tight', pad_inches=0)
         plt.show()
     
     def train(self, warp, transform):
@@ -76,7 +80,8 @@ class ConcatTrainer:
         
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
         t = [0]
-        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 1, 3, 4])).to(self.gpu_device)
+        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([6, 7])).to(self.gpu_device)
+        # t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1])).to(self.gpu_device)
         # t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1])).to(self.gpu_device)
         # t[2] = torch.index_select(reshaped_t, 1, torch.tensor([3])).to(self.gpu_device)
         # t[3] = torch.index_select(reshaped_t, 1, torch.tensor([4])).to(self.gpu_device)
@@ -96,8 +101,7 @@ class ConcatTrainer:
         
         if(self.visualized == False):
             self.visualized = True
-            self.visualize_activation("conv1", warp_gpu, t)
-            self.visualize_activation("conv8", warp_gpu, t)
+            self.visualize_activation(["conv1", "conv2", "conv3", "conv4", "conv5", "conv6", "conv7", "conv8"], warp_gpu, t)
         
         self.last_warp_img = warp_img
         self.last_warp_tensor = torch.unsqueeze(warp[0,:,:,:], 0)
@@ -131,7 +135,7 @@ class ConcatTrainer:
             
             t = [0]
             
-            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 1, 3, 4])).to(self.gpu_device)
+            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([6, 7])).to(self.gpu_device)
             
             pred = None
             loss = 0.0

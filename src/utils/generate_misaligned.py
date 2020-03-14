@@ -57,10 +57,10 @@ def perform_warp(img):
     M = cv2.getPerspectiveTransform(pts1, pts2)
     
     #print("Original M: ", M)
-    M[0,0] = np.random.uniform(0.6, 1.5)
-    M[1,1] = np.random.uniform(0.6, 1.5)
-    M[0,1] = np.random.uniform(-0.009, 0.009)
-    M[1,0] = np.random.uniform(-0.009, 0.009)
+    #M[0,0] = np.random.uniform(0.6, 1.5)
+    #M[1,1] = np.random.uniform(0.6, 1.5)
+    #M[0,1] = np.random.uniform(-0.009, 0.009)
+    #M[1,0] = np.random.uniform(-0.009, 0.009)
     M[2,0] = np.random.uniform(-0.00075, 0.00075)
     M[2,1] = np.random.uniform(-0.00075, 0.00075)
     result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
@@ -268,7 +268,10 @@ def check_generate_data():
         #difference = img - reverse_img
         #plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
-        M_list.append(M)
+        print("M[2,0] ", M[2,0], " M[2,1]:", M[2,1])
+        #M_list.append(M)
+        M_list.append(M[2,0])
+        M_list.append(M[2,1])
         
     wdv.visualize_M_list(M_list)
 
@@ -337,7 +340,7 @@ def generate(repeat = 1, offset = 0):
             img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
                                               value=[255,255,255])
             result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
-            orig_result = perform_padded_warp(img, M)
+            #orig_result = perform_padded_warp(img, M)
             
             # f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
             # f.set_size_inches(20,25)
@@ -349,17 +352,15 @@ def generate(repeat = 1, offset = 0):
             # plt.show()
             
             if(index < train_split):
-                cv2.imwrite(gv.SAVE_PATH_RGB + "orig_" +str(offset_index)+ ".png", orig_result)
                 cv2.imwrite(gv.SAVE_PATH_RGB_GT + "crop_" +str(offset_index)+ ".png", reverse_img)
                 cv2.imwrite(gv.SAVE_PATH_WARP + "warp_" +str(offset_index)+ ".png", crop_img)
-                np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(offset_index)+ ".txt", M)
+                np.savetxt(gv.SAVE_PATH_WARP + "warp_" +str(offset_index)+ ".txt", M, fmt = "%.8f")
                 if (i % 200 == 0):
                     print("Successfully generated transformed image " ,str(offset_index), ". Saved as train.")
             else:
-                cv2.imwrite(gv.SAVE_PATH_RGB_VAL + "orig_" +str(offset_index)+ ".png", orig_result)
                 cv2.imwrite(gv.SAVE_PATH_RGB_GT_VAL + "crop_" +str(offset_index)+ ".png", reverse_img)
                 cv2.imwrite(gv.SAVE_PATH_WARP_VAL + "warp_" +str(offset_index)+ ".png", crop_img)
-                np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(offset_index)+ ".txt", M)
+                np.savetxt(gv.SAVE_PATH_WARP_VAL + "warp_" +str(offset_index)+ ".txt", M, fmt = "%.8f")
                 if (i % 200 == 0):
                     print("Successfully generated transformed image " ,str(offset_index), ". Saved as val.")
             
@@ -370,5 +371,5 @@ def generate(repeat = 1, offset = 0):
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #batch_iterative_warp()
-    check_generate_data() 
-    generate(4, 0)
+    #check_generate_data() 
+    generate(1, 0)

@@ -25,6 +25,7 @@ SAVE_PATH_UNSEEN_DATA_WARP = 'E:/NN_Dataset/unseen_data_warp/'
 
 SAVE_PATH_PREDICT = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_predict/'
 IMAGE_PATH_PREDICT = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_img_predictions/'
+SAVE_PATH_FIGURES = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/figures/'
 IMAGE_PATH_EDGES = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/img_edges/'
 
 IMAGE_RGB_DIR = "E:/Raw KITTI Dataset/"

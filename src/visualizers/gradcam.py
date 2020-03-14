@@ -63,7 +63,7 @@ class GradCam():
         # Define extractor
         self.extractor = CamExtractor(self.model, target_layer)
 
-    def generate_cam(self, input_image, target_class):
+    def generate_cam(self, input_image, target_class, penalty_function = 1.0):
         # Full forward pass
         # conv_output is the output of convolutions at specified layer
         # model_output is the final output of the model (1, 1000)
@@ -71,7 +71,7 @@ class GradCam():
         conv_output = conv_output.cpu()
         model_output = model_output.cpu()
          # Target for backprop
-        target = target_class.cpu()
+        target = target_class.cpu() * penalty_function
         # Zero grads
         self.model.zero_grad()
         # Backward pass with specified target

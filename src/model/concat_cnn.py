@@ -20,20 +20,20 @@ class ConcatCNN(nn.Module):
         # for param in self.resnet_model.parameters():
         #     param.requires_grad = False
         
-        conv = nn.Conv2d(in_channels = 3, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
+        conv = nn.Conv2d(in_channels = 3, out_channels = 128, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
         pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
         relu = nn.ReLU()
         
         self.conv1 = nn.Sequential(conv, pool, relu)
         
-        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
+        conv = nn.Conv2d(in_channels = 128, out_channels = 128, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
         dropout = nn.Dropout2d(p = 0.4)
 
         self.conv2 = nn.Sequential(conv, pool, relu)
         self.conv3 = nn.Sequential(conv, pool, relu)
         self.conv4 = nn.Sequential(conv, pool, relu)
         
-        conv = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
+        conv = nn.Conv2d(in_channels = 128, out_channels = 128, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
         pool = nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
         
         self.conv5 = nn.Sequential(conv, pool, relu)
@@ -42,6 +42,8 @@ class ConcatCNN(nn.Module):
         self.conv8 = nn.Sequential(conv, pool, relu)
         
         self.fc_block = nn.Sequential(
+                            nn.Linear(512, 256),
+                            nn.ReLU(),
                             nn.Linear(256, 128),
                             nn.ReLU(),
                             nn.Linear(128, 64),
@@ -50,7 +52,7 @@ class ConcatCNN(nn.Module):
                             nn.ReLU(),
                             nn.Linear(32, 16),
                             nn.ReLU(),
-                            nn.Linear(16, 4)) #RELU better than tanh.
+                            nn.Linear(16, 2)) #RELU better than tanh.
         
     
     def forward(self, x):
