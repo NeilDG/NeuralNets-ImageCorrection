@@ -9,11 +9,11 @@ Constants files
 """
 DIRECTORY FOR PC
 """
-SAVE_PATH_RGB = 'E:/NN_Dataset/warp_rgb_orig/'
+#SAVE_PATH_RGB = 'E:/NN_Dataset/warp_rgb_orig/'
 SAVE_PATH_WARP = 'E:/NN_Dataset/warp_rgb_train/'
 SAVE_PATH_RGB_GT = 'E:/NN_Dataset/warp_rgb_ground_truth/'
 
-SAVE_PATH_RGB_VAL = 'E:/NN_Dataset/warp_rgb_orig_val/'
+#SAVE_PATH_RGB_VAL = 'E:/NN_Dataset/warp_rgb_orig_val/'
 SAVE_PATH_WARP_VAL = 'E:/NN_Dataset/warp_rgb_val/'
 SAVE_PATH_RGB_GT_VAL = 'E:/NN_Dataset/warp_rgb_ground_truth_val/'
 
@@ -25,6 +25,7 @@ SAVE_PATH_UNSEEN_DATA_WARP = 'E:/NN_Dataset/unseen_data_warp/'
 
 SAVE_PATH_PREDICT = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_predict/'
 IMAGE_PATH_PREDICT = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_img_predictions/'
+SAVE_PATH_FIGURES = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/figures/'
 IMAGE_PATH_EDGES = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/img_edges/'
 
 IMAGE_RGB_DIR = "E:/Raw KITTI Dataset/"

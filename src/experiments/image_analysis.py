@@ -55,9 +55,43 @@ def identify_z(img):
     ax4.imshow(test_img)
     plt.show()
 
+def check_sensitivity(warp_img, ground_truth_M):
+    predict_M = np.ndarray.copy(ground_truth_M)
+    #do some manipulation
+    predict_M[0,0] = predict_M[0,0] + 0.023451124
+    predict_M[0,1] = predict_M[0,1] + 0.008827271
+    predict_M[1,0] = predict_M[1,0] + 0.002156656
+    predict_M[1,1] = predict_M[1,1] + 0.04398492
+    predict_M[2,0] = predict_M[2,0] + 0.0000458847
+    predict_M[2,1] = predict_M[2,1] + 0.0000353552
+
+    predict_img = cv2.warpPerspective(warp_img, np.linalg.inv(predict_M), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (255,255,255))
+    ground_truth_img = cv2.warpPerspective(warp_img, np.linalg.inv(ground_truth_M), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (255,255,255))
+    f, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
+    f.set_size_inches(20,15)
+    
+    ax1.imshow(warp_img)
+    ax2.imshow(predict_img)
+    ax3.imshow(ground_truth_img)
+    plt.show()
+    
 def main():
-    image_path = "E:/Raw KITTI Dataset/2011_09_26_drive_0001_sync/image_02/data/0000000096.png"
-    img = tu.load_image(image_path)
-    identify_z(img)
+    # image_path = "E:/Raw KITTI Dataset/2011_09_26_drive_0001_sync/image_02/data/0000000096.png"
+    # img = tu.load_image(image_path)
+    # identify_z(img)
+    
+    lower = 105
+    bounds = 1
+    for i in range(lower, lower + bounds):
+        warp_img_path = "E:/NN_Dataset/warp_rgb_train/warp_"+str(i)+".png"
+        transform_img_path = "E:/NN_Dataset/warp_rgb_train/warp_"+str(i)+".txt"
+        
+        warp_img = tu.load_image(warp_img_path)
+        ground_truth_M = np.loadtxt(transform_img_path)
+        
+        check_sensitivity(warp_img, ground_truth_M)
+    
+    
+    
 
 main()
