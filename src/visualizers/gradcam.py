@@ -70,12 +70,13 @@ class GradCam():
         conv_output, model_output = self.extractor.forward_pass(input_image)
         conv_output = conv_output.cpu()
         model_output = model_output.cpu()
-         # Target for backprop
-        target = target_class.cpu() * penalty_function
+        # Target for backprop
+        target_class = target_class.cpu() * penalty_function
+        
         # Zero grads
         self.model.zero_grad()
         # Backward pass with specified target
-        model_output.backward(gradient=target, retain_graph=True)
+        model_output.backward(gradient=target_class, retain_graph=True)
         # Get hooked gradients
         guided_gradients = self.extractor.gradients.data.numpy()[0]
         # Get convolution outputs
