@@ -56,11 +56,10 @@ def perform_warp(img):
     pts2 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
     M = cv2.getPerspectiveTransform(pts1, pts2)
     
-    #print("Original M: ", M)
-    #M[0,0] = np.random.uniform(0.6, 1.5)
-    #M[1,1] = np.random.uniform(0.6, 1.5)
-    #M[0,1] = np.random.uniform(-0.009, 0.009)
-    #M[1,0] = np.random.uniform(-0.009, 0.009)
+    M[0,0] = np.random.uniform(0.8, 1.2)
+    M[1,1] = np.random.uniform(0.8, 1.2)
+    M[0,1] = np.random.uniform(-0.009, 0.009)
+    M[1,0] = np.random.uniform(-0.009, 0.009)
     M[2,0] = np.random.uniform(-0.00075, 0.00075)
     M[2,1] = np.random.uniform(-0.00075, 0.00075)
     result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
@@ -268,8 +267,11 @@ def check_generate_data():
         #difference = img - reverse_img
         #plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
-        print("M[2,0] ", M[2,0], " M[2,1]:", M[2,1])
-        #M_list.append(M)
+        #print(M)
+        M_list.append(M[0,0])
+        M_list.append(M[0,1])
+        M_list.append(M[1,0])
+        M_list.append(M[1,1])
         M_list.append(M[2,0])
         M_list.append(M[2,1])
         
@@ -371,5 +373,5 @@ def generate(repeat = 1, offset = 0):
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #batch_iterative_warp()
-    #check_generate_data() 
-    generate(1, 0)
+    check_generate_data() 
+    generate(2, 0)

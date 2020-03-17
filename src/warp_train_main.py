@@ -14,11 +14,11 @@ from loaders import torch_image_loader as loader
 import warping_trainer
 import numpy as np
 
-LR = 0.005
-num_epochs = 250
+LR = 0.0005
+num_epochs = 70
 BATCH_SIZE = 8
-CNN_VERSION = "cnn_v4.18"
-CNN_ITERATION = "5"
+CNN_VERSION = "cnn_v4.21"
+CNN_ITERATION = "11"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -29,7 +29,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(True): 
+    if(False): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
         for i in range(ct.model_length):         
@@ -38,7 +38,7 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = -1)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 100)
     
     for epoch in range(start_epoch, num_epochs):

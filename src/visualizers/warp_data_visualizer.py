@@ -222,14 +222,14 @@ def show_transform_image(warped_img, M_list, ground_truth_M, should_inverse, sho
     f.set_size_inches(12,10)
     
     pred_M = np.ones((3,3))  
-    pred_M[0,0] = 1.0
-    pred_M[0,1] = 0.0
+    pred_M[0,0] = M_list[0]
+    pred_M[0,1] = M_list[1]
     pred_M[0,2] = 0.0
-    pred_M[1,0] = 0.0
-    pred_M[1,1] = 1.0
+    pred_M[1,0] = M_list[2]
+    pred_M[1,1] = M_list[3]
     pred_M[1,2] = 0.0
-    pred_M[2,0] = M_list[0]
-    pred_M[2,1] = M_list[1]
+    pred_M[2,0] = M_list[4]
+    pred_M[2,1] = M_list[5]
 
     M = ground_truth_M.numpy()
     
@@ -267,7 +267,7 @@ def show_transform_image(warped_img, M_list, ground_truth_M, should_inverse, sho
 def visualize_M_list(M_list):
     #color=iter(['r', 'g', 'b', 'y', 'c', 'm', 'r', 'g', 'b']) 
     plt.title("Distribution of generated M elements")
-    plt.ylim(-0.001, 0.001)
+    #plt.ylim(-2, 2)
     
     x = np.random.rand(np.shape(M_list)[0])
     plt.scatter(x, M_list)
