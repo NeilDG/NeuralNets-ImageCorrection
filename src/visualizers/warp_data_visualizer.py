@@ -362,15 +362,15 @@ def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, sh
         print("Error with measurement")
     return SSIM, MSE, RMSE
 
-def measure_with_rrl(path, warp_img, warp_img_orig, rrl_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
+def measure_with_rrl(warp_img, rrl_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
     
     try:
-        mean_img = cv2.warpPerspective(warp_img_orig, matrix_mean, (np.shape(warp_img_orig)[1], np.shape(warp_img_orig)[0]),borderValue = (1,1,1))
-        h_img = cv2.warpPerspective(warp_img_orig, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-        own_img = cv2.warpPerspective(warp_img_orig, np.linalg.inv(matrix_own), (np.shape(warp_img_orig)[1], np.shape(warp_img_orig)[0]),borderValue = (1,1,1))
+        mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        own_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_own), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
         rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
         
-        #print("Shapes: ", np.shape(warp_img_orig), np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
+        #print("Shapes: ", np.shape(warp_img), np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
        
         SSIM = [0.0, 0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0, 0.0]
         
