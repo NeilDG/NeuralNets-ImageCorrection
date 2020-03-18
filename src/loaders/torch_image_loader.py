@@ -44,7 +44,7 @@ def assemble_train_data(num_image_to_load = -1):
 
 #if -1, then load all images
 def assemble_test_data(num_image_to_load = -1):
-    rgb_list = []; warp_list = []; warp_list_orig = []; transform_list = []
+    rgb_list = []; warp_list = []; warp_list_orig = []; transform_list = []; filename_list = []
     
     images = os.listdir(gv.SAVE_PATH_RGB_GT_VAL)
     image_len = len(images)
