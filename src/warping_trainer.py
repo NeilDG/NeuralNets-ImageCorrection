@@ -27,9 +27,9 @@ class WarpingTrainer:
         self.name = name
         self.writer = writer
         self.visualized = False
-        self.model = [0]
-        self.optimizers = [0]
-        self.model_length = 1
+        self.model = [0,0,0]
+        self.optimizers = [0,0,0]
+        self.model_length = 3
         for i in range(self.model_length):
             self.model[i] = warping_cnn.WarpingCNN()
             self.model[i].to(self.gpu_device)
@@ -42,13 +42,13 @@ class WarpingTrainer:
     def report_new_epoch(self):
         self.visualized = False
         
-    def singular_loss(self, pred, target):
+    def singular_loss(self, pred, target, weight_penalties):
         mse_loss = torch.nn.MSELoss()
         
         #0 1 3 4 6 7
         total_loss = torch.zeros([1], dtype=torch.float64, requires_grad = True, device = self.gpu_device)
-        for i in range(len(self.weight_penalties)): 
-            total_loss = total_loss + ((mse_loss(pred[:, i], target[:, i])) * self.weight_penalties[i])
+        for i in range(len(weight_penalties)): 
+            total_loss = total_loss + ((mse_loss(pred[:, i], target[:, i])) * weight_penalties[i])
         
         return total_loss
     
@@ -78,21 +78,24 @@ class WarpingTrainer:
         warp_img = np.moveaxis(warp_img, -1, 0) #for properly displaying image in matplotlib
         
         reshaped_t = torch.reshape(transform, (np.size(transform, axis = 0), 9)).type('torch.FloatTensor')
-        t = [0]
-        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 1, 3, 4, 6, 7])).to(self.gpu_device)
-        # t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1])).to(self.gpu_device)
-        # t[2] = torch.index_select(reshaped_t, 1, torch.tensor([3])).to(self.gpu_device)
-        # t[3] = torch.index_select(reshaped_t, 1, torch.tensor([4])).to(self.gpu_device)
-        # t[4] = torch.index_select(reshaped_t, 1, torch.tensor([6])).to(self.gpu_device)
-        # t[5] = torch.index_select(reshaped_t, 1, torch.tensor([7])).to(self.gpu_device)
+        t = [0, 0, 0]
+        # t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 1, 3, 4, 6, 7])).to(self.gpu_device)
         
-        #0 1 2 3 4 5
+        t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 4])).to(self.gpu_device)
+        t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1, 3])).to(self.gpu_device)
+        t[2] = torch.index_select(reshaped_t, 1, torch.tensor([6, 7])).to(self.gpu_device)
+        
+        w = [0, 0, 0] #weight penalties assignment based from element sensitivity
+        w[0] = [self.weight_penalties[0], self.weight_penalties[3]]
+        w[1] = [self.weight_penalties[1], self.weight_penalties[2]]
+        w[2] = [self.weight_penalties[4], self.weight_penalties[5]]
+        
         self.batch_loss = 0.0
         for i in range(self.model_length):
             self.model[i].train();
             pred = self.model[i](warp_gpu)
             self.optimizers[i].zero_grad()
-            loss = self.singular_loss(pred, t[i])
+            loss = self.singular_loss(pred, t[i], w[i])
             self.batch_loss = self.batch_loss + loss.cpu().data
             loss.backward()
             self.optimizers[i].step();       
@@ -131,20 +134,29 @@ class WarpingTrainer:
         self.last_transform_tensor = torch.unsqueeze(reshaped_t[0], 0)
         
         with torch.no_grad():
+            t = [0, 0, 0]
+            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 4])).to(self.gpu_device)
+            t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1, 3])).to(self.gpu_device)
+            t[2] = torch.index_select(reshaped_t, 1, torch.tensor([6, 7])).to(self.gpu_device)
             
-            t = [0]
+            w = [0, 0, 0] #weight penalties assignment based from element sensitivity
+            w[0] = [self.weight_penalties[0], self.weight_penalties[3]]
+            w[1] = [self.weight_penalties[1], self.weight_penalties[2]]
+            w[2] = [self.weight_penalties[4], self.weight_penalties[5]]
             
-            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 1, 3, 4, 6, 7])).to(self.gpu_device)
-            
-            pred = None
+            overall_pred = []
             loss = 0.0
             for i in range(self.model_length):
                 self.model[i].eval()
                 pred = self.model[i](warp_gpu)
-                loss = loss + self.singular_loss(pred, t[i])
+                loss = loss + self.singular_loss(pred, t[i], w[i])
+                #return first prediction
+                overall_pred.append(pred[0, 0].cpu().numpy())
+                overall_pred.append(pred[0, 1].cpu().numpy())
             
-            pred = np.ndarray.flatten(pred[0].cpu().numpy())
-            return pred, loss.cpu().data
+            #re-arrange
+            overall_pred = [overall_pred[0], overall_pred[2], overall_pred[3], overall_pred[1], overall_pred[4], overall_pred[5]]
+            return overall_pred, loss.cpu().data
     
     def get_batch_loss(self):
         return self.batch_loss
