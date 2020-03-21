@@ -17,8 +17,8 @@ import numpy as np
 LR = 0.0005
 num_epochs = 70
 BATCH_SIZE = 8
-CNN_VERSION = "cnn_v4.21"
-CNN_ITERATION = "11"
+CNN_VERSION = "cnn_v4.23"
+CNN_ITERATION = "1"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
@@ -29,7 +29,7 @@ def start_train(gpu_device):
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
     start_epoch = 1
-    if(True): 
+    if(False): 
         checkpoint = torch.load(CHECKPATH)
         start_epoch = checkpoint['epoch'] + 1
         for i in range(ct.model_length):         
@@ -38,14 +38,14 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = -1)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = 500)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 100)
     
     for epoch in range(start_epoch, num_epochs):
         accum_loss = 0.0
         train_ave_loss = 0.0
         val_ave_loss = 0.0
-        for batch_idx, (rgb, warp, transform) in enumerate(training_dataset):
+        for batch_idx, (rgb, warp, transform, path) in enumerate(training_dataset):
             ct.train(warp, transform)
             accum_loss = accum_loss + ct.get_batch_loss()
              
@@ -71,11 +71,11 @@ def start_train(gpu_device):
         
         accum_loss = 0.0
         #perform validation test
-        for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
+        for batch_idx, (rgb, warp, transform, path) in enumerate(test_dataset):
             M, loss = ct.infer(warp, transform)
             accum_loss = accum_loss + loss
         
-        val_ave_loss = accum_loss / (batch_idx + 1)
+        val_ave_loss = accum_loss / (batch_idx +  1)
         
         #perform inference on validation
         warp_img = ct.get_last_warp_img()

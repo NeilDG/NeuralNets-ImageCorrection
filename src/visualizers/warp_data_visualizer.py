@@ -362,7 +362,7 @@ def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, sh
         print("Error with measurement")
     return SSIM, MSE, RMSE
 
-def measure_with_rrl(warp_img, rrl_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
+def measure_with_rrl(warp_img_name, warp_img, rrl_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
     
     try:
         mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
@@ -393,7 +393,7 @@ def measure_with_rrl(warp_img, rrl_img, rgb_img, matrix_mean, matrix_H, matrix_o
             f, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, sharex=True)
             f.set_size_inches(20,15)
             
-            #ax1.set_title("Input image: " + path)
+            f.suptitle("Image name: " + warp_img_name)
             ax1.imshow(warp_img)
             
             ax2.set_title("SSIM: "+str(SSIM[0])+ " MSE: "+str(MSE[0])+" RMSE: " +str(RMSE[0]))
