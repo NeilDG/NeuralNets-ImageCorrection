@@ -129,10 +129,11 @@ def measure_performance(gpu_device, trainer, test_dataset):
             matrix_own = np.reshape(M, (3,3))
             chance = np.random.rand() * 100
             
-            rrl_1_path = gv.RRL_1_RESULTS_PATH + path[i].split(".")[0] + "_m" + ".jpg"
+            image_name = path[i].split(".")[0]
+            rrl_1_path = gv.RRL_1_RESULTS_PATH + image_name + "_m" + ".jpg"
             rrl_img = tensor_utils.load_image(rrl_1_path)
             
-            SSIM, MSE, RMSE = warp_visualizer.measure_with_rrl(warp_img, rrl_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
+            SSIM, MSE, RMSE = warp_visualizer.measure_with_rrl(image_name, warp_img, rrl_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
             print("Img ", count, " SSIM: ", SSIM, "Chance: ", chance)
             
             accum_ssim[0] = accum_ssim[0] + SSIM[0]
