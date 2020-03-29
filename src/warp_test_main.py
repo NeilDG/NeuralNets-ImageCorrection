@@ -50,24 +50,6 @@ def compute_dataset_mean(test_dataset):
              
     dataset_mean = accumulate_T / count * 1.0
     np.savetxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt", dataset_mean, fmt = "%.8f")
-      
-#visualize each layer's output
-def visualize_layers(gpu_device, model_list, test_dataset):
-    for batch_idx, (rgb, warp, transform) in enumerate(test_dataset):
-        #get first data per batch only
-        model_Ms = [];
-        for model in model_list:
-            warp_candidate = torch.unsqueeze(warp[0,:,:,:], 0).to(gpu_device)
-            reshaped_t = torch.reshape(transform[0], (1, 9)).type('torch.FloatTensor')
-            gt_candidate = torch.reshape(reshaped_t[:,model.gt_index], (np.size(reshaped_t, axis = 0), 1)).type('torch.FloatTensor').to(gpu_device)
-    
-            model.flag_visualize_layer(True)
-            M, loss = model.single_infer(warp_tensor = warp_candidate, ground_truth_tensor = gt_candidate)
-            model_Ms.append(M)
-        
-        conv_activation, pool_activation = model_list[0].get_model_layer(1)
-        warp_visualizer.visualize_layer(conv_activation, resize_scale = 1)
-        break
     
 def measure_performance(gpu_device, trainer, test_dataset):
     dataset_mean = np.loadtxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt")
@@ -81,14 +63,15 @@ def measure_performance(gpu_device, trainer, test_dataset):
     average_MSE = [0.0, 0.0, 0.0, 0.0]
     average_RMSE = [0.0, 0.0, 0.0, 0.0]
     
-    accum_ssim = [0.0, 0.0, 0.0, 0.0]
-    average_SSIM = [0.0, 0.0, 0.0, 0.0]
+    accum_ssim = [0.0, 0.0, 0.0, 0.0, 0.0]
+    average_SSIM = [0.0, 0.0, 0.0, 0.0, 0.0]
     
-    pixel_mse = [0.0, 0.0, 0.0, 0.0]
-    pixel_rmse = [0.0, 0.0, 0.0, 0.0]
-    average_pixel_MSE = [0.0, 0.0, 0.0, 0.0]
-    average_pixel_RMSE = [0.0, 0.0, 0.0, 0.0]
+    pixel_mse = [0.0, 0.0, 0.0, 0.0, 0.0]
+    pixel_rmse = [0.0, 0.0, 0.0, 0.0, 0.0]
+    average_pixel_MSE = [0.0, 0.0, 0.0, 0.0, 0.0]
+    average_pixel_RMSE = [0.0, 0.0, 0.0, 0.0, 0.0]
     
+    M_list = []
     for batch_idx, (rgb, warp, transform, path) in enumerate(test_dataset):
         for i in range(np.shape(warp)[0]):
             warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0)
@@ -102,7 +85,7 @@ def measure_performance(gpu_device, trainer, test_dataset):
             M = np.insert(M, 2, 0.0)
             M = np.insert(M, 5, 0.0)
             M = np.append(M, 1.0)
-            
+            M_list.append(M)
             #print("Predicted M: ", M)
             #print("Actual M: ", reshaped_t.numpy())
             warp_img = tensor_utils.convert_to_matplotimg(warp, i)
@@ -120,8 +103,6 @@ def measure_performance(gpu_device, trainer, test_dataset):
             
             accum_mse[0] = accum_mse[0] + np.round(np.power(np.absolute(dataset_mean - reshaped_t.numpy()),2), 8)
             accum_mse[1] = accum_mse[1] + np.round(np.power(h_intensity,2), 8)
-            
-            
             accum_mse[2] = accum_mse[2] + np.power(np.absolute(M - reshaped_t.numpy()),2)
             
             #measure SSIM
@@ -130,26 +111,19 @@ def measure_performance(gpu_device, trainer, test_dataset):
             chance = np.random.rand() * 100
             
             image_name = path[i].split(".")[0]
-            rrl_1_path = gv.RRL_1_RESULTS_PATH + image_name + "_m" + ".jpg"
-            rrl_img = tensor_utils.load_image(rrl_1_path)
+            rrl_1_path = gv.RRL_RESULTS_PATH[0] + image_name + "_m" + ".jpg"
+            rrl_img_1 = tensor_utils.load_image(rrl_1_path)
             
-            SSIM, MSE, RMSE = warp_visualizer.measure_with_rrl(image_name, warp_img, rrl_img, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
+            rrl_2_path = gv.RRL_RESULTS_PATH[1] + image_name + "_r" + ".png"
+            rrl_img_2 = tensor_utils.load_image(rrl_2_path)
+            
+            SSIM, MSE, RMSE = warp_visualizer.measure_with_rrl(image_name, warp_img, rrl_img_1, rrl_img_2, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
             print("Img ", count, " SSIM: ", SSIM, "Chance: ", chance)
             
-            accum_ssim[0] = accum_ssim[0] + SSIM[0]
-            accum_ssim[1] = accum_ssim[1] + SSIM[1]
-            accum_ssim[2] = accum_ssim[2] + SSIM[2]
-            accum_ssim[3] = accum_ssim[3] + SSIM[3]
-            
-            pixel_mse[0] = pixel_mse[0] + MSE[0]
-            pixel_mse[1] = pixel_mse[1] + MSE[1]
-            pixel_mse[2] = pixel_mse[2] + MSE[2]
-            pixel_mse[3] = pixel_mse[3] + MSE[3]
-            
-            pixel_rmse[0] = pixel_rmse[0] + RMSE[0]
-            pixel_rmse[1] = pixel_rmse[1] + RMSE[1]
-            pixel_rmse[2] = pixel_rmse[2] + RMSE[2]
-            pixel_rmse[3] = pixel_rmse[3] + RMSE[3]
+            for i in range(len(accum_ssim)):
+                accum_ssim[i] = accum_ssim[i] + SSIM[i]
+                pixel_mse[i] = pixel_mse[i] + MSE[i]
+                pixel_rmse[i] = pixel_rmse[i] + RMSE[i]
                 
             count = count + 1
             # try:
@@ -157,65 +131,59 @@ def measure_performance(gpu_device, trainer, test_dataset):
             # except:
             #     print("RRL path possible error: ", rrl_1_path)
     
+    warp_visualizer.save_predicted_transforms(M_list)
     average_MAE[0] = np.round(np.sum(accum_mae[0] / (count * 1.0)), 16)
     average_MAE[1] = np.round(np.sum(accum_mae[1] / (count * 1.0)), 16)
-    average_MAE[3] = np.round(np.sum(accum_mae[3] / (count * 1.0)), 16)
+    average_MAE[2] = np.round(np.sum(accum_mae[2] / (count * 1.0)), 16)
     
     average_MSE[0] = np.round(np.sum(accum_mse[0] / (count * 1.0)), 16)
     average_MSE[1] = np.round(np.sum(accum_mse[1] / (count * 1.0)), 16)
-    average_MSE[3] = np.round(np.sum(accum_mse[3] / (count * 1.0)), 16)
+    average_MSE[2] = np.round(np.sum(accum_mse[2] / (count * 1.0)), 16)
     
     average_RMSE[0] = np.round(np.sqrt(average_MSE[0]), 16)
     average_RMSE[1] = np.round(np.sqrt(average_MSE[1]), 16)
-    average_RMSE[3] = np.round(np.sqrt(average_MSE[3]), 16)
+    average_RMSE[2] = np.round(np.sqrt(average_MSE[2]), 16)
      
-    average_SSIM[0] = np.round(accum_ssim[0] / (count * 1.0), 8)
-    average_SSIM[1] = np.round(accum_ssim[1] / (count * 1.0), 8)
-    average_SSIM[2] = np.round(accum_ssim[2] / (count * 1.0), 8)
-    average_SSIM[3] = np.round(accum_ssim[3] / (count * 1.0), 8)
-    
-    average_pixel_MSE[0] = np.round(np.sum(pixel_mse[0] / (count * 1.0)), 8)
-    average_pixel_MSE[1] = np.round(np.sum(pixel_mse[1] / (count * 1.0)), 8)
-    average_pixel_MSE[2] = np.round(np.sum(pixel_mse[2] / (count * 1.0)), 8)
-    average_pixel_MSE[3] = np.round(np.sum(pixel_mse[3] / (count * 1.0)), 8)
-    
-    average_pixel_RMSE[0] = np.round(np.sum(pixel_rmse[0] / (count * 1.0)), 8)
-    average_pixel_RMSE[1] = np.round(np.sum(pixel_rmse[1] / (count * 1.0)), 8)
-    average_pixel_RMSE[2] = np.round(np.sum(pixel_rmse[2] / (count * 1.0)), 8)
-    average_pixel_RMSE[3] = np.round(np.sum(pixel_rmse[3] / (count * 1.0)), 8)
-    
+    for i in range(len(accum_ssim)):
+        average_SSIM[i] = np.round(accum_ssim[i] / (count * 1.0), 8)
+        average_pixel_MSE[i] = np.round(np.sum(pixel_mse[i] / (count * 1.0)), 8)
+        average_pixel_RMSE[i] = np.round(np.sum(pixel_rmse[i] / (count * 1.0)), 8)
+        
     with open(gv.IMAGE_PATH_PREDICT + "test_data_result.txt", "w") as f:
         print("Average MAE using dataset mean: ", average_MAE[0], file = f)
         print("Average MAE using homography estimation: ", average_MAE[1], file = f)
-        print("Average MAE using our method: ", average_MAE[3], file = f)
+        print("Average MAE using our method: ", average_MAE[2], file = f)
         print("")
         
         print("Average MSE using dataset mean: ", average_MSE[0], file = f)
         print("Average MSE using homography estimation: ", average_MSE[1], file = f)
-        print("Average MSE using our method: ", average_MSE[3], file = f)
+        print("Average MSE using our method: ", average_MSE[2], file = f)
         print("")
         
         print("Average RMSE using dataset mean: ", average_RMSE[0], file = f)
         print("Average RMSE using homography estimation: ", average_RMSE[1], file = f)
-        print("Average RMSE using our method: ", average_RMSE[3], file = f)
+        print("Average RMSE using our method: ", average_RMSE[2], file = f)
         print("")
         
         print("Average pixel MSE using dataset mean: ", average_pixel_MSE[0], file = f)
         print("Average pixel MSE using homography estimation: ", average_pixel_MSE[1], file = f)
         print("Average pixel MSE using RRL 1: ", average_pixel_MSE[2], file = f)
-        print("Average pixel MSE using our method: ", average_pixel_MSE[3], file = f)
+        print("Average pixel MSE using RRL 2: ", average_pixel_MSE[3], file = f)
+        print("Average pixel MSE using our method: ", average_pixel_MSE[4], file = f)
         print("")
         
         print("Average pixel RMSE using dataset mean: ", average_pixel_RMSE[0], file = f)
         print("Average pixel RMSE using homography estimation: ", average_pixel_RMSE[1], file = f)
         print("Average pixel RMSE using RRL 1: ", average_pixel_RMSE[2], file = f)
-        print("Average pixel RMSE using our method: ", average_pixel_RMSE[3], file = f)
+        print("Average pixel RMSE using RRL 2: ", average_pixel_RMSE[3], file = f)
+        print("Average pixel RMSE using our method: ", average_pixel_RMSE[4], file = f)
         print("")
         
         print("Average SSIM using dataset mean: ", average_SSIM[0], file = f)
         print("Average SSIM using homography estimation: ", average_SSIM[1], file = f)
         print("Average SSIM using RRL 1: ", average_SSIM[2], file = f)
-        print("Average SSIM using our method: ", average_SSIM[3], file = f)
+        print("Average SSIM using RRL 2: ", average_SSIM[3], file = f)
+        print("Average SSIM using our method: ", average_SSIM[4], file = f)
         
         failure_rate = np.round((failures / (count * 1.0)),4)
         print("Homography failure rate: ", failure_rate, file = f)

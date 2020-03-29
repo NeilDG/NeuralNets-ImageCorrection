@@ -23,7 +23,7 @@ class Counters:
 #override saved predictions
 def save_predicted_transforms(M_list, start_index = 0):
     for i in range(np.shape(M_list)[0]):
-        np.savetxt(gv.SAVE_PATH_PREDICT + "warp_" +str(i + start_index)+ ".txt", M_list[i])
+        np.savetxt(gv.SAVE_PATH_PREDICT + "warp_" +str(i + start_index)+ ".txt", M_list[i], fmt = "%.8f")
         print("Successfully saved predicted M ", str(i + start_index))
 
 def retrieve_predict_warp_list():
@@ -59,16 +59,17 @@ def hide_plot_legend(ax):
     ax.axes.get_yaxis().set_visible(False)
 
 #performs perspective transformation by least squares
-def warp_perspective_least_squares(warp_img, rgb_img):
+def warp_perspective_least_squares(warp_img, rgb_img, move_axis = True):
     
-    warp_img = np.moveaxis(warp_img, -3, 0); warp_img = np.uint8(warp_img * 255)
-    rgb_img = np.moveaxis(rgb_img, -3, 0); rgb_img = np.uint8(rgb_img * 255)
+    if(move_axis):
+        warp_img = np.moveaxis(warp_img, -3, 0); warp_img = np.uint8(warp_img * 255)
+        rgb_img = np.moveaxis(rgb_img, -3, 0); rgb_img = np.uint8(rgb_img * 255)
     
     im1Gray = cv2.cvtColor(warp_img, cv2.COLOR_BGR2GRAY)
     im2Gray = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
     
     # Detect ORB features and compute descriptors.
-    orb = cv2.ORB_create(150)
+    orb = cv2.ORB_create(100)
     keypoints1, descriptors1 = orb.detectAndCompute(im1Gray, None)
     keypoints2, descriptors2 = orb.detectAndCompute(im2Gray, None)
   
@@ -362,35 +363,39 @@ def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, sh
         print("Error with measurement")
     return SSIM, MSE, RMSE
 
-def measure_with_rrl(warp_img_name, warp_img, rrl_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
+def measure_with_rrl(warp_img_name, warp_img, rrl_img_1, rrl_img_2, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
     
     try:
         mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
         h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
         own_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_own), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        rrl_img_2 = cv2.resize(rrl_img_2, (gv.WARP_W, gv.WARP_H)) #because size has changed for RRL img 2
         rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
         
         #print("Shapes: ", np.shape(warp_img), np.shape(mean_img), np.shape(rgb_img), np.shape(h_img), np.shape(own_img))
        
-        SSIM = [0.0, 0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0, 0.0]
+        SSIM = [0.0, 0.0, 0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0, 0.0, 0.0]
         
         SSIM[0] = np.round(compare_ssim(mean_img, rgb_img, multichannel = True),4)
         SSIM[1] = np.round(compare_ssim(h_img, rgb_img, multichannel = True),4)
-        SSIM[2] = np.round(compare_ssim(rrl_img, rgb_img, multichannel = True),4)
-        SSIM[3] = np.round(compare_ssim(own_img, rgb_img, multichannel = True),4)
+        SSIM[2] = np.round(compare_ssim(rrl_img_1, rgb_img, multichannel = True),4)
+        SSIM[3] = np.round(compare_ssim(rrl_img_2, rgb_img, multichannel = True),4)
+        SSIM[4] = np.round(compare_ssim(own_img, rgb_img, multichannel = True),4)
         
         MSE[0] = np.round(compare_mse(mean_img, rgb_img),4)
         MSE[1] = np.round(compare_mse(h_img, rgb_img),4)
-        MSE[2] = np.round(compare_mse(rrl_img, rgb_img),4)
-        MSE[3] = np.round(compare_mse(own_img, rgb_img),4)
+        MSE[2] = np.round(compare_mse(rrl_img_1, rgb_img),4)
+        MSE[3] = np.round(compare_mse(rrl_img_2, rgb_img),4)
+        MSE[4] = np.round(compare_mse(own_img, rgb_img),4)
         
         RMSE[0] = np.round(compare_nrmse(rgb_img, mean_img),4)
         RMSE[1] = np.round(compare_nrmse(rgb_img, h_img),4)
-        RMSE[2] = np.round(compare_nrmse(rrl_img, rgb_img),4)
-        RMSE[3] = np.round(compare_nrmse(rgb_img, own_img),4)
+        RMSE[2] = np.round(compare_nrmse(rrl_img_1, rgb_img),4)
+        RMSE[3] = np.round(compare_nrmse(rrl_img_2, rgb_img),4)
+        RMSE[4] = np.round(compare_nrmse(rgb_img, own_img),4)
         
         if(should_visualize):
-            f, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, sharex=True)
+            f, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7, 1, sharex=True)
             f.set_size_inches(20,15)
             
             f.suptitle("Image name: " + warp_img_name)
@@ -403,13 +408,16 @@ def measure_with_rrl(warp_img_name, warp_img, rrl_img, rgb_img, matrix_mean, mat
             ax3.imshow(h_img)
             
             ax4.set_title("SSIM: "+str(SSIM[2])+ " MSE: "+str(MSE[2])+" RMSE: " +str(RMSE[2]))
-            ax4.imshow(rrl_img)
+            ax4.imshow(rrl_img_1)
             
             ax5.set_title("SSIM: "+str(SSIM[3])+ " MSE: "+str(MSE[3])+" RMSE: " +str(RMSE[3]))
-            ax5.imshow(own_img)
+            ax5.imshow(rrl_img_2)
+            
+            ax6.set_title("SSIM: "+str(SSIM[4])+ " MSE: "+str(MSE[4])+" RMSE: " +str(RMSE[4]))
+            ax6.imshow(own_img)
             
             #ax5.set_title("Ground truth")
-            ax6.imshow(rgb_img)
+            ax7.imshow(rgb_img)
             
             hide_plot_legend(ax1)
             hide_plot_legend(ax2)
@@ -417,10 +425,11 @@ def measure_with_rrl(warp_img_name, warp_img, rrl_img, rgb_img, matrix_mean, mat
             hide_plot_legend(ax4)
             hide_plot_legend(ax5)
             hide_plot_legend(ax6)
+            hide_plot_legend(ax7)
             plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_"+str(count)+ ".png", bbox_inches='tight', pad_inches=0)
             plt.show()  
     except:
-        SSIM = [0.0, 0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0, 0.0]; RMSE = [0.5, 0.5, 0.5, 0.5]
+        SSIM = [0.0, 0.0, 0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0, 0.0, 0.0]; RMSE = [0.5, 0.5, 0.5, 0.5, 0.5]
     return SSIM, MSE, RMSE
 
 def show_auto_encoder_img(warp_img, pred_img, ground_truth_img, test_title):
@@ -485,7 +494,7 @@ def visualize_transform_M(M_list, label, color = 'g'):
         Y.append(M_list[i].mean())
         #Y.append(np.linalg.norm(M_list[i]))
     
-    plt.scatter(X, Y, color = color)
+    plt.scatter(X, Y, color = color, label = label)
     #plt.ylim(np.average(Y), np.average(Y))
     plt.legend()
 
@@ -493,9 +502,9 @@ def visualize_predict_M(predicted_M_list):
     X = list(range(0, np.shape(predicted_M_list)[0]))
     Y = []
     for i in range(np.shape(predicted_M_list)[0]):
-        print("Predict transform size: ", np.shape(predicted_M_list[i]))
+        #print("Predict transform size: ", np.shape(predicted_M_list[i]))
         #Y.append(np.linalg.norm(predicted_M_list[i]))
-        print(predicted_M_list[i].mean())
+        #print(predicted_M_list[i].mean())
         Y.append(predicted_M_list[i].mean())
     
     plt.scatter(X, Y, color = 'r', label = "predictions")
@@ -504,10 +513,13 @@ def visualize_predict_M(predicted_M_list):
     #plt.title("Distribution of norm ground-truth T vs predicted T")
     plt.show()
     
+    norm_diff = []
     for i in range(1, np.shape(predicted_M_list)[0]):
         diff = abs(predicted_M_list[i] - predicted_M_list[i - 1])
         plt.scatter(i - 1, np.linalg.norm(diff), color = 'b')
-    
+        norm_diff.append(diff)
+        
+    print("Mean diff: ", np.mean(norm_diff))
     plt.title("Differences of predicted T")
     plt.show()
 
@@ -587,18 +599,7 @@ def main():
     
     counter = Counters()
     
-    predict_list_files = retrieve_predict_warp_list()
-    for pfile in predict_list_files:
-        predict_transforms.append(np.loadtxt(pfile))
-    
-    #append 1's element on correct places
-    predict_transforms.insert(0, 1.0)
-    predict_transforms.insert(2, 0.0)
-    predict_transforms.insert(4, 1.0)
-    predict_transforms.insert(5, 0.0)
-    predict_transforms.append(1.0)
-    
-    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(loader.load_dataset(batch_size = 32, num_image_to_load = 500)):
+    for batch_idx, (rgb, warp, transform, path) in enumerate(loader.load_dataset(batch_size = 32, num_image_to_load = 500)):
         for t in transform:
             all_transforms.append(t.numpy())
             
@@ -608,16 +609,16 @@ def main():
         for rgb_img in rgb:
             train_rgb_list.append(rgb_img)
     
-        visualize_transform_M(all_transforms, color = 'g', label = "training set")
-        all_transforms.clear()
-        all_transforms = []
-        
         #count_edges(train_warp_list, train_warp_edge_list, counter)
         #count_edges(train_rgb_list, train_rgb_edge_list, counter)
         train_warp_list.clear();
         train_rgb_list.clear();
+    
+    visualize_transform_M(all_transforms, "training set", "g")
+    all_transforms.clear()
+    all_transforms = []
         
-    for batch_idx, (rgb, warp_orig, warp, transform) in enumerate(loader.load_test_dataset(batch_size = 64, num_image_to_load = 500)):
+    for batch_idx, (rgb, warp, transform, path) in enumerate(loader.load_test_dataset(batch_size = 64, num_image_to_load = 500)):
         for t in transform:
             all_transforms.append(t.numpy())
         
@@ -626,16 +627,22 @@ def main():
         
         for rgb_img in rgb:
             test_rgb_list.append(rgb_img)
-       
-        visualize_transform_M(all_transforms, color = 'b', label = "test set")
-        all_transforms.clear()
-        all_transforms = []
-    
+            
         #count_edges(test_warp_list, test_warp_edge_list, counter)
         #count_edges(test_rgb_list, test_rgb_edge_list, counter)
         test_warp_list.clear();
         test_rgb_list.clear();
     
+    visualize_transform_M(all_transforms, "test set", "b")
+    all_transforms.clear()
+    all_transforms = []
+    
+    predict_list_files = retrieve_predict_warp_list()
+    for pfile in predict_list_files:
+        predict_transforms.append(np.loadtxt(pfile))
+    
+    
+    visualize_predict_M(predict_transforms)
     plt.show();
     #visualize_edge_count(train_warp_edge_list, test_warp_edge_list, True, "warp_edge_dist")
     #visualize_edge_count(train_rgb_edge_list, test_rgb_edge_list, True, "test_edge_dist")

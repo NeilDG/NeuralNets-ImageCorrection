@@ -15,10 +15,10 @@ import warping_trainer
 import numpy as np
 
 LR = 0.0005
-num_epochs = 70
+num_epochs = 40
 BATCH_SIZE = 8
-CNN_VERSION = "cnn_v4.23"
-CNN_ITERATION = "1"
+CNN_VERSION = "cnn_v4.24"
+CNN_ITERATION = "2"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
