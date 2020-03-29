@@ -16,11 +16,11 @@ class WarpingCNN(nn.Module):
     
     def __init__(self):
         super(WarpingCNN, self).__init__()
-        resnet_model = models.resnet50(True)
-        for param in resnet_model.parameters():
+        pretrained_model = models.densenet161(True)
+        for param in pretrained_model.parameters():
             param.requires_grad = False
         
-        #self.resnet_bridge = nn.Sequential(*list(resnet_model.children())[:-2])
+        self.pretrained_bridge = nn.Sequential(*list(pretrained_model.children())[:-2])
         
         conv = nn.Conv2d(in_channels = 3, out_channels = 128, kernel_size=3, stride=2, padding=1); nn.init.xavier_normal_(conv.weight)
         pool = nn.MaxPool2d(kernel_size=3, stride=1, padding=0)
@@ -63,8 +63,18 @@ class WarpingCNN(nn.Module):
         
     
     def forward(self, x):
+        # x = self.conv1(x)
+        # x = self.conv2(x) 
+        # x = self.conv3(x)
+        # x = self.conv4(x)
+        # x = self.conv5(x)
+        # x = self.conv6(x)
+        # x = self.conv7(x)
+        # x = self.conv8(x)
+        # x = self.conv9(x)
+        x = self.pretrained_bridge(x)
         x = self.conv1(x)
-        x = self.conv2(x) 
+        x = self.conv2(x)
         x = self.conv3(x)
         x = self.conv4(x)
         x = self.conv5(x)
@@ -72,7 +82,6 @@ class WarpingCNN(nn.Module):
         x = self.conv7(x)
         x = self.conv8(x)
         x = self.conv9(x)
-       
         x = torch.flatten(x,1)
         x = self.fc_block(x)
         
