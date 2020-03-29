@@ -17,7 +17,8 @@ SAVE_PATH_RGB_GT = 'E:/NN_Dataset/warp_rgb_ground_truth/'
 SAVE_PATH_WARP_VAL = 'E:/NN_Dataset/warp_rgb_val/'
 SAVE_PATH_RGB_GT_VAL = 'E:/NN_Dataset/warp_rgb_ground_truth_val/'
 
-RRL_1_RESULTS_PATH = 'E:/NN_Dataset/KITTI_Result/'
+RRL_RESULTS_PATH = ['E:/NN_Dataset/KITTI_Result/1/',
+                    'E:/NN_Dataset/KITTI_Result/2/']
 
 SAVE_PATH_UNSEEN_DATA = 'E:/NN_Dataset/unseen_data_orig/'
 SAVE_PATH_UNSEEN_DATA_RGB = 'E:/NN_Dataset/unseen_data_rgb/'

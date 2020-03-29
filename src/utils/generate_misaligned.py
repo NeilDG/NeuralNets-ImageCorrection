@@ -209,38 +209,23 @@ def generate_single_data(img):
         crop = polish_border(crop)
         crop_img = cv2.resize(crop, (gv.WARP_W, gv.WARP_H)) 
         
-        # x_dim = np.shape(result)[1]; y_dim = np.shape(result)[0];
-        # img_pts = np.float32([[0,y_dim], [0,0], [x_dim,0], [x_dim, y_dim]])
-        
-        # crop_pts = cv2.boxPoints(rect)
-        # cv2.drawContours(result, [crop_pts.astype(int)], 0, (0,255,0), 5)
-        
-        # cv2.drawContours(crop_img, [img_pts.astype(int)], 0, (0,255,0), 5)
-        
-        # new_M = cv2.getPerspectiveTransform(img_pts, crop_pts)
-        #new_M = np.linalg.inv(new_M)
-        
-        # print(crop_pts)
-        # print(img_pts)
-        # print("Old M: ", M[0,0], M[1,1], M[2,2])
-        # print("New M: ", new_M[0,0], new_M[1,1], new_M[2,2])
-        #M[0,0] = new_M[0,0]; M[1,1] = new_M[1,1]
-        
         x_ratio = (w) / gv.WARP_W
         y_ratio = (h) / gv.WARP_H
         z_ratio = (w * h) / (gv.WARP_W * gv.WARP_H);
-        #M[0,0] = 1 + (1.0 - x_ratio); M[1,1] = 1.0 + (1.0 - y_ratio); 
-        #M[2,2] = z_ratio
-        #M[0,2] = y; M[1,2] = x
-        #inverse_M = np.linalg.inv(M)
-        
+                
         #Initiate ORB detector for image verification
         orb = cv2.ORB_create(700)
         kp = orb.detect(crop_img,None)
         kp, des = orb.compute(crop_img, kp)
         kp_count = np.shape(kp)[0]
         #print("Keypoint shape: ", kp_count)
-        
+    
+    #reconfigure M
+    # print("Old M: ", M)
+    # M[0,0] = x_ratio
+    # M[1,1] = y_ratio
+    # print("New M: ", M)
+    # inverse_M = np.linalg.inv(M)
     #print("Ratio X:", x_ratio, " Ratio Y: ", y_ratio, "Ratio Z: ", z_ratio, "Offset X: ", x, " Y: ", y)
     return result, M, inverse_M, crop_img
     
@@ -251,21 +236,27 @@ def check_generate_data():
     #test read image
     M_list = []
     
-    for i in range(25):
+    for i in range(5):
         img = cv2.imread(rgb_list[i])
         result, M, inverse_M, crop_img = generate_single_data(img)      
         reverse_img = perform_unwarp(crop_img, inverse_M)
 
         f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1)
+        ax1.axis("off"); ax2.axis("off"); ax3.axis("off"); ax4.axis("off")
         f.set_size_inches(12,15)
         
-        ax1.set_title("Warped image (original res)"); ax1.imshow(result);
-        ax2.set_title("Warped image"); ax2.imshow(crop_img);
-        ax3.set_title("Recovered image"); ax3.imshow(reverse_img);
+        #ax1.set_title("Warped image (original res)"); 
+        ax1.imshow(result);
+        #ax2.set_title("Warped image") 
+        ax2.imshow(crop_img);
+        #ax3.set_title("Recovered image")
+        ax3.imshow(reverse_img);
         img = cv2.resize(img, (gv.WARP_W, gv.WARP_H))
-        ax4.set_title("Original image"); ax4.imshow(img); plt.show()
-        #difference = img - reverse_img
-        #plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
+        #ax4.set_title("Original image") 
+        ax4.imshow(img); plt.show()
+        
+        difference = np.abs(img - reverse_img)
+        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
         #print(M)
         M_list.append(M[0,0])
@@ -374,4 +365,4 @@ if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #batch_iterative_warp()
     check_generate_data() 
-    generate(2, 0)
+    #generate(2, 0)

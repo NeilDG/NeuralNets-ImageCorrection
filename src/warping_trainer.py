@@ -102,8 +102,8 @@ class WarpingTrainer:
         
         if(self.visualized == False):
             self.visualized = True
-            self.visualize_activation(["conv1", "conv2", "conv3", "conv4", "conv5", "conv6", "conv7", "conv8", "conv9"], warp_gpu, t)
-            #self.visualize_activation(["conv1", "conv2"], warp_gpu, t)
+            #self.visualize_activation(["conv1", "conv2", "conv3", "conv4", "conv5", "conv6", "conv7", "conv8", "conv9"], warp_gpu, t)
+            self.visualize_activation(["conv1", "conv2"], warp_gpu, t)
         
         self.last_warp_img = warp_img
         self.last_warp_tensor = torch.unsqueeze(warp[0,:,:,:], 0)
