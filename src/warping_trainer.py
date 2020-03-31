@@ -7,6 +7,7 @@ Created on Wed Nov  6 19:41:58 2019
 
 from model import warping_cnn
 from model import resnet_cnn
+from model import densenet_cnn
 from loaders import torch_image_loader as loader
 from utils import generate_misaligned as gm
 import global_vars as gv
@@ -31,7 +32,7 @@ class WarpingTrainer:
         self.optimizers = [0,0,0]
         self.model_length = 3
         for i in range(self.model_length):
-            self.model[i] = warping_cnn.WarpingCNN()
+            self.model[i] = densenet_cnn.DensenetCNN()
             self.model[i].to(self.gpu_device)
             self.optimizers[i] = optim.Adam(self.model[i].parameters(), lr = self.lr, weight_decay = weight_decay)
         
@@ -102,7 +103,7 @@ class WarpingTrainer:
         
         if(self.visualized == False):
             self.visualized = True
-            self.visualize_activation(["conv1", "conv2", "conv3", "conv4", "conv5", "conv6", "conv7", "conv8", "conv9"], warp_gpu, t)
+            #self.visualize_activation(["conv1", "conv2", "conv3", "conv4", "conv5", "conv6", "conv7", "conv8", "conv9"], warp_gpu, t)
         
         self.last_warp_img = warp_img
         self.last_warp_tensor = torch.unsqueeze(warp[0,:,:,:], 0)
