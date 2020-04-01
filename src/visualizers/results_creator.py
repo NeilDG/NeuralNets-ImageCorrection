@@ -16,6 +16,7 @@ import warp_train_main as train_main
 from utils import tensor_utils
 import global_vars as gv
 from matplotlib import pyplot as plt
+from visualizers import gradcam
 
 BATCH_SIZE = 32
 OPTIMIZER_KEY = "optimizer"
@@ -37,30 +38,71 @@ def produce_figures(gpu_device):
         for i in range(np.shape(warp)[0]):
             warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0)
             reshaped_t = torch.reshape(transform[i], (1, 9)).type('torch.FloatTensor')
-            M, loss = ct.infer(warp_candidate, reshaped_t)
+            t = [0, 0, 0]
+            t[0] = torch.index_select(reshaped_t, 1, torch.tensor([0, 4])).to(gpu_device)
+            t[1] = torch.index_select(reshaped_t, 1, torch.tensor([1, 3])).to(gpu_device)
+            t[2] = torch.index_select(reshaped_t, 1, torch.tensor([6, 7])).to(gpu_device)
             
-            M = np.insert(M, 2, 0.0)
-            M = np.insert(M, 5, 0.0)
-            M = np.append(M, 1.0)
-            M = np.reshape(M, (3,3))
+            # M, loss = ct.infer(warp_candidate, reshaped_t)
             
-            warp_img = tensor_utils.convert_to_matplotimg(warp, i)
-            ground_truth_img = tensor_utils.convert_to_matplotimg(rgb, i)
-            homog_img, homography_M = warp_visualizer.warp_perspective_least_squares(warp_img, ground_truth_img)
+            # M = np.insert(M, 2, 0.0)
+            # M = np.insert(M, 5, 0.0)
+            # M = np.append(M, 1.0)
+            # M = np.reshape(M, (3,3))
+            
+            # warp_img = tensor_utils.convert_to_matplotimg(warp, i)
+            # ground_truth_img = tensor_utils.convert_to_matplotimg(rgb, i)
+            # homog_img, homography_M = warp_visualizer.warp_perspective_least_squares(warp_img, ground_truth_img)
             
             image_name = path[i].split(".")[0]
             
-            rrl_1_path = gv.RRL_RESULTS_PATH[1] + image_name + "_r" + ".png"
-            rrl_img_1 = tensor_utils.load_image(rrl_1_path)
-            rrl_img_1 = cv2.resize(rrl_img_1, (gv.WARP_W, gv.WARP_H)) #because size has changed for RRL img
+            # rrl_1_path = gv.RRL_RESULTS_PATH[1] + image_name + "_r" + ".png"
+            # rrl_img_1 = tensor_utils.load_image(rrl_1_path)
+            # rrl_img_1 = cv2.resize(rrl_img_1, (gv.WARP_W, gv.WARP_H)) #because size has changed for RRL img
             
-            rrl_2_path = gv.RRL_RESULTS_PATH[0] + image_name + "_m" + ".jpg"
-            rrl_img_2 = tensor_utils.load_image(rrl_2_path)
+            # rrl_2_path = gv.RRL_RESULTS_PATH[0] + image_name + "_m" + ".jpg"
+            # rrl_img_2 = tensor_utils.load_image(rrl_2_path)
             
-            own_img = cv2.warpPerspective(warp_img, np.linalg.inv(M), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+            # own_img = cv2.warpPerspective(warp_img, np.linalg.inv(M), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
             
-            produce_single_figure(image_name, [warp_img, homog_img, rrl_img_1, rrl_img_2, own_img, ground_truth_img])
+            # produce_single_figure(image_name, [warp_img, homog_img, rrl_img_1, rrl_img_2, own_img, ground_truth_img])
+            visualize_activation(["conv1", "conv2", "conv3", "conv4", "conv5", "conv6", "conv7", "conv8", "conv9"], ct, image_name, warp_candidate.to(gpu_device), t)
 
+def visualize_activation(layers, ct, image_name, input, target):
+    fig, ax = plt.subplots(len(ct.model), len(layers))
+    fig.set_size_inches(50, 10)
+    #fig.suptitle("Activation regions")
+    
+    index = 0;
+    #for i in range(len(ct.model)):
+    for j in range(len(layers)):
+        visualizer = gradcam.GradCam(ct.model[0], target_layer=layers[j])
+        cam = visualizer.generate_cam(input, target[0], ct.weight_penalties[0])
+        cam = np.moveaxis(cam, -1, 0)
+        cam = np.moveaxis(cam, -1, 0) #for properly displaying image in matplotlib
+        ax[0, j].imshow(cam)
+        ax[0, j].set_axis_off()
+        index = index + 1
+        
+        visualizer = gradcam.GradCam(ct.model[0], target_layer=layers[j])
+        cam = visualizer.generate_cam(input, target[1], ct.weight_penalties[5])
+        cam = np.moveaxis(cam, -1, 0)
+        cam = np.moveaxis(cam, -1, 0) #for properly displaying image in matplotlib
+        ax[1, j].imshow(cam)
+        ax[1, j].set_axis_off()
+        index = index + 1
+        
+        visualizer = gradcam.GradCam(ct.model[2], target_layer=layers[j])
+        cam = visualizer.generate_cam(input, target[2], ct.weight_penalties[5])
+        cam = np.moveaxis(cam, -1, 0)
+        cam = np.moveaxis(cam, -1, 0) #for properly displaying image in matplotlib
+        ax[2, j].imshow(cam)
+        ax[2, j].set_axis_off()
+        index = index + 1
+    
+    plt.subplots_adjust(left = 0.06, wspace=0.0, hspace=0.0)            
+    plt.savefig(gv.SAVE_PATH_FIGURES + "/" +image_name+ "_activation.png", bbox_inches='tight', pad_inches=0)
+    plt.show()
 # Produces a single figure. Image order matters!
 def produce_single_figure(image_name, images):
     fig, ax = plt.subplots(len(images))

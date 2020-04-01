@@ -22,7 +22,12 @@ class Counters:
 #saves predicted transforms inferred by network. Always set start_index = 0 if you want to
 #override saved predictions
 def save_predicted_transforms(M_list, start_index = 0):
-    for i in range(np.shape(M_list)[0]):
+
+    bounds = np.shape(M_list)[0]
+    if (bounds > 500):
+        bounds = 500
+
+    for i in range(bounds):
         np.savetxt(gv.SAVE_PATH_PREDICT + "warp_" +str(i + start_index)+ ".txt", M_list[i], fmt = "%.8f")
         print("Successfully saved predicted M ", str(i + start_index))
 
