@@ -106,7 +106,7 @@ def load_dataset(batch_size = 8, num_image_to_load = -1):
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=batch_size,
-        num_workers=8,
+        num_workers=4,
         shuffle=True
     )
     
@@ -125,7 +125,7 @@ def load_test_dataset(batch_size = 8, num_image_to_load = -1):
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=8,
+        num_workers=4,
         shuffle=False
     )
     
