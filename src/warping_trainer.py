@@ -5,7 +5,8 @@ Created on Wed Nov  6 19:41:58 2019
 @author: delgallegon
 """
 
-from model import warping_cnn
+from model import warping_cnn_parallel
+from model import warping_cnn_single
 from model import resnet_cnn
 from model import densenet_cnn
 from loaders import torch_image_loader as loader
