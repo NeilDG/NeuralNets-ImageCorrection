@@ -72,18 +72,26 @@ def assemble_test_data(num_image_to_load = -1):
         
     return rgb_list, warp_list, transform_list
 
-def assemble_unseen_data():
+def assemble_unseen_data(num_image_to_load = -1):
     rgb_list = []; warp_list = []; transform_list = []
     
-    images = os.listdir(gv.SAVE_PATH_UNSEEN_DATA_RGB)
+    images = os.listdir(gv.SAVE_PATH_UNSEEN_DATA_RGB_GT)
     image_len = len(images)
     
-    for i in range(image_len): #len(images)
-        rgbImagePath = gv.SAVE_PATH_UNSEEN_DATA_RGB + images[i]
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load
+        
+    for i in range(image_len):
+        rgbImagePath = gv.SAVE_PATH_UNSEEN_DATA_RGB_GT + images[i]
         rgb_list.append(rgbImagePath)
     
     images = os.listdir(gv.SAVE_PATH_UNSEEN_DATA_WARP)
-    for i in range(image_len * 2):
+    image_len = len(images)
+    
+    if(num_image_to_load > 0):
+        image_len = num_image_to_load * 2
+    
+    for i in range(image_len):
         if(".png" in images[i]):
             warpImagePath = gv.SAVE_PATH_UNSEEN_DATA_WARP + images[i]
             transformPath = gv.SAVE_PATH_UNSEEN_DATA_WARP + images[i].replace(".png", ".txt")
@@ -131,12 +139,13 @@ def load_test_dataset(batch_size = 8, num_image_to_load = -1):
     
     return test_loader
 
-def load_unseen_dataset(batch_size = 8):
-    rgb_list, warp_list, transform_list = assemble_unseen_data()
+def load_unseen_dataset(batch_size = 8, num_image_to_load = -1):
+    rgb_list, warp_list, transform_list = assemble_unseen_data(num_image_to_load)
     print("Length of test images: ", len(rgb_list), len(warp_list))
     
     generic_transform = transforms.Compose([
         transforms.ToPILImage(),
+        transforms.Resize((gv.WARP_H, gv.WARP_W)),
         transforms.ToTensor(),
     ])
 

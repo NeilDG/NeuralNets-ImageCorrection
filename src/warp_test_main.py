@@ -34,9 +34,12 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
+    #test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
+    
+    test_dataset = loader.load_unseen_dataset(BATCH_SIZE, 1900)
     #compute_dataset_mean(test_dataset)
     measure_performance(gpu_device, ct, test_dataset)
+    #check_on_unseen_data(gpu_device, ct)
     
 def compute_dataset_mean(test_dataset):
     accumulate_T = np.zeros(9)
@@ -111,25 +114,22 @@ def measure_performance(gpu_device, trainer, test_dataset):
             chance = np.random.rand() * 100
             
             image_name = path[i].split(".")[0]
-            rrl_1_path = gv.RRL_RESULTS_PATH[0] + image_name + "_m" + ".jpg"
+            rrl_1_path = gv.RRL_RESULTS_PATH[2] + image_name + "_m" + ".jpg"
             rrl_img_1 = tensor_utils.load_image(rrl_1_path)
             
-            rrl_2_path = gv.RRL_RESULTS_PATH[1] + image_name + "_r" + ".png"
+            rrl_2_path = gv.RRL_RESULTS_PATH[3] + image_name + "_r" + ".png"
             rrl_img_2 = tensor_utils.load_image(rrl_2_path)
             
-            SSIM, MSE, RMSE = warp_visualizer.measure_with_rrl(image_name, warp_img, rrl_img_1, rrl_img_2, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
-            print("Img ", count, " SSIM: ", SSIM, "Chance: ", chance)
-            
-            for i in range(len(accum_ssim)):
-                accum_ssim[i] = accum_ssim[i] + SSIM[i]
-                pixel_mse[i] = pixel_mse[i] + MSE[i]
-                pixel_rmse[i] = pixel_rmse[i] + RMSE[i]
+            if(rrl_img_1 is not None and rrl_img_2 is not None):
+                SSIM, MSE, RMSE = warp_visualizer.measure_with_rrl(image_name, warp_img, rrl_img_1, rrl_img_2, rgb_img, matrix_mean, homography_M, matrix_own, count, should_visualize = (chance < 30))
+                print("Img ", count, " SSIM: ", SSIM, "Chance: ", chance)
                 
-            count = count + 1
-            # try:
-                
-            # except:
-            #     print("RRL path possible error: ", rrl_1_path)
+                for i in range(len(accum_ssim)):
+                    accum_ssim[i] = accum_ssim[i] + SSIM[i]
+                    pixel_mse[i] = pixel_mse[i] + MSE[i]
+                    pixel_rmse[i] = pixel_rmse[i] + RMSE[i]
+                    
+                count = count + 1
     
     warp_visualizer.save_predicted_transforms(M_list)
     average_MAE[0] = np.round(np.sum(accum_mae[0] / (count * 1.0)), 16)
@@ -189,25 +189,37 @@ def measure_performance(gpu_device, trainer, test_dataset):
         print("Homography failure rate: ", failure_rate, file = f)
  
 
-def check_on_unseen_data(gpu_device, model_list):
+def check_on_unseen_data(gpu_device, trainer):
     unseen_dataset = loader.load_unseen_dataset(BATCH_SIZE)
     
     overall_index = 0;
-    for batch_idx, (rgb, warp, transform) in enumerate(unseen_dataset):
-        print("Batch idx: ", batch_idx)
-        for index in range(len(warp)):
-            model_Ms = [];
-            for model in model_list:
-                warp_candidate = torch.unsqueeze(warp[index,:,:,:],  0).to(gpu_device)
-                M = model.blind_infer(warp_tensor = warp_candidate)
-                model_Ms.append(M)
+    for batch_idx, (rgb, warp, transform, path) in enumerate(unseen_dataset):
+        for i in range(np.shape(warp)[0]):
+            warp_candidate = torch.unsqueeze(warp[i,:,:,:], 0)
+            reshaped_t = torch.reshape(transform[i], (1, 9)).type('torch.FloatTensor')
+            M, loss = trainer.infer(warp_candidate, reshaped_t)
+            M = np.insert(M, 2, 0.0)
+            M = np.insert(M, 5, 0.0)
+            M = np.append(M, 1.0)
+            M = np.reshape(M, (3,3))
             
-            #chance visualize and save result
-            warp_img = tensor_utils.convert_to_matplotimg(warp, index)
-            rgb_img = tensor_utils.convert_to_matplotimg(rgb, index)
-            warp_visualizer.visualize_blind_results(warp_img = warp_img, rgb_img = rgb_img, 
-                                                    M_list = model_Ms, index = overall_index, 
-                                                    p = 1.0)
+            ground_truth_M = np.reshape(reshaped_t.numpy(), (3,3))
+            print("Predicted M[0] val: ", M[0,0], "Actual val: ",ground_truth_M[0,0])
+            print("Predicted M[1] val: ", M[0,1], "Actual val: ",ground_truth_M[0,1])
+            print("Predicted M[2] val: ", M[0,2], "Actual val: ",ground_truth_M[0,2])
+            print("Predicted M[3] val: ", M[1,0], "Actual val: ",ground_truth_M[1,0])
+            print("Predicted M[4] val: ", M[1,1], "Actual val: ",ground_truth_M[1,1])
+            print("Predicted M[5] val: ", M[1,2], "Actual val: ",ground_truth_M[1,2])
+            print("Predicted M[6] val: ", M[2,0], "Actual val: ",ground_truth_M[2,0])
+            print("Predicted M[7] val: ", M[2,1], "Actual val: ",ground_truth_M[2,1])
+            print("Predicted M[8] val: ", M[2,2], "Actual val: ",ground_truth_M[2,2])
+    
+            image_name = path[i].split(".")[0]
+            
+            
+            warp_img = tensor_utils.convert_to_matplotimg(warp, i)
+            rgb_img = tensor_utils.convert_to_matplotimg(rgb, i)
+            warp_visualizer.visualize_blind_results(warp_img, rgb_img, M, image_name, 1.0)
             overall_index = overall_index + 1
                
 def main():

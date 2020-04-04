@@ -18,10 +18,12 @@ SAVE_PATH_WARP_VAL = 'E:/NN_Dataset/warp_rgb_val/'
 SAVE_PATH_RGB_GT_VAL = 'E:/NN_Dataset/warp_rgb_ground_truth_val/'
 
 RRL_RESULTS_PATH = ['E:/NN_Dataset/KITTI_Result/1/',
-                    'E:/NN_Dataset/KITTI_Result/2/']
+                    'E:/NN_Dataset/KITTI_Result/2/',
+                    'E:/NN_Dataset/KITTI_Result/3/',
+                    'E:/NN_Dataset/KITTI_Result/4/']
 
-SAVE_PATH_UNSEEN_DATA = 'E:/NN_Dataset/unseen_data_orig/'
-SAVE_PATH_UNSEEN_DATA_RGB = 'E:/NN_Dataset/unseen_data_rgb/'
+SAVE_PATH_UNSEEN_DATA = 'E:/Places Dataset/'
+SAVE_PATH_UNSEEN_DATA_RGB_GT = 'E:/NN_Dataset/unseen_data_rgb/'
 SAVE_PATH_UNSEEN_DATA_WARP = 'E:/NN_Dataset/unseen_data_warp/'
 
 SAVE_PATH_PREDICT = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/warp_rgb_predict/'
@@ -29,7 +31,7 @@ IMAGE_PATH_PREDICT = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-I
 SAVE_PATH_FIGURES = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/figures/'
 IMAGE_PATH_EDGES = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/dataset/img_edges/'
 
-IMAGE_RGB_DIR = "E:/Raw KITTI Dataset/"
+IMAGE_RGB_DIR = "D:/Datasets/Raw KITTI Dataset/"
 
 """
 DIRECTORY FOR LAPTOP
@@ -52,6 +54,10 @@ DIRECTORY FOR LAPTOP
 
 IMAGE_W = 1242; IMAGE_H = 375
 WARP_W = 1442; WARP_H = 575
+
+#IMAGE_W = 769; IMAGE_H = 512
+
+PLACES_W = 969; PLACES_H = 712
 
 PADDING_CONSTANT = 100
 

@@ -26,6 +26,9 @@ def convert_to_opencv(img_tensor):
 #loads an image compatible with opencv
 def load_image(file_path):
     img = cv2.imread(file_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) 
+    if(img is not None):
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) 
+    else:
+        print("Image ",file_path, " not found.")
     return img
     

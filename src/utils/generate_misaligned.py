@@ -193,10 +193,17 @@ def batch_iterative_warp():
         img = cv2.imread(rgb_list[i])
         perform_iterative_warp(img)
 
-def generate_single_data(img):
+def generate_single_data(image_name, img):
     
-    x_ratio = 0.0; y_ratio = 0.0; z_ratio = 1.0; kp_count = 0
-    while(x_ratio < 0.8 or y_ratio < 0.8 or z_ratio < 0.65 or kp_count < 600):
+    x_ratio = 0.0; y_ratio = 0.0; z_ratio = 1.0; kp_count = 0; limit = 0; HARD_LIMIT = 100
+    #x_ratio < 0.8 or y_ratio < 0.8 or z_ratio < 0.65 or kp_count < 600
+    
+    result = img
+    M = np.zeros((3,3)); M[0,0] = 1.0; M[1,1] = 1.0; M[2,2] = 1.0
+    inverse_M = np.linalg.inv(M)
+    
+    while(limit < HARD_LIMIT and (x_ratio < 0.4 or y_ratio < 0.4 or z_ratio < 0.35 or kp_count < 500)):
+        limit = limit + 1
         result, M, inverse_M = perform_warp(img)
         threshold = 1
         gray = cv2.cvtColor(result,cv2.COLOR_BGR2GRAY)
@@ -218,16 +225,12 @@ def generate_single_data(img):
         kp = orb.detect(crop_img,None)
         kp, des = orb.compute(crop_img, kp)
         kp_count = np.shape(kp)[0]
-        #print("Keypoint shape: ", kp_count)
+        print("Name: ", image_name, x_ratio, y_ratio, z_ratio, kp_count)
     
-    #reconfigure M
-    # print("Old M: ", M)
-    # M[0,0] = x_ratio
-    # M[1,1] = y_ratio
-    # print("New M: ", M)
-    # inverse_M = np.linalg.inv(M)
-    #print("Ratio X:", x_ratio, " Ratio Y: ", y_ratio, "Ratio Z: ", z_ratio, "Offset X: ", x, " Y: ", y)
-    return result, M, inverse_M, crop_img
+    if(limit < HARD_LIMIT):
+        return result, M, inverse_M, crop_img
+    else:
+        return None, None, None, None
     
 def check_generate_data():
     rgb_list = retrieve_kitti_rgb_list();
@@ -238,7 +241,8 @@ def check_generate_data():
     
     for i in range(5):
         img = cv2.imread(rgb_list[i])
-        result, M, inverse_M, crop_img = generate_single_data(img)      
+        image_name = rgb_list[i].split("/")[2].split(".")[0]
+        result, M, inverse_M, crop_img = generate_single_data(image_name, img)      
         reverse_img = perform_unwarp(crop_img, inverse_M)
 
         f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1)
@@ -268,39 +272,48 @@ def check_generate_data():
         
     wdv.visualize_M_list(M_list)
 
-def generate_unseen_samples(repeat):
-    rgb_list = retrieve_unseen_list();
-    print("Unseen images found: ", rgb_list)
-    count = 0
-    for i in range(np.size(rgb_list)): 
-        img = cv2.imread(rgb_list[i])
-        w,h,a = np.shape(img)
-        #crop image
-        #center_x = int(np.round(h / 2) - 600); center_y =  int(np.round(w / 2) + 1200)
-        #bounds_x =  int(np.round(IMAGE_H / 2)); bounds_y =  int(np.round(IMAGE_W / 2))
-        #box = [center_x - bounds_x, center_y - bounds_y, center_x + bounds_x, center_y + bounds_y]
-        img = img[0:gv.IMAGE_W, 500::]
-        img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
-        
-        for j in range(repeat):
-            result, M, inverse_M = perform_warp(img, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, np.random.rand() * WARP_MULT, WARP_MULT)
-            inverse_M = inverse_M
+def generate_unseen_samples(repeat = 1, offset = 0):
+    rgb_list = retrieve_unseen_list()
+    #rgb_list = retrieve_kitti_rgb_list()
+    num_images = np.size(rgb_list)
+    print("Images found: ", num_images * repeat)
+    
+    index = 0
+    offset_index = index + offset
+    for j in range(repeat):
+        for i in range(np.size(rgb_list)):
+            img = cv2.imread(rgb_list[i])
+            image_name = rgb_list[i].split("/")[2].split(".")[0]
+            result, M, inverse_M, crop_img = generate_single_data(image_name, img) 
+            if(result is None):
+                continue
             
-#            reverse_img = perform_unwarp(result, inverse_M)       
-#            plt.imshow(img)
-#            plt.show()
-#            
-#            plt.imshow(reverse_img)
-#            plt.show()
-#            
-#            difference = img - reverse_img
-#            plt.imshow(difference)
-#            plt.show()
+            reverse_img = perform_unwarp(crop_img, inverse_M)
             
-            cv2.imwrite(gv.SAVE_PATH_UNSEEN_DATA_RGB + "orig_" +str(count)+ ".png", img)
-            cv2.imwrite(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(count)+ ".png", result)
-            np.savetxt(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(count)+ ".txt", inverse_M)
-            count = count + 1
+            img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
+            img = cv2.copyMakeBorder(img, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, gv.PADDING_CONSTANT, cv2.BORDER_CONSTANT,
+                                              value=[255,255,255])
+            result = cv2.resize(result, (gv.WARP_W, gv.WARP_H))
+            #orig_result = perform_padded_warp(img, M)
+            
+            # f, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, sharex=True)
+            # f.set_size_inches(20,25)
+            
+            # ax1.imshow(img)
+            # ax2.imshow(orig_result)
+            # ax3.imshow(crop_img)
+            # ax4.imshow(reverse_img)
+            # plt.show()
+            
+            cv2.imwrite(gv.SAVE_PATH_UNSEEN_DATA_RGB_GT + "crop_" +str(offset_index)+ ".png", reverse_img)
+            cv2.imwrite(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(offset_index)+ ".png", crop_img)
+            np.savetxt(gv.SAVE_PATH_UNSEEN_DATA_WARP + "warp_" +str(offset_index)+ ".txt", M, fmt = "%.8f")
+            if (i % 200 == 0):
+                print("Successfully generated transformed image " ,str(offset_index), ". Saved as train.")
+            
+            index = index + 1
+            offset_index = index + offset
+        print("Finished generating unseen dataset!")
 
 def refine_data(orig_img, result, M, inverse_M, reverse_img, threshold):
    num_edge = wdv.count_edge_from_img(reverse_img)
@@ -364,5 +377,6 @@ def generate(repeat = 1, offset = 0):
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #batch_iterative_warp()
-    check_generate_data() 
+    #check_generate_data() 
     #generate(2, 0)
+    generate_unseen_samples(1)
