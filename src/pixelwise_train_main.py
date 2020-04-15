@@ -12,19 +12,21 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 from loaders import torch_image_loader as loader
 import warping_trainer
+import pixelwise_trainer
 import numpy as np
 
-LR = 0.0001
-num_epochs = 70
-BATCH_SIZE = 8
-CNN_VERSION = "cnn_v4.24"
-CNN_ITERATION = "3"
+LR = 0.001
+num_epochs = 40
+BATCH_SIZE = 2
+CNN_VERSION = "cnn_v5.00"
+CNN_ITERATION = "6"
 OPTIMIZER_KEY = "optimizer"
 
 def start_train(gpu_device):
     #initialize tensorboard writer
     writer = SummaryWriter('train/train_result')
-    ct = warping_trainer.WarpingTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR, weight_decay = 0.0)
+    #ct = warping_trainer.WarpingTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR, weight_decay = 0.0)
+    ct = pixelwise_trainer.PixelwiseTrainer(CNN_VERSION, gpu_device = gpu_device, writer = writer, lr = LR, weight_decay = 0.0)
      
     #checkpoint loading here
     CHECKPATH = 'tmp/' + CNN_VERSION +'.pt'
@@ -38,7 +40,7 @@ def start_train(gpu_device):
         print("Loaded checkpt ",CHECKPATH, "Current epoch: ", start_epoch)
         print("===================================================")
      
-    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = -1)
+    training_dataset = loader.load_dataset(batch_size = BATCH_SIZE, num_image_to_load = 7500)
     test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 100)
     
     for epoch in range(start_epoch, num_epochs):
@@ -46,7 +48,7 @@ def start_train(gpu_device):
         train_ave_loss = 0.0
         val_ave_loss = 0.0
         for batch_idx, (rgb, warp, transform, path) in enumerate(training_dataset):
-            ct.train(warp, transform)
+            ct.train(warp, rgb)
             accum_loss = accum_loss + ct.get_batch_loss()
              
             if(batch_idx % 100 == 0):
@@ -60,19 +62,16 @@ def start_train(gpu_device):
         #perform training inference
         warp_img = ct.get_last_warp_img()
         warp_tensor = ct.get_last_warp_tensor()
-        ground_truth_M = ct.get_last_transform()
-        ground_truth_tensor = ct.get_last_transform_tensor()
+        rgb_img = ct.get_last_rgb_img()
+        rgb_tensor = ct.get_last_rgb_tensor()
         
-        M, loss = ct.infer(warp_tensor, ground_truth_tensor)
-        print("Shape: ", np.shape(M), "M: ", M)
-        visualizer.show_transform_image(warp_img, M_list = M,
-                                    ground_truth_M = ground_truth_M, should_inverse = True,
-                                    should_save = False, current_epoch = epoch, save_every_epoch = 5)
+        pred_img, loss = ct.infer(warp_tensor, rgb_tensor)
+        visualizer.show_transform_image(warp_img, pred_img, rgb_img, False, epoch, 5)
         
         accum_loss = 0.0
         #perform validation test
         for batch_idx, (rgb, warp, transform, path) in enumerate(test_dataset):
-            M, loss = ct.infer(warp, transform)
+            Mpred_img, loss = ct.infer(warp, rgb)
             accum_loss = accum_loss + loss
         
         val_ave_loss = accum_loss / (batch_idx +  1)
@@ -80,13 +79,11 @@ def start_train(gpu_device):
         #perform inference on validation
         warp_img = ct.get_last_warp_img()
         warp_tensor = ct.get_last_warp_tensor()
-        ground_truth_M = ct.get_last_transform()
-        ground_truth_tensor = ct.get_last_transform_tensor()
+        rgb_img = ct.get_last_rgb_img()
+        rgb_tensor = ct.get_last_rgb_tensor()
         
-        M, loss = ct.infer(warp_tensor, ground_truth_tensor)
-        visualizer.show_transform_image(warp_img, M_list = M,
-                                    ground_truth_M = ground_truth_M, should_inverse = True,
-                                    should_save = False, current_epoch = epoch, save_every_epoch = 5)
+        pred_img, loss = ct.infer(warp_tensor, rgb_tensor)
+        visualizer.show_transform_image(warp_img, pred_img, rgb_img, False, epoch, 5)
         
         #train_ave_loss = train_ave_loss.cpu().numpy()
         #val_ave_loss = val_ave_loss.cpu().numpy()

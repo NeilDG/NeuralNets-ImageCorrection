@@ -162,15 +162,12 @@ def show_blind_image_test(rgb, least_squares_img, pred_M, ground_truth_img, imag
 
 #performs inference using training data and visualize results
 def show_transform_image(warped_img, M_list, ground_truth_M, should_inverse, should_save, current_epoch, save_every_epoch):
-    plt.title("Input image")
-    plt.imshow(warped_img)
-    if(should_save and current_epoch % save_every_epoch == 0):
-        plt.savefig(gv.IMAGE_PATH_PREDICT + "/input_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
-    plt.show()
-
-    f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+    f, ax = plt.subplots(3, 1, sharey=True)
     f.set_size_inches(12,10)
     
+    ax[0].set_title("Input image")
+    ax[0].imshow(warped_img)
+   
     pred_M = np.ones((3,3))  
     pred_M[0,0] = M_list[0]
     pred_M[0,1] = M_list[1]
@@ -202,13 +199,31 @@ def show_transform_image(warped_img, M_list, ground_truth_M, should_inverse, sho
     result = cv2.warpPerspective(warped_img, M, (np.shape(warped_img)[1], np.shape(warped_img)[0]),
                                  borderValue = (1,1,1))
     
-    ax1.set_title("Ground truth")
-    ax1.imshow(result)
+    ax[2].set_title("Ground truth")
+    ax[2].imshow(result)
     
     result = cv2.warpPerspective(warped_img, pred_M, (np.shape(warped_img)[1], np.shape(warped_img)[0]),
                                  borderValue = (1,1,1))
-    ax2.set_title("Predicted warp")
-    ax2.imshow(result)
+    ax[1].set_title("Predicted warp")
+    ax[1].imshow(result)
+    
+    if(should_save and current_epoch % save_every_epoch == 0):
+        plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)
+    plt.show()
+
+#performs inference using training data and visualize results
+def show_generated_image(warped_img, pred_img, rgb_img, should_save, current_epoch, save_every_epoch):
+    f, ax = plt.subplots(3, 1, sharey=True)
+    f.set_size_inches(12,10)
+    
+    ax[0].set_title("Input image")
+    ax[0].imshow(warped_img)
+    
+    ax[1].set_title("Generated image")
+    ax[1].imshow(pred_img)
+    
+    ax[2].set_title("Ground truth")
+    ax[2].imshow(rgb_img)
     
     if(should_save and current_epoch % save_every_epoch == 0):
         plt.savefig(gv.IMAGE_PATH_PREDICT + "/result_epoch_"+str(current_epoch)+ ".png", bbox_inches='tight', pad_inches=0)

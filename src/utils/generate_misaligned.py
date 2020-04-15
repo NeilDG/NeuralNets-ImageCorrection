@@ -202,7 +202,7 @@ def generate_single_data(image_name, img):
     M = np.zeros((3,3)); M[0,0] = 1.0; M[1,1] = 1.0; M[2,2] = 1.0
     inverse_M = np.linalg.inv(M)
     
-    while(limit < HARD_LIMIT and (x_ratio < 0.4 or y_ratio < 0.4 or z_ratio < 0.35 or kp_count < 500)):
+    while(limit < HARD_LIMIT and (x_ratio < 0.8 or y_ratio < 0.8 or z_ratio < 0.65 or kp_count < 600)):
         limit = limit + 1
         result, M, inverse_M = perform_warp(img)
         threshold = 1
@@ -338,8 +338,9 @@ def generate(repeat = 1, offset = 0):
     for j in range(repeat):
         for i in range(np.size(rgb_list)): 
             img = cv2.imread(rgb_list[i])
+            image_name = rgb_list[i].split("/")[4].split(".")[0]
             
-            result, M, inverse_M, crop_img = generate_single_data(img)      
+            result, M, inverse_M, crop_img = generate_single_data(image_name, img)      
             reverse_img = perform_unwarp(crop_img, inverse_M)
             
             img = cv2.resize(img, (gv.IMAGE_W, gv.IMAGE_H)) 
@@ -377,6 +378,6 @@ def generate(repeat = 1, offset = 0):
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #batch_iterative_warp()
-    #check_generate_data() 
-    #generate(2, 0)
-    generate_unseen_samples(1)
+    check_generate_data() 
+    generate(2, 0)
+    #generate_unseen_samples(1)
