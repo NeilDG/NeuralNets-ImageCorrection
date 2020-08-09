@@ -1,1 +1,1 @@
-# NeuralNets-ImageDepthExperiment
+# NeuralNets-ImageCorrection
