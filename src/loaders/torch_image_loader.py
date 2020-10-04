@@ -115,7 +115,7 @@ def load_dataset(batch_size = 8, num_image_to_load = -1):
         train_dataset,
         batch_size=batch_size,
         num_workers=4,
-        shuffle=True
+        shuffle=False
     )
     
     return train_loader

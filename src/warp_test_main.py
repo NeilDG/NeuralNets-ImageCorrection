@@ -34,9 +34,9 @@ def start_test(gpu_device):
  
     print("Loaded checkpt ",CHECKPATH)
     
-    #test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
+    test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
     
-    test_dataset = loader.load_unseen_dataset(BATCH_SIZE, 1900)
+    #test_dataset = loader.load_unseen_dataset(BATCH_SIZE, 1900)
     #compute_dataset_mean(test_dataset)
     measure_performance(gpu_device, ct, test_dataset)
     #check_on_unseen_data(gpu_device, ct)
@@ -112,12 +112,13 @@ def measure_performance(gpu_device, trainer, test_dataset):
             matrix_mean = np.reshape(dataset_mean, (3,3))
             matrix_own = np.reshape(M, (3,3))
             chance = np.random.rand() * 100
+            #chance = 0
             
             image_name = path[i].split(".")[0]
-            rrl_1_path = gv.RRL_RESULTS_PATH[2] + image_name + "_m" + ".jpg"
+            rrl_1_path = gv.RRL_RESULTS_PATH[0] + image_name + "_m" + ".jpg"
             rrl_img_1 = tensor_utils.load_image(rrl_1_path)
             
-            rrl_2_path = gv.RRL_RESULTS_PATH[3] + image_name + "_r" + ".png"
+            rrl_2_path = gv.RRL_RESULTS_PATH[1] + image_name + "_r" + ".png"
             rrl_img_2 = tensor_utils.load_image(rrl_2_path)
             
             if(rrl_img_1 is not None and rrl_img_2 is not None):

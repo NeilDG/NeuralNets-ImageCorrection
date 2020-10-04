@@ -120,6 +120,21 @@ class WarpingTrainer:
                         #print("Layer added to tensorboard: ", module_name + '/weights/' +name)
                         self.writer.add_histogram(module_name + '/weights/' +name, param.data, global_step = current_epoch)
 
+    def infer_image(self, warp):
+        warp_gpu = warp.to(self.gpu_device)
+        with torch.no_grad():
+            overall_pred = []
+            for i in range(self.model_length):
+                self.model[i].eval()
+                pred = self.model[i](warp_gpu)
+                #return first prediction
+                overall_pred.append(pred[0, 0].cpu().numpy()) #first NN output
+                overall_pred.append(pred[0, 1].cpu().numpy()) #second NN output
+        
+        #re-arrange
+        overall_pred = [overall_pred[0], overall_pred[2], overall_pred[3], overall_pred[1], overall_pred[4], overall_pred[5]]
+        return overall_pred
+                
     def infer(self, warp, transform):    
         #output preview
         warp_gpu = warp.to(self.gpu_device)

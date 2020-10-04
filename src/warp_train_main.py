@@ -17,7 +17,7 @@ import numpy as np
 LR = 0.0001
 num_epochs = 70
 BATCH_SIZE = 8
-CNN_VERSION = "cnn_v4.24"
+CNN_VERSION = "cnn_v4.23"
 CNN_ITERATION = "3"
 OPTIMIZER_KEY = "optimizer"
 

@@ -17,10 +17,67 @@ from utils import tensor_utils
 import global_vars as gv
 from matplotlib import pyplot as plt
 from visualizers import gradcam
+from torchvision import transforms
 
 BATCH_SIZE = 32
 OPTIMIZER_KEY = "optimizer"
 
+def infer_single(gpu_device):
+    #model loading here
+    ct = warping_trainer.WarpingTrainer(train_main.CNN_VERSION, gpu_device = gpu_device, writer = None, lr = train_main.LR)
+    CHECKPATH = 'D:/Users/delgallegon/Documents/GithubProjects/NeuralNets-ImageDepthExperiment/src/tmp/' + train_main.CNN_VERSION +'.pt'
+    checkpoint = torch.load(CHECKPATH)
+    for i in range(ct.model_length):         
+        ct.load_saved_states(i,checkpoint[ct.get_name() + str(i)], checkpoint[ct.get_name() + OPTIMIZER_KEY + str(i)])
+    
+    INPUT_IMAGE_PATH = "D:/Datasets/NN_Dataset/real_world/samples/4.png"
+    print("Successfully loaded model. Image path:" ,INPUT_IMAGE_PATH)
+    input_img = cv2.imread(INPUT_IMAGE_PATH)
+    input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
+    input_img = cv2.resize(input_img, (gv.WARP_W, gv.WARP_H))
+    generic_transform = transforms.Compose([
+        transforms.ToPILImage(),
+        transforms.ToTensor(),
+    ])
+    input_img_tensor = generic_transform(input_img)
+    input_img_tensor = torch.unsqueeze(input_img_tensor, 0)
+    
+    M = ct.infer_image(input_img_tensor)
+    M = np.insert(M, 2, 0.0)
+    M = np.insert(M, 5, 0.0)
+    M = np.append(M, 1.0)
+    M = np.reshape(M, (3,3))
+    
+    print(M)
+    input_img = tensor_utils.convert_to_matplotimg(input_img_tensor, 0)
+    own_img = cv2.warpPerspective(input_img, np.linalg.inv(M), (gv.WARP_W - 400, gv.WARP_H - 200),borderValue = (1,1,1))
+    
+    RESULTS_PATH = "D:/Datasets/NN_Dataset/real_world/"
+    
+    cv2.imwrite(RESULTS_PATH + "corrected.png", cv2.cvtColor(cv2.convertScaleAbs(own_img, alpha=(255.0)), cv2.COLOR_BGR2RGB))
+        
+    rrl_1_path = "D:/Datasets/NN_Dataset/real_world/results/4_r.png"
+    rrl_img_1 = tensor_utils.load_image(rrl_1_path)
+    rrl_img_1 = cv2.resize(rrl_img_1, (gv.WARP_W, gv.WARP_H)) #because size has changed for RRL img
+     
+    rrl_2_path = "D:/Datasets/NN_Dataset/real_world/results/4_m.jpg"
+    rrl_img_2 = tensor_utils.load_image(rrl_2_path)
+    rrl_img_2 = cv2.resize(rrl_img_2, (gv.WARP_W, gv.WARP_H)) #because size has changed for RRL img
+    
+    fig, ax = plt.subplots(4)
+    fig.set_size_inches(8, 8)
+    for i in range(len(ax)):
+        ax[i].autoscale(True)
+        ax[i].set_axis_off()
+    
+    ax[0].imshow(input_img)
+    ax[1].imshow(rrl_img_1)
+    ax[2].imshow(rrl_img_2)
+    ax[3].imshow(own_img)
+    plt.subplots_adjust(left = 0.06, wspace=0, hspace=0.1)    
+    plt.savefig(RESULTS_PATH + "results.png", bbox_inches='tight', pad_inches=0)
+    plt.show()
+    
 def produce_figures(gpu_device):
     #model loading here
     ct = warping_trainer.WarpingTrainer(train_main.CNN_VERSION, gpu_device = gpu_device, writer = None, lr = train_main.LR)
@@ -30,7 +87,6 @@ def produce_figures(gpu_device):
         ct.load_saved_states(i,checkpoint[ct.get_name() + str(i)], checkpoint[ct.get_name() + OPTIMIZER_KEY + str(i)])
  
     print("Loaded checkpt ",CHECKPATH)
-    
     #test_dataset = loader.load_test_dataset(batch_size = BATCH_SIZE, num_image_to_load = 2000)
     test_dataset = loader.load_unseen_dataset(BATCH_SIZE, 1900)
     dataset_mean = np.loadtxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt")
@@ -112,6 +168,7 @@ def visualize_activation(layers, ct, image_name, input, target):
     plt.savefig(gv.SAVE_PATH_FIGURES + "/" +image_name+ "_activation.png", bbox_inches='tight', pad_inches=0)
     plt.show()
     print("Saved "+image_name+ "_activation.png")
+    
 # Produces a single figure. Image order matters!
 def produce_single_figure(image_name, images):
     fig, ax = plt.subplots(len(images))
@@ -129,7 +186,10 @@ def main():
         print("NVIDIA CUDA is ready! ^_^")
     
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") 
-    produce_figures(device)
+    
+    
+    infer_single(device)
+    #produce_figures(device)
     
     
 if __name__=="__main__": #FIX for broken pipe num_workers issue.

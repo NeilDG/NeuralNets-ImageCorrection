@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 from skimage.measure import compare_ssim
 from skimage.measure import compare_mse
 from skimage.measure import compare_nrmse
+from sklearn.metrics import pairwise
 
 class Counters:
     def __init__(self):
@@ -321,18 +322,19 @@ def measure_ssim(warp_img, rgb_img, matrix_mean, matrix_H, matrix_own, count, sh
 def measure_with_rrl(warp_img_name, warp_img, rrl_img_1, rrl_img_2, rgb_img, matrix_mean, matrix_H, matrix_own, count, should_visualize):
     
     try:
-        # mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-        # h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-        # own_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_own), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
-        # rrl_img_2 = cv2.resize(rrl_img_2, (gv.WARP_W, gv.WARP_H)) #because size has changed for RRL img 2
-        # rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
+        mean_img = cv2.warpPerspective(warp_img, matrix_mean, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        h_img = cv2.warpPerspective(warp_img, matrix_H, (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        own_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_own), (np.shape(warp_img)[1], np.shape(warp_img)[0]),borderValue = (1,1,1))
+        rrl_img_2 = cv2.resize(rrl_img_2, (gv.WARP_W, gv.WARP_H)) #because size has changed for RRL img 2
+        rgb_img = cv2.resize(rgb_img, (gv.WARP_W, gv.WARP_H))
         
         #temporary for unseen dataset
-        mean_img = cv2.warpPerspective(warp_img, matrix_mean, (gv.PLACES_W, gv.PLACES_H), borderValue = (1,1,1))
-        h_img = cv2.warpPerspective(warp_img, matrix_H, (gv.PLACES_W, gv.PLACES_H), borderValue = (1,1,1))
-        own_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_own), (gv.PLACES_W, gv.PLACES_H), borderValue = (1,1,1))
-        rrl_img_2 = cv2.resize(rrl_img_2, (gv.PLACES_W, gv.PLACES_H)) #because size has changed for RRL img 2
-        rgb_img = cv2.resize(rgb_img, (gv.PLACES_W, gv.PLACES_H))
+        # mean_img = cv2.warpPerspective(warp_img, matrix_mean, (gv.PLACES_W, gv.PLACES_H), borderValue = (1,1,1))
+        # h_img = cv2.warpPerspective(warp_img, matrix_H, (gv.PLACES_W, gv.PLACES_H), borderValue = (1,1,1))
+        # own_img = cv2.warpPerspective(warp_img, np.linalg.inv(matrix_own), (gv.PLACES_W, gv.PLACES_H), borderValue = (1,1,1))
+        # rrl_img_2 = cv2.resize(rrl_img_2, (gv.PLACES_W, gv.PLACES_H)) #because size has changed for RRL img 2
+        # rgb_img = cv2.resize(rgb_img, (gv.PLACES_W, gv.PLACES_H))
+        
         #print("Shapes: ", np.shape(warp_img), np.shape(mean_img), np.shape(rgb_img), np.shape(rrl_img_1), np.shape(rrl_img_2), np.shape(h_img), np.shape(own_img))
        
         SSIM = [0.0, 0.0, 0.0, 0.0, 0.0]; MSE = [0.0, 0.0, 0.0, 0.0, 0.0]; RMSE = [0.0, 0.0, 0.0, 0.0, 0.0]
@@ -484,6 +486,40 @@ def visualize_predict_M(predicted_M_list):
     plt.title("Differences of predicted T")
     plt.show()
 
+def visualize_similarity_M(training_list, test_list, predicted_M_list, matrix_mean):
+    X = list(range(0, np.shape(training_list)[0]))
+    Y1 = [] 
+    Y2 = []
+    Y3 = []
+    
+    print(np.shape(training_list), np.shape(test_list), np.shape(predicted_M_list))
+    
+    for i in range(np.shape(training_list)[0]):
+        # print("I: ", i, " Shape: ", np.shape(training_list[i]), np.shape(test_list[i]), np.shape(predicted_M_list[i]),
+        #       np.shape(matrix_mean))
+        train = np.mean(training_list[i]).reshape(-1, 1)
+        test = np.mean(test_list[i]).reshape(-1, 1)
+        predict = np.mean(predicted_M_list[i].reshape(3,3)).reshape(-1, 1)
+        mean = np.mean(matrix_mean.reshape(3,3)).reshape(-1, 1)
+        
+        print(train, test, predict, mean)
+        
+        cos_train = np.round(pairwise.cosine_similarity(train, predict), 5).astype(np.float32)
+        cos_test = np.round(pairwise.cosine_similarity(test, predict), 5).astype(np.float32)
+        cos_mean = np.round(pairwise.cosine_similarity(train, mean), 5).astype(np.float32)
+        
+        print(cos_mean)
+        
+        Y1.append(cos_train)
+        Y2.append(cos_test)
+        Y3.append(cos_mean)
+    
+    plt.scatter(X, Y1, color = "r")
+    plt.scatter(X, Y2, color = "g")
+    plt.scatter(X, Y3, color = "b")
+    #plt.ylim(0.330, 0.340)
+    plt.show()
+    
 def count_edges(warp_data, edge_list, counter):  
     
     for warp_tensor in warp_data:
@@ -546,7 +582,8 @@ def visualize_edge_count(train_edge_list, test_edge_list, should_save, filename 
     plt.show()
   
 def main():
-    all_transforms = []
+    train_transforms = []
+    test_transforms = []
     predict_transforms = []
     train_warp_list = []
     test_warp_list = []
@@ -562,7 +599,7 @@ def main():
     
     for batch_idx, (rgb, warp, transform, path) in enumerate(loader.load_dataset(batch_size = 32, num_image_to_load = 500)):
         for t in transform:
-            all_transforms.append(t.numpy())
+            train_transforms.append(t.numpy())
             
         for warp_img in warp:
             train_warp_list.append(warp_img)
@@ -575,13 +612,11 @@ def main():
         train_warp_list.clear();
         train_rgb_list.clear();
     
-    visualize_transform_M(all_transforms, "training set", "g")
-    all_transforms.clear()
-    all_transforms = []
+    #visualize_transform_M(train_transforms, "training set", "g")
         
     for batch_idx, (rgb, warp, transform, path) in enumerate(loader.load_test_dataset(batch_size = 64, num_image_to_load = 500)):
         for t in transform:
-            all_transforms.append(t.numpy())
+            test_transforms.append(t.numpy())
         
         for warp_img in warp:
             test_warp_list.append(warp_img)
@@ -594,17 +629,18 @@ def main():
         test_warp_list.clear();
         test_rgb_list.clear();
     
-    visualize_transform_M(all_transforms, "test set", "b")
-    all_transforms.clear()
-    all_transforms = []
+    #visualize_transform_M(test_transforms, "test set", "b")
     
     predict_list_files = retrieve_predict_warp_list()
     for pfile in predict_list_files:
         predict_transforms.append(np.loadtxt(pfile))
     
     
-    visualize_predict_M(predict_transforms)
-    plt.show();
+    #visualize_predict_M(predict_transforms)
+        
+    dataset_mean = np.loadtxt(gv.IMAGE_PATH_PREDICT + "dataset_mean.txt")
+    visualize_similarity_M(train_transforms, test_transforms, predict_transforms, dataset_mean)
+    plt.show()
     #visualize_edge_count(train_warp_edge_list, test_warp_edge_list, True, "warp_edge_dist")
     #visualize_edge_count(train_rgb_edge_list, test_rgb_edge_list, True, "test_edge_dist")
     

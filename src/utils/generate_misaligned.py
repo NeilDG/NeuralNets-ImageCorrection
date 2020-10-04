@@ -56,12 +56,14 @@ def perform_warp(img):
     pts2 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
     M = cv2.getPerspectiveTransform(pts1, pts2)
     
-    M[0,0] = np.random.uniform(0.8, 1.2)
-    M[1,1] = np.random.uniform(0.8, 1.2)
-    M[0,1] = np.random.uniform(-0.009, 0.009)
-    M[1,0] = np.random.uniform(-0.009, 0.009)
-    M[2,0] = np.random.uniform(-0.00075, 0.00075)
-    M[2,1] = np.random.uniform(-0.00075, 0.00075)
+    M[0,0] = np.random.uniform(0.8, 1.2) * 2.0
+    M[1,1] = np.random.uniform(0.8, 1.2) * 2.0
+    #M[0,1] = np.random.uniform(-0.009, 0.009) * 2.0
+    #M[1,0] = np.random.uniform(-0.009, 0.009) * 2.0
+    M[0,1] = np.random.uniform(-1.0, 1.0)
+    M[1,0] = np.random.uniform(-1.0, 1.0)
+    M[2,0] = np.random.uniform(-0.00075, 0.00075) * 2.0
+    M[2,1] = np.random.uniform(-0.00075, 0.00075) * 2.0
     result = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]))
     inverse_M = np.linalg.inv(M)
     
@@ -86,17 +88,17 @@ def perform_iterative_warp(img):
     pts1 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
     pts2 = np.float32([[0,0],[x_dim,0],[0,y_dim], [x_dim, y_dim]])
     M = cv2.getPerspectiveTransform(pts1, pts2)
+    M = np.round(M, 7)
     print("Original M: ", M)
 
     upper_bounds = M
-    M[1,0] = 0
     result_img = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]), borderValue = (0,0,0))
     plt.imshow(result_img)
     plt.show()  
     
     for i in range(30):
-        M[1,0] = M[1,0] + 0.0333
-        print(M[1,0])
+        M[2,0] = M[2,0] + 0.0001
+        print(np.round(M, 7))
         result_img = cv2.warpPerspective(padded_image, M, (padded_dim[1], padded_dim[0]), borderValue = (0,0,0))
         plt.imshow(result_img)
         plt.show()  
@@ -259,8 +261,8 @@ def check_generate_data():
         #ax4.set_title("Original image") 
         ax4.imshow(img); plt.show()
         
-        difference = np.abs(img - reverse_img)
-        plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
+        #difference = np.abs(img - reverse_img)
+        #plt.title("Image difference between orig and recovered"); plt.imshow(difference); plt.show()
         
         #print(M)
         M_list.append(M[0,0])
@@ -378,6 +380,6 @@ def generate(repeat = 1, offset = 0):
 if __name__=="__main__": #FIX for broken pipe num_workers issue.
     #Main call
     #batch_iterative_warp()
-    check_generate_data() 
-    generate(2, 0)
+    #check_generate_data() 
+    generate(1, 0)
     #generate_unseen_samples(1)
